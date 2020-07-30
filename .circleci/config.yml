@@ -122,7 +122,7 @@ jobs:
       - slack/status:
           fail_only: false
 
-  push-to-s3:
+  push-charms-to-s3:
     executor: aws-cli/default
     steps:
       - checkout

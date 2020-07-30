@@ -1,6 +1,7 @@
 .tox/
 *.snap
 *.resource
+*.charm
 venv
 out
 build

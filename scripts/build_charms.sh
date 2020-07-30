@@ -3,7 +3,6 @@
 set -eux
 
 mkdir build/
-mkdir out/
 
 if ! [[ -f requirements.txt ]]; then
     echo "Missing reuirements.txt"
@@ -42,7 +41,7 @@ EOF
     ln -s ../dispatch upgrade-charm
 
     cd ../ && \
-         zip --symlinks -r ../../out/$charm.charm * && \
+         zip --symlinks -r ../../$charm.charm * && \
     cd ../../
 
 done

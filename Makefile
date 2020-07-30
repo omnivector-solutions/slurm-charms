@@ -12,7 +12,7 @@ charms: clean
 	@./scripts/build_charms.sh
 
 pull-classic-snap:
-	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap
+	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm_snap.resource
 
 push-charms-to-edge:
 	@./scripts/push_charms.sh edge

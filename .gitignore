@@ -1,4 +1,6 @@
 .tox/
+*.snap
+*.resource
 venv
 out
 build

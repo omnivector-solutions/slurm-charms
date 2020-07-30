@@ -12,6 +12,8 @@ tags:
 
 series:
     - focal
+    - bionic
+    - centos7
 
 requires:
   slurmdbd:

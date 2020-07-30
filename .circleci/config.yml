@@ -1,0 +1,143 @@
+version: 2.1
+
+orbs:
+  aws-cli: circleci/aws-cli@1.2.1
+  slack: circleci/slack@3.4.2
+
+workflows:
+  test-build-deploy:
+    jobs:
+      - lint-charms:
+          context: aws
+      - build-and-deploy-charms-on-lxd:
+          context: aws
+          requires:
+            - lint-charms
+      - push-charms-to-s3:
+          context: aws
+          requires:
+            - build-and-deploy-charms-on-lxd
+
+jobs:
+  lint-charms:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - run:
+          name: Install tox
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y tox
+      - run:
+          command: make lint
+      - slack/status:
+          fail_only: false
+
+  build-and-deploy-charms-on-lxd:
+    machine:
+      image: ubuntu-1604:202004-01
+    steps:
+      - checkout
+
+      - run:
+          name: "Install snapd"
+          command: |
+            sudo apt-get update
+            sudo apt-get install --only-upgrade -y snapd
+
+      - run:
+          name: "Install charmcraft"
+          command: |
+            sudo snap install charmcraft --beta
+
+      - run:
+          name: "Build charms"
+          command: |
+            make charms
+
+      - run:
+          name: "Install LXD"
+          command: |
+            sudo apt-get purge lxd lxd-client lxcfs
+            sudo snap install lxd
+            sudo lxd init --auto
+            sleep 5
+            sudo /snap/bin/lxd.lxc network set lxdbr0 ipv6.address none
+
+      - run:
+          name: "Install Juju"
+          command: |
+            sudo apt-get purge juju
+            sudo snap install juju --classic
+
+      - run:
+          name: "Install juju-wait"
+          command: |
+            sudo snap install juju-wait --classic
+
+      - run:
+          name: "Bootstrap Juju"
+          command: |
+            /snap/bin/juju bootstrap localhost
+
+      - run:
+          name: "Pull classic slurm snap from github"
+          command: |
+            make pull-classic-snap
+
+      - run:
+          name: "Deploy slurm charms using the slurm snap resource on Bionic"
+          command: |
+            /snap/bin/juju deploy ./slurmd.charm --series bionic slurmd-bionic --resource slurm=./slurm_20.02.1_amd64_classic.snap
+            /snap/bin/juju deploy ./slurmctld.charm --series bionic slurmctld-bionic --resource slurm=./slurm_20.02.1_amd64_classic.snap
+            /snap/bin/juju deploy ./slurmdbd.charm --series bionic slurmdbd-bionic --resource slurm=./slurm_20.02.1_amd64_classic.snap
+            /snap/bin/juju deploy percona-cluster --series bionic
+            /snap/bin/juju relate slurmdbd mysql
+            /snap/bin/juju relate slurmctld slurmdbd
+            /snap/bin/juju relate slurmctld slurmd
+
+     # TODO: (jamesbeedy)
+     # LXD running on this 16.04 image seems to be having issues deploying a focal container
+     # leave this commented out until we find a fix.
+     #- run:
+     #     name: "Deploy Slurm on Focal"
+     #     command: |
+     #       /snap/bin/juju deploy ./slurm-all.charm --series focal slurm-all-focal --force
+     #       /snap/bin/juju-wait
+      - run:
+          name: "Wait for deployment status"
+          command: |
+            export PATH=$PATH:/snap/bin
+            /snap/bin/juju-wait
+
+      - save_cache:
+          name: Cache built charms once we validate they successfully deploy.
+          key: built-slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - slurmctld.charm
+            - slurmdbd.charm
+            - slurmd.charm
+
+      - slack/status:
+          fail_only: false
+
+  push-to-s3:
+    executor: aws-cli/default
+    steps:
+      - checkout
+
+      - aws-cli/setup:
+          profile-name: default
+
+      - restore_cache:
+          name: Restore the charms from the cache to be pushed to s3
+          key: built-slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
+
+      - run:
+          name: "Push charms to s3"
+          command: |
+            make push-charms-to-edge
+
+      - slack/status:
+          fail_only: false

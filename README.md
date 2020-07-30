@@ -6,8 +6,9 @@ This is the home of the slurm charms.
 To build all of the slurm charms, from the root of this project run, `make charms`.
 The successfull execution of this command will produce built `.charm` files for each charm contained in this repo, and place them in the `out/` directory.
 ```bash
-make charms
-
+$ make charms
+```
+```bash
 $ ls -lah out/
 total 96M
 drwxrwxr-x 2 bdx bdx 4.0K Jul 30 02:38 .

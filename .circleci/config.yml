@@ -89,9 +89,9 @@ jobs:
       - run:
           name: "Deploy slurm charms using the slurm snap resource on Bionic"
           command: |
-            /snap/bin/juju deploy ./slurmd.charm --series bionic --resource slurm=./slurm_snap.resource
-            /snap/bin/juju deploy ./slurmctld.charm --series bionic --resource slurm=./slurm_snap.resource
-            /snap/bin/juju deploy ./slurmdbd.charm --series bionic --resource slurm=./slurm_snap.resource
+            /snap/bin/juju deploy ./out/slurmd.charm --series bionic --resource slurm=./slurm_snap.resource
+            /snap/bin/juju deploy ./out/slurmctld.charm --series bionic --resource slurm=./slurm_snap.resource
+            /snap/bin/juju deploy ./out/slurmdbd.charm --series bionic --resource slurm=./slurm_snap.resource
             /snap/bin/juju deploy percona-cluster --series bionic
             /snap/bin/juju relate slurmdbd percona-cluster
             /snap/bin/juju relate slurmctld slurmdbd
@@ -115,9 +115,9 @@ jobs:
           name: Cache built charms once we validate they successfully deploy.
           key: built-slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - slurmctld.charm
-            - slurmdbd.charm
-            - slurmd.charm
+            - out/slurmctld.charm
+            - out/slurmdbd.charm
+            - out/slurmd.charm
 
       - slack/status:
           fail_only: false

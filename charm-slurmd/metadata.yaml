@@ -1,0 +1,23 @@
+name: slurmd
+summary: Slurmd compute node of The Slurm Workload Scheduler
+maintainers:
+    - Omnivector Solutions <Admin@omnivector.solutions>
+description: |
+    A nice long description of what the product does and any
+    high level information about how the charm provides the product,
+    on which platform, etc.
+tags:
+    - slurm
+series:
+    - focal
+
+
+provides:
+  slurmd:
+    interface: slurmd
+
+resources:
+  slurm:
+    type: file
+    filename: slurm.resource
+    description: slurm tarbal

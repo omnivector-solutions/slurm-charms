@@ -1,0 +1,14 @@
+options:
+  slurmdbd_debug:
+    type: string
+    default: info
+    description: >-
+      "The level of detail to provide slurmdbd daemon's logs. The default value
+      is info. If the slurmdbd daemon is initiated with -v or --verbose
+      options, that debug level will be preserve or restored upon
+      reconfiguration."
+options:
+  snap-store-channel:
+    type: string
+    description: snap store channel to install slurm snap from
+    default: "stable"

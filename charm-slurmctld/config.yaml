@@ -1,0 +1,24 @@
+options:
+  custom_config:
+    type: string
+    description: >-
+      'User supplied slurm confinguration'
+    default: |
+      ProctrackType=proctrack/linuxproc
+  clustername:
+    type: string
+    default: cluster1
+    description: >-
+      Name to be recorded in database for jobs from this cluster.  This is
+      important if a single database is used to record information  from
+      multiple Slurm-managed clusters.
+  node_weight_criteria:
+    type: string
+    default: none
+    description: >-
+            "What type of node criteria to use for setting weights on nodes.
+            By default all nodes have Weight=1. When it is preferable to
+            allocate for example smaller memory nodes for smaller jobs, low
+            weights should be assigned to smaller nodes. Setting this charm
+            option will automatically order and weigh the nodes in ascending
+            order. Allowed values are RealMemory, CPUs and CoresPerSocket."

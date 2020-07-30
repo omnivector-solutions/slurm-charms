@@ -1,0 +1,22 @@
+options:
+  partition:
+    type: string
+    default: partition1
+    description: >-
+      'Name by which the partition may be referenced (e.g. "Interactive"). This
+      name can be specified by users when submitting jobs. If the PartitionName
+      is "DEFAULT", the values specified with that record will apply to
+      subsequent partition specifications unless explicitly set to other values
+      in that partition record or replaced with a different set of default
+      values. Each line where PartitionName is "DEFAULT" will replace or add to
+      previous default values and not a reinitialize the default values.'
+  default:
+    type: boolean
+    default: False
+    description: >-
+      'If this is True, jobs submitted without a partition specification
+      will utilize this partition.'
+  snap-store-channel:
+    type: string
+    description: snap store channel to install slurm snap from
+    default: "stable"

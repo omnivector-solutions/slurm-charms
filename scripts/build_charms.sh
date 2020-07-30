@@ -41,8 +41,7 @@ EOF
     ln -s ../dispatch start
     ln -s ../dispatch upgrade-charm
     cd ../../../
-    ./scripts/create_charm_zip.py build/$dir $charm
-done
 
-# clean up
-rm -rf out/venv
+    cd build/$dir/ && zip --symlinks -r ../../out/$charm.charm * && cd ../../
+
+done

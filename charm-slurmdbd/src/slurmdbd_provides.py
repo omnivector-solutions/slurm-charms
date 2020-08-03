@@ -2,6 +2,8 @@
 """SlurmdbdProvidesRelation."""
 import logging
 import socket
+
+
 from ops.framework import (
     EventBase,
     EventSource,
@@ -67,6 +69,7 @@ class SlurmdbdProvidesRelation(Object):
         )
 
     def set_slurmdbd_available_on_unit_relation_data(self, slurmdbd_available):
+        """Set slurmdbd_available."""
         slurmdbd_relations = self.framework.model.relations['slurmdbd']
         # Iterate over each of the relations setting the slurmdbd_available on each.
         for relation in slurmdbd_relations:
@@ -99,7 +102,6 @@ class SlurmdbdProvidesRelation(Object):
         """Emit the slurmctld_unavailable event when the relation is broken."""
         self._state.munge_key_available = False
         self.on.slurmctld_unavailable.emit()
-
 
     @property
     def munge_key(self):

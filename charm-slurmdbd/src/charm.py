@@ -1,6 +1,9 @@
-#! /usr/bin/env python3
+#!/usr/bin/python3
 """Slurmdbd Operator Charm."""
+import logging
 import socket
+
+
 from interface_mysql import MySQLClient
 from ops.charm import CharmBase
 from ops.framework import StoredState
@@ -9,13 +12,13 @@ from ops.model import (
     ActiveStatus,
     BlockedStatus,
 )
-import logging
-
 from slurm_ops_manager import SlurmOpsManager
-
 from slurmdbd_provides import SlurmdbdProvidesRelation
 
+
 logger = logging.getLogger()
+
+
 class SlurmdbdCharm(CharmBase):
     """Slurmdbd Charm Class."""
 

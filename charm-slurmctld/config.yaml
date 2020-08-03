@@ -1,17 +1,21 @@
 options:
-  custom_config:
-    type: string
-    description: >-
-      'User supplied slurm confinguration'
-    default: |
-      ProctrackType=proctrack/linuxproc
-  clustername:
+  cluster_name:
     type: string
     default: cluster1
     description: >-
-      Name to be recorded in database for jobs from this cluster.  This is
+      'Name to be recorded in database for jobs from this cluster.  This is
       important if a single database is used to record information  from
-      multiple Slurm-managed clusters.
+      multiple Slurm-managed clusters.'
+  custom_config:
+    type: string
+    default: ""
+    description: >-
+      'User supplied slurm confinguration'
+  proctrack_type:
+    type: string
+    default: proctrack/linuxproc
+    description: >-
+      'Identifies the plugin to be used for process tracking on a job step basis.'
   node_weight_criteria:
     type: string
     default: none

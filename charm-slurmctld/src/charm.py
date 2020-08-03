@@ -2,6 +2,7 @@
 """libraries needed for charm."""
 import logging
 
+
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import (
@@ -10,7 +11,6 @@ from ops.model import (
     WaitingStatus,
 )
 from slurm_ops_manager import SlurmOpsManager
-
 from slurmd_requires import SlurmdRequires
 from slurmdbd_requires import SlurmdbdRequiresRelation
 

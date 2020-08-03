@@ -30,7 +30,8 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y tox
       - run:
-          command: exit 0 #make lint
+          command: |
+            make lint
       - slack/status:
           fail_only: false
 

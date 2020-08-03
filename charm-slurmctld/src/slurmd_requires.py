@@ -109,9 +109,10 @@ class SlurmdRequires(Object):
                 nodes_info.append({
                     'ingress_address': relation.data[unit]['ingress-address'],
                     'hostname': relation.data[unit]['hostname'],
-                    'partition': relation.data[unit]['partition'],
                     'inventory': relation.data[unit]['inventory'],
-                    'default': relation.data[unit]['default'],
+                    'partition_name': relation.data[unit]['partition_name'],
+                    'partition_config': relation.data[unit]['partition_config'],
+                    'partition_default': relation.data[unit]['partition_default'],
                 })
         return nodes_info
 

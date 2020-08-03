@@ -61,8 +61,8 @@ class SlurmdRequires(Object):
 
     def _on_relation_created(self, event):
         unit_data = event.relation.data[self.model.unit]
-        self._state.slurmd_acquired = True
         self._state.ingress_address = unit_data['ingress-address']
+        self._state.slurmd_acquired = True
 
     def _on_relation_changed(self, event):
         slurmdbd_acquired = self.charm.slurmdbd.slurmdbd_acquired
@@ -93,9 +93,10 @@ class SlurmdRequires(Object):
         """Parse the node_data and return the hosts -> partition mapping."""
         part_dict = collections.defaultdict(dict)
         for node in self._slurmd_node_data:
-            part_dict[node['partition']].setdefault('hosts', [])
-            part_dict[node['partition']]['hosts'].append(node['hostname'])
-            part_dict[node['partition']]['default'] = node['default']
+            part_dict[node['partition_name']].setdefault('hosts', [])
+            part_dict[node['partition_name']]['hosts'].append(node['hostname'])
+            part_dict[node['partition_name']]['partition_default'] = node['partition_default']
+            part_dict[node['partition_name']]['partition_config'] = node['partition_config']
         return dict(part_dict)
 
     @property

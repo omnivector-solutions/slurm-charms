@@ -1,7 +1,7 @@
 options:
   partition-default:
     type: boolean
-    default: False
+    default: false
     description: >-
       'If this is True, jobs submitted without a partition specification
       will utilize this partition.'
@@ -16,7 +16,7 @@ options:
       in that partition record or replaced with a different set of default
       values. Each line where PartitionName is "DEFAULT" will replace or add to
       previous default values and not a reinitialize the default values.'
- partition-config:
+  partition-config:
     type: string
     default: ""
     description: >-

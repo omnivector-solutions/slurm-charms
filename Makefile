@@ -16,6 +16,9 @@ charms:
 pull-classic-snap:
 	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm_snap.resource
 
+pull-slurm-tar-resource-from-s3:
+	@aws s3 cp s3://omnivector-slurm-resoruces/slurm-tar/20.02.3/slurm.tar.gz slurm_tar.resource
+
 push-charms-to-edge:
 	@./scripts/push_charms.sh edge
 

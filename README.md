@@ -9,19 +9,11 @@ The successfull execution of this command will produce built `.charm` files for 
 $ make charms
 ```
 ```bash
-$ ls -lah
-total 96M
-drwxrwxr-x 2 bdx bdx 4.0K Jul 30 02:38 .
-drwxrwxr-x 9 bdx bdx 4.0K Jul 30 02:38 ..
--rw-rw-r-- 1 bdx bdx  32M Jul 30 02:38 slurmctld.charm
--rw-rw-r-- 1 bdx bdx  32M Jul 30 02:38 slurmdbd.charm
--rw-rw-r-- 1 bdx bdx  32M Jul 30 02:38 slurmd.charm
+$ ls -lah *.charm
+-rw-rw-r-- 1 bdx bdx 581K Aug  3 15:22 slurmctld.charm
+-rw-rw-r-- 1 bdx bdx 584K Aug  3 15:22 slurmdbd.charm
+-rw-rw-r-- 1 bdx bdx 580K Aug  3 15:22 slurmd.charm
 ```
-
-What is happening behind the scenes you ask?
-
-The build scripts generate a python environment using the manylinux docker image and distribute that virtualenv
-to the charms prior to building the charms themselves.
 
 #### Copyright
 * OmniVector Solutions <admin@omnivector.solutions>

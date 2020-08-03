@@ -9,7 +9,7 @@ The successfull execution of this command will produce built `.charm` files for 
 $ make charms
 ```
 ```bash
-$ ls -lah out/
+$ ls -lah
 total 96M
 drwxrwxr-x 2 bdx bdx 4.0K Jul 30 02:38 .
 drwxrwxr-x 9 bdx bdx 4.0K Jul 30 02:38 ..

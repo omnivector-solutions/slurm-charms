@@ -8,8 +8,11 @@ description: |
     on which platform, etc.
 tags:
     - slurm
+
 series:
     - focal
+    - bionic
+    - centos7
 
 
 provides:

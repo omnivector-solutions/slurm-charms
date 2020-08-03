@@ -1,3 +1,5 @@
+export PATH := /snap/bin:$(PATH)
+
 # TARGETS
 lint: ## Run linter
 	tox -e lint
@@ -5,14 +7,14 @@ lint: ## Run linter
 clean: ## Remove .tox and build dirs
 	rm -rf .tox/
 	rm -rf venv/
-	rm -rf build/
-	rm -rf out/
 
-charms: clean
-	@./scripts/build_charms.sh
+charms:
+	@charmcraft build --from charm-slurmd
+	@charmcraft build --from charm-slurmctld
+	@charmcraft build --from charm-slurmdbd
 
 pull-classic-snap:
-	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap
+	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm_snap.resource
 
 push-charms-to-edge:
 	@./scripts/push_charms.sh edge

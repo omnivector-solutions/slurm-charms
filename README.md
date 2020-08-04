@@ -1,6 +1,7 @@
 # Slurm Charms
 This is the home of the slurm charms.
 
+## Deployment
 
 ## Build
 To build all of the slurm charms, from the root of this project run, `make charms`.

@@ -41,6 +41,18 @@ deploy-focal-bundle-from-local-with-tar: pull-slurm-tar ## Deploy focal lxd bund
 	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
 
 
+deploy-centos7-bundle-from-local-with-snap: pull-classic-snap charms ## Deploy focal aws bundle using the slurm snap and local charms
+	@juju deploy ./bundles/slurm-core-centos7-aws/bundle.yaml
+
+
+deploy-centos7-bundle-from-edge-with-snap: pull-classic-snap pull-charms-from-edge ## Deploy focal lxd bundle using the slurm snap and edge charms
+	@juju deploy ./bundles/slurm-core-centos7-aws/bundle.yaml
+
+deploy-centos7-bundle-from-edge-with-tar: pull-slurm-tar pull-charms-from-edge ## Deploy focal lxd bundle using localally built charms and snap
+	@juju deploy ./bundles/slurm-core-centos7-aws/bundle.yaml
+
+
+
 # Display target comments in 'make help'
 help: 
 	grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'

@@ -64,7 +64,7 @@ class SlurmdRequires(Object):
         self.charm.set_slurmd_available(True)
 
     def _on_relation_changed(self, event):
-        slurmdbd_acquired = self.charm.is_slrumdbd_available()
+        slurmdbd_acquired = self.charm.is_slurmdbd_available()
         slurmctld_ingress_address = self._state.ingress_address
 
         if (slurmdbd_acquired and slurmctld_ingress_address):

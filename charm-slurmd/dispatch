@@ -19,10 +19,10 @@ if ! [[ -f '.installed' ]]; then
 	major=$(cat /etc/centos-release | tr -dc '0-9.'|cut -d \. -f1)
         echo "Running centos$major, installing prereqs."
 	if [[ $major == "7" ]]; then
-            yum -y install python3 chrony
 	    yum -y install epel-release
-            yum -y install yum-plugin-copr
-	    yum -y copr enable ngompa/snapcore-el7
+            yum -y install python3 chrony
+	    yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+	    yum -y --enablerepo=epel-testing install snapd
 	elif [[ $major == "8" ]]; then
 	    dnf -y install python3 chrony
             dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
@@ -38,6 +38,7 @@ if ! [[ -f '.installed' ]]; then
         if ! [ -e '/snap' ]; then
           ln -s /var/lib/snapd/snap /snap
         fi
+
     else
         echo "Running unsuppored os: $ID"
         exit -1

@@ -1,7 +1,9 @@
 """requires interface for slurmctld."""
+from base64 import b64encode
 import collections
 import json
 import logging
+from pathlib import Path
 import socket
 
 
@@ -45,6 +47,8 @@ class SlurmdRequires(Object):
         self.charm = charm
         self._relation_name = relation_name
 
+        self._MUNGE_KEY_PATH = Path("/var/snap/slurm/common/etc/munge/munge.key")
+
         self._state.set_default(ingress_address=None)
 
         self.framework.observe(
@@ -70,8 +74,8 @@ class SlurmdRequires(Object):
         slurmctld_ingress_address = self._state.ingress_address
 
         if (slurmdbd_acquired and slurmctld_ingress_address):
-            slurm_config = json.dumps(self.get_slurm_config())
-            event.relation.data[self.model.app]['slurm_config'] = slurm_config
+            self._set_slurm_config_on_app_relation_data()
+            self.charm.set_slurmd_available(True)
             self.on.slurmd_available.emit()
         else:
             self.charm.unit.status = BlockedStatus("Need relation to slurmdbd")
@@ -112,7 +116,12 @@ class SlurmdRequires(Object):
                 })
         return nodes_info
 
-    def set_slurm_config_on_app_relation_data(self):
+    def _get_munge_key(self) -> str:
+        """Read, encode, decode and return the munge key."""
+        munge_key = self._MUNGE_KEY_PATH.read_bytes()
+        return b64encode(munge_key).decode()
+
+    def _set_slurm_config_on_app_relation_data(self):
         """Set the slurm_conifg to the app data on the relation.
 
         Setting data on the relation forces the units of related applications
@@ -120,12 +129,12 @@ class SlurmdRequires(Object):
         render the updated slurm_config.
         """
         slurmd_relations = self.framework.model.relations['slurmd']
-        slurm_config = json.dumps(self.get_slurm_config())
+        slurm_config = json.dumps(self._get_slurm_config())
         # Iterate over each of the relations setting the slurm_config on each.
         for relation in slurmd_relations:
             relation.data[self.model.app]['slurm_config'] = slurm_config
 
-    def get_slurm_config(self):
+    def _get_slurm_config(self):
         """Assemble and return the slurm_config."""
         slurmdbd_acquired = self.charm.is_slurmdbd_available()
         slurmctld_ingress_address = self._state.ingress_address
@@ -147,7 +156,7 @@ class SlurmdRequires(Object):
             'slurmdbd_ingress_address': slurmdbd_info['ingress_address'],
             'active_controller_hostname': slurmctld_hostname,
             'active_controller_ingress_address': slurmctld_ingress_address,
-            'active_controller_port': self.charm.slurm_ops_manager.port,
-            'munge_key': self.charm.slurm_ops_manager.get_munge_key(),
+            'active_controller_port': "6817",
+            'munge_key': self._get_munge_key(),
             **self.model.config,
         }

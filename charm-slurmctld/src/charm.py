@@ -79,9 +79,7 @@ class SlurmctldCharm(CharmBase):
         slurm_config = self._stored.slurm_config
         if (slurmdbd_acquired and slurmd_acquired and
                 slurm_installed and slurm_config):
-            self.slurm_ops_manager.render_config_and_restart(
-                self._stored.slurm_config
-            )
+            self.slurm_ops_manager.render_config_and_restart(slurm_config)
             self.unit.status = ActiveStatus("Slurmctld Available")
         else:
             if not slurmdbd_acquired:

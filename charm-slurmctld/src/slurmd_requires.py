@@ -43,7 +43,6 @@ class SlurmdRequires(Object):
         self.charm = charm
         self._relation_name = relation_name
 
-        self._state.set_default(slurmd_acquired=False)
         self._state.set_default(ingress_address=None)
 
         self.framework.observe(
@@ -62,10 +61,10 @@ class SlurmdRequires(Object):
     def _on_relation_created(self, event):
         unit_data = event.relation.data[self.model.unit]
         self._state.ingress_address = unit_data['ingress-address']
-        self._state.slurmd_acquired = True
+        self.charm.set_slurmd_available(True)
 
     def _on_relation_changed(self, event):
-        slurmdbd_acquired = self.charm.slurmdbd.slurmdbd_acquired
+        slurmdbd_acquired = self.charm.is_slrumdbd_available()
         slurmctld_ingress_address = self._state.ingress_address
 
         if (slurmdbd_acquired and slurmctld_ingress_address):
@@ -80,13 +79,8 @@ class SlurmdRequires(Object):
     def _on_relation_broken(self, event):
         """Account for relation broken activity."""
         if len(self.framework.model.relations['slurmd']) < 1:
-            self._state.slurmd_acquired = False
+            self.charm.set_slurmd_available(False)
             self.on.slurmd_unavailable.emit()
-
-    @property
-    def slurmd_acquired(self):
-        """Return a bool from the underlying _state object."""
-        return self._state.slurmd_acquired
 
     @property
     def _partitions(self):
@@ -131,7 +125,7 @@ class SlurmdRequires(Object):
 
     def get_slurm_config(self):
         """Assemble and return the slurm_config."""
-        slurmdbd_acquired = self.charm.slurmdbd.slurmdbd_acquired
+        slurmdbd_acquired = self.charm.is_slurmdbd_available()
         slurmctld_ingress_address = self._state.ingress_address
         slurmctld_hostname = self.charm.slurm_ops_manager.hostname
 
@@ -141,9 +135,7 @@ class SlurmdRequires(Object):
             )
             return {}
 
-        slurmdbd_info = json.loads(
-            self.charm.slurmdbd.get_slurmdbd_info()
-        )
+        slurmdbd_info = dict(self.charm.get_slurmdbd_info())
 
         return {
             'nodes': self._slurmd_node_data,

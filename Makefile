@@ -7,20 +7,27 @@ lint: ## Run linter
 clean: ## Remove .tox and build dirs
 	rm -rf .tox/
 	rm -rf venv/
+	rm -rf *.charm
 
-charms:
+charms: ## Build all charms
 	@charmcraft build --from charm-slurmd
 	@charmcraft build --from charm-slurmctld
 	@charmcraft build --from charm-slurmdbd
 
-pull-classic-snap:
+pull-classic-snap: ## Pull the classic slurm snap from github
 	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm_snap.resource
 
-pull-slurm-tar-resource-from-s3:
+pull-slurm-tar-resource-from-s3: ## Pull the slurm tar resource
 	@aws s3 cp s3://omnivector-slurm-resoruces/slurm-tar/20.02.3/slurm.tar.gz slurm_tar.resource
 
-push-charms-to-edge:
+push-charms-to-edge: ## Push charms to edge s3
 	@./scripts/push_charms.sh edge
+
+pull-charms-from-edge: clean ## pull charms from edge s3
+	@./scripts/pull_charms.sh edge
+
+deploy-focal-bundle-from-edge: pull-charms-from-edge ## Deploy focal lxd bundle
+	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
 
 # Display target comments in 'make help'
 help: 

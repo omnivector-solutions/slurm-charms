@@ -2,6 +2,8 @@
 import collections
 import json
 import logging
+import socket
+
 
 from ops.framework import (
     EventBase,
@@ -127,7 +129,7 @@ class SlurmdRequires(Object):
         """Assemble and return the slurm_config."""
         slurmdbd_acquired = self.charm.is_slurmdbd_available()
         slurmctld_ingress_address = self._state.ingress_address
-        slurmctld_hostname = self.charm.slurm_ops_manager.hostname
+        slurmctld_hostname = socket.gethostname().split(".")[0]
 
         if not (slurmdbd_acquired and slurmctld_ingress_address):
             self.charm.unit.status = BlockedStatus(

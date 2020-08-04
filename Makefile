@@ -29,6 +29,10 @@ pull-charms-from-edge: clean ## pull charms from edge s3
 deploy-focal-bundle-from-edge: pull-charms-from-edge ## Deploy focal lxd bundle
 	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
 
+deploy-focal-bundle-from-local: ## Deploy focal lxd bundle using localally built charms
+	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
+
+
 # Display target comments in 'make help'
 help: 
 	grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'

@@ -76,7 +76,9 @@ class SlurmctldCharm(CharmBase):
         slurmdbd_acquired = self._stored.slurmdbd_available
         slurmd_acquired = self._stored.slurmd_available
         slurm_installed = self._stored.slurm_installed
-        if (slurmdbd_acquired and slurmd_acquired and slurm_installed):
+        slurm_config = self._stored.slurm_config
+        if (slurmdbd_acquired and slurmd_acquired and
+                slurm_installed and slurm_config):
             self.slurm_ops_manager.render_config_and_restart(
                 self._stored.slurm_config
             )

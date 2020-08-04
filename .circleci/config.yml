@@ -145,12 +145,5 @@ jobs:
           command: |
             make push-charms-to-edge
 
-      - run:
-         name: "Move charms to publicly readable bucket"
-         command: |
-           for charm in slurmctld slurmdbd slurmd; do
-             aws s3 cp --recursive s3://omnivector-charms/$charm s3://omnivector-public-assets/charms/$charm --acl public-read
-           done
-
       - slack/status:
           fail_only: false

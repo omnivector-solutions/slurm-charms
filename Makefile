@@ -27,30 +27,35 @@ pull-charms-from-edge: clean ## pull charms from edge s3
 	@./scripts/pull_charms.sh edge
 
 
-deploy-focal-bundle-from-edge-with-snap: pull-classic-snap pull-charms-from-edge ## Deploy focal lxd bundle using the slurm snap and edge charms
+deploy-focal-bundle-on-aws-from-edge-with-snap: pull-classic-snap pull-charms-from-edge ## Deploy focal aws bundle using the slurm snap and edge charms
+	@juju deploy ./bundles/slurm-core-focal-aws/bundle.yaml
+
+deploy-focal-bundle-on-aws-from-edge-with-tar: pull-slurm-tar pull-charms-from-edge ## Deploy focal aws bundle using the slurm tar and edge charms
+	@juju deploy ./bundles/slurm-core-focal-aws/bundle.yaml
+
+
+deploy-focal-bundle-on-lxd-from-edge-with-snap: pull-classic-snap pull-charms-from-edge ## Deploy focal lxd bundle using the slurm snap and edge charms
 	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
 
-deploy-focal-bundle-from-edge-with-tar: pull-slurm-tar pull-charms-from-edge ## Deploy focal lxd bundle using localally built charms and snap
+deploy-focal-bundle-on-lxd-from-edge-with-tar: pull-slurm-tar pull-charms-from-edge ## Deploy focal lxd bundle using localally built charms and snap
 	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
 
 
-deploy-focal-bundle-from-local-with-snap: pull-classic-snap ## Deploy focal lxd bundle using localally built charms and snap
+deploy-focal-bundle-on-lxd-from-local-with-snap: pull-classic-snap ## Deploy focal lxd bundle using localally built charms and snap
 	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
 
-deploy-focal-bundle-from-local-with-tar: pull-slurm-tar ## Deploy focal lxd bundle using localally built charms and slurm.tar.gz
+deploy-focal-bundle-on-lxd-from-local-with-tar: pull-slurm-tar ## Deploy focal lxd bundle using localally built charms and slurm.tar.gz
 	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
 
 
-deploy-centos7-bundle-from-local-with-snap: pull-classic-snap charms ## Deploy focal aws bundle using the slurm snap and local charms
+deploy-centos7-bundle-on-aws-from-local-with-snap: pull-classic-snap charms ## Deploy centos7 aws bundle using locally built charm and snap
 	@juju deploy ./bundles/slurm-core-centos7-aws/bundle.yaml
 
-
-deploy-centos7-bundle-from-edge-with-snap: pull-classic-snap pull-charms-from-edge ## Deploy focal lxd bundle using the slurm snap and edge charms
+deploy-centos7-bundle-on-aws-from-edge-with-snap: pull-classic-snap pull-charms-from-edge ## Deploy centos7 aws bundle using edge charms and snap
 	@juju deploy ./bundles/slurm-core-centos7-aws/bundle.yaml
 
-deploy-centos7-bundle-from-edge-with-tar: pull-slurm-tar pull-charms-from-edge ## Deploy focal lxd bundle using localally built charms and snap
+deploy-centos7-bundle-on-aws-from-edge-with-tar: pull-slurm-tar pull-charms-from-edge ## Deploy centos7 aws bundle using edge charms and tar
 	@juju deploy ./bundles/slurm-core-centos7-aws/bundle.yaml
-
 
 
 # Display target comments in 'make help'

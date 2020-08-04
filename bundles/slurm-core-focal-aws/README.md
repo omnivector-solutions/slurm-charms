@@ -1,7 +1,7 @@
-# Slurm Core Centos7 AWS
+# Slurm Core Focal AWS
 
 Cloud Provider: AWS
-OS: Centos
-Series: centos7
+OS: Ubuntu
+Series: Focal
 
 This bundle deploys and relates the slurmd, slurmctld, slurmdbd and percona-cluster charms.

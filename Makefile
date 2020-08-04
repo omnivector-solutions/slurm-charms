@@ -15,10 +15,10 @@ charms: ## Build all charms
 	@charmcraft build --from charm-slurmdbd
 
 pull-classic-snap: ## Pull the classic slurm snap from github
-	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm_snap.resource
+	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource
 
-pull-slurm-tar-resource-from-s3: ## Pull the slurm tar resource
-	@aws s3 cp s3://omnivector-slurm-resoruces/slurm-tar/20.02.3/slurm.tar.gz slurm_tar.resource
+pull-slurm-tar: ## Pull the slurm tar resource from s3
+	@wget https://omnivector-public-assets.s3-us-west-2.amazonaws.com/resources/slurm-tar/20.02.3/slurm.tar.gz -O slurm.resource
 
 push-charms-to-edge: ## Push charms to edge s3
 	@./scripts/push_charms.sh edge
@@ -26,10 +26,18 @@ push-charms-to-edge: ## Push charms to edge s3
 pull-charms-from-edge: clean ## pull charms from edge s3
 	@./scripts/pull_charms.sh edge
 
-deploy-focal-bundle-from-edge: pull-charms-from-edge ## Deploy focal lxd bundle
+
+deploy-focal-bundle-from-edge-with-snap: pull-classic-snap pull-charms-from-edge ## Deploy focal lxd bundle using the slurm snap and edge charms
 	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
 
-deploy-focal-bundle-from-local: ## Deploy focal lxd bundle using localally built charms
+deploy-focal-bundle-from-edge-with-tar: pull-slurm-tar pull-charms-from-edge ## Deploy focal lxd bundle using localally built charms and snap
+	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
+
+
+deploy-focal-bundle-from-local-with-snap: pull-classic-snap ## Deploy focal lxd bundle using localally built charms and snap
+	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
+
+deploy-focal-bundle-from-local-with-tar: pull-slurm-tar ## Deploy focal lxd bundle using localally built charms and slurm.tar.gz
 	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
 
 

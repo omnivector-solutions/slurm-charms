@@ -147,13 +147,19 @@ class SlurmdRequires(Object):
     def _get_slurm_config(self):
         """Assemble and return the slurm_config."""
         slurmdbd_acquired = self.charm.is_slurmdbd_available()
+        slurmd_acquired = self.charm.is_slurmd_available()
         slurmctld_ingress_address = self._state.ingress_address
         slurmctld_hostname = socket.gethostname().split(".")[0]
 
-        if not (slurmdbd_acquired and slurmctld_ingress_address):
-            self.charm.unit.status = BlockedStatus(
-                "Need relation to slurmdbd."
-            )
+        if not (slurmd_acquired and slurmdbd_acquired):
+            if not slurmd_acquired:
+                self.charm.unit.status = BlockedStatus(
+                    "Need relation to slurmd."
+                )
+            elif not slurmdbd_acquired:
+                self.charm.unit.status = BlockedStatus(
+                    "Need relation to slurmdbd."
+                )
             return {}
 
         slurmdbd_info = dict(self.charm.get_slurmdbd_info())

@@ -110,7 +110,7 @@ jobs:
           name: "Wait for deployment status"
           command: |
             export PATH=$PATH:/snap/bin
-            /snap/bin/juju-wait
+            /snap/bin/juju-wait -w
 
       - run:
           name: "Show juju status"

@@ -41,7 +41,8 @@ deploy-focal-bundle-on-lxd-from-edge-with-tar: pull-slurm-tar pull-charms-from-e
 	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
 
 
-deploy-focal-bundle-on-lxd-from-local-with-snap: pull-classic-snap ## Deploy focal lxd bundle using localally built charms and snap
+deploy-focal-bundle-on-lxd-from-local-with-snap: ## Deploy focal lxd bundle using localally built charms and snap
+	if [[ -f slurm.resource ]] || wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource
 	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
 
 deploy-focal-bundle-on-lxd-from-local-with-tar: pull-slurm-tar ## Deploy focal lxd bundle using localally built charms and slurm.tar.gz

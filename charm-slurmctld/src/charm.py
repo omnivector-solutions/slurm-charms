@@ -77,17 +77,27 @@ class SlurmctldCharm(CharmBase):
         slurmd_acquired = self._stored.slurmd_available
         slurm_installed = self._stored.slurm_installed
         slurm_config = self._stored.slurm_config
-        if (slurmdbd_acquired and slurmd_acquired and
+
+
+        if not (slurmdbd_acquired and slurmd_acquired and
                 slurm_installed and slurm_config):
-            self.slurm_ops_manager.render_config_and_restart(slurm_config)
-            self.unit.status = ActiveStatus("Slurmctld Available")
-        else:
-            if not slurmdbd_acquired:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURMDBD")
-            else:
+            if not slurmd_acquired:
                 self.unit.status = BlockedStatus("NEED RELATION TO SLURMD")
+            elif not slurmdbd_acquired:
+                self.unit.status = BlockedStatus("NEED RELATION TO SLURMDBD")
+            elif not slurm_config:
+                self.unit.status = BlockedStatus("NEED SLURM CONFIG")
+            else:
+                self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
             event.defer()
             return
+        else:
+            self.slurm_ops_manager.render_config_and_restart(slurm_config)
+            self.unit.status = ActiveStatus("Slurmctld Available")
+
+    def set_slurm_config(self, slurm_config):
+        """Set the slurm_config in local stored state."""
+        self._stored.slurm_config = slurm_config
 
     def set_slurmdbd_info(self, slurmdbd_info):
         """Set the slurmdbd_info in local stored state."""
@@ -104,6 +114,10 @@ class SlurmctldCharm(CharmBase):
     def set_slurmd_available(self, slurmd_available):
         """Set stored state slurmd_available."""
         self._stored.slurmd_available = slurmd_available
+
+    def is_slurmd_available(self):
+        """Set stored state slurmd_available."""
+        return self._stored.slurmd_available
 
     def is_slurmdbd_available(self):
         """Set stored state slurmdbd_available."""

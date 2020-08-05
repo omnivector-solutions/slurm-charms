@@ -67,15 +67,23 @@ class SlurmdRequires(Object):
     def _on_relation_created(self, event):
         unit_data = event.relation.data[self.model.unit]
         self._state.ingress_address = unit_data['ingress-address']
-        self.charm.set_slurmd_available(True)
 
     def _on_relation_changed(self, event):
         slurmdbd_acquired = self.charm.is_slurmdbd_available()
+        slurmd_acquired = self.charm.is_slurmd_available()
         slurmctld_ingress_address = self._state.ingress_address
 
-        if (slurmdbd_acquired and slurmctld_ingress_address):
+        if len(self.framework.model.relations['slurmd']) > 0:
+            if not slurmd_acquired:
+                self.charm.set_slurmd_available(True)
+        else:
+            self.charm.unit.status = BlockedStatus("Need > 0 units of slurmd")
+            event.defer()
+            return
+
+        if slurmdbd_acquired:
             self._set_slurm_config_on_app_relation_data()
-            self.charm.set_slurmd_available(True)
+            self.charm.set_slurm_config(self._get_slurm_config())
             self.on.slurmd_available.emit()
         else:
             self.charm.unit.status = BlockedStatus("Need relation to slurmdbd")
@@ -96,7 +104,8 @@ class SlurmdRequires(Object):
             part_dict[node['partition_name']].setdefault('hosts', [])
             part_dict[node['partition_name']]['hosts'].append(node['hostname'])
             part_dict[node['partition_name']]['partition_default'] = node['partition_default']
-            part_dict[node['partition_name']]['partition_config'] = node['partition_config']
+            if node.get('partition_config'):
+                part_dict[node['partition_name']]['partition_config'] = node['partition_config']
         return dict(part_dict)
 
     @property
@@ -106,14 +115,16 @@ class SlurmdRequires(Object):
         nodes_info = list()
         for relation in relations:
             for unit in relation.units:
-                nodes_info.append({
+                ctxt = {
                     'ingress_address': relation.data[unit]['ingress-address'],
                     'hostname': relation.data[unit]['hostname'],
                     'inventory': relation.data[unit]['inventory'],
                     'partition_name': relation.data[unit]['partition_name'],
-                    'partition_config': relation.data[unit]['partition_config'],
                     'partition_default': relation.data[unit]['partition_default'],
-                })
+                }
+                if relation.data[unit].get('partition_config'):
+                    ctxt['partition_config'] = relation.data[unit]['partition_config']
+                nodes_info.append(ctxt)
         return nodes_info
 
     def _get_munge_key(self) -> str:

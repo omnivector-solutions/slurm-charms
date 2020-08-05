@@ -71,7 +71,6 @@ class SlurmdRequires(Object):
     def _on_relation_changed(self, event):
         slurmdbd_acquired = self.charm.is_slurmdbd_available()
         slurmd_acquired = self.charm.is_slurmd_available()
-        slurmctld_ingress_address = self._state.ingress_address
 
         if len(self.framework.model.relations['slurmd']) > 0:
             if not slurmd_acquired:

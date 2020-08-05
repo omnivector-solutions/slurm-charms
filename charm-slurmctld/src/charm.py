@@ -78,7 +78,6 @@ class SlurmctldCharm(CharmBase):
         slurm_installed = self._stored.slurm_installed
         slurm_config = self._stored.slurm_config
 
-
         if not (slurmdbd_acquired and slurmd_acquired and
                 slurm_installed and slurm_config):
             if not slurmd_acquired:

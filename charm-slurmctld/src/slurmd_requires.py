@@ -69,6 +69,7 @@ class SlurmdRequires(Object):
         self._state.ingress_address = unit_data['ingress-address']
 
     def _on_relation_changed(self, event):
+        """Check for slurmdbd and slurmd, write config, set relation data."""
         slurmdbd_acquired = self.charm.is_slurmdbd_available()
         slurmd_acquired = self.charm.is_slurmd_available()
 
@@ -80,12 +81,15 @@ class SlurmdRequires(Object):
             event.defer()
             return
 
+        # We are in relation-changed and know we have > 0 units of slurmd
         if slurmdbd_acquired:
-            self._set_slurm_config_on_app_relation_data()
-            self.charm.set_slurm_config(self._get_slurm_config())
+            slurm_config = self._get_slurm_config()
+            self.charm.set_slurm_config(slurm_config)
+            self._set_slurm_config_on_app_relation_data(
+                json.dumps(slurm_config)
+            )
             self.on.slurmd_available.emit()
         else:
-            self.charm.unit.status = BlockedStatus("Need relation to slurmdbd")
             event.defer()
             return
 
@@ -121,6 +125,9 @@ class SlurmdRequires(Object):
                     'partition_name': relation.data[unit]['partition_name'],
                     'partition_default': relation.data[unit]['partition_default'],
                 }
+                # Related slurmd units don't specify custom partition_config
+                # by default. Only get partition_config if it exists on in the
+                # related unit's unit data.
                 if relation.data[unit].get('partition_config'):
                     ctxt['partition_config'] = relation.data[unit]['partition_config']
                 nodes_info.append(ctxt)
@@ -131,7 +138,7 @@ class SlurmdRequires(Object):
         munge_key = self._MUNGE_KEY_PATH.read_bytes()
         return b64encode(munge_key).decode()
 
-    def _set_slurm_config_on_app_relation_data(self):
+    def _set_slurm_config_on_app_relation_data(self, slurm_config=None):
         """Set the slurm_conifg to the app data on the relation.
 
         Setting data on the relation forces the units of related applications
@@ -139,8 +146,6 @@ class SlurmdRequires(Object):
         render the updated slurm_config.
         """
         slurmd_relations = self.framework.model.relations['slurmd']
-        slurm_config = json.dumps(self._get_slurm_config())
-        # Iterate over each of the relations setting the slurm_config on each.
         for relation in slurmd_relations:
             relation.data[self.model.app]['slurm_config'] = slurm_config
 

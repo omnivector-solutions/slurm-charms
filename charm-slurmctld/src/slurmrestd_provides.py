@@ -35,7 +35,7 @@ class SlurmrestdProvides(Object):
             return
         else:
             event.relation.data[self.model.app]["slurm_config"] = json.dumps(
-                {k: v for k,v in slurm_config.items()}
+                {k: v for k, v in slurm_config.items()}
             )
             if not slurmrestd_acquired:
                 self.charm.set_slurmrestd_available(True)

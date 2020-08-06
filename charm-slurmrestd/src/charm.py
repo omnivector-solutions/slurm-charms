@@ -10,7 +10,7 @@ from ops.model import (
     BlockedStatus,
 )
 from slurm_ops_manager import SlurmOpsManager
-from slurmrestd_requires import RestdRequires
+from slurmrestd_requires import SlurmrestdRequires
 
 
 logger = logging.getLogger()
@@ -30,7 +30,7 @@ class SlurmLoginCharm(CharmBase):
             slurmctld_available=False,
         )
         self.slurm_ops_manager = SlurmOpsManager(self, "slurmrestd")
-        self._slurmrestd = RestdRequires(self, 'slurmrestd')
+        self._slurmrestd = SlurmrestdRequires(self, 'slurmrestd')
 
         event_handler_bindings = {
             self.on.install:
@@ -53,7 +53,7 @@ class SlurmLoginCharm(CharmBase):
         self.unit.status = ActiveStatus("slurm installed")
         self._stored.slurm_installed = True
 
-    def _check_status_and_write_config(self, event):
+    def _on_check_status_and_write_config(self, event):
         slurm_installed = self._stored.slurm_installed
         slurmctld_acquired = self._stored.slurmctld_available
 

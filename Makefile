@@ -49,7 +49,10 @@ deploy-focal-bundle-on-lxd-from-local-with-tar: pull-slurm-tar ## Deploy focal l
 	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
 
 
-deploy-centos7-bundle-on-aws-from-local-with-snap: pull-classic-snap charms ## Deploy centos7 aws bundle using locally built charm and snap
+deploy-centos7-bundle-on-aws-from-local-with-snap: ## Deploy centos7 aws bundle using locally built charm and snap
+	@if ! [[ -f slurm.resource ]]; then\
+	    wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource;\
+	fi
 	@juju deploy ./bundles/slurm-core-centos7-aws/bundle.yaml
 
 deploy-centos7-bundle-on-aws-from-edge-with-snap: pull-classic-snap pull-charms-from-edge ## Deploy centos7 aws bundle using edge charms and snap

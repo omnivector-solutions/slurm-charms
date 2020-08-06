@@ -20,6 +20,14 @@ requires:
     interface: slurmdbd
   slurmd:
     interface: slurmd
+  elasticsearch:
+    interface: elasticsearch
+
+provides:
+  slurmrestd:
+    interface: slurmrestd
+  slurm-login:
+    interface: slurm-login
 
 resources:
   slurm:

@@ -71,12 +71,14 @@ class SlurmdbdProvidesRelation(Object):
     def set_slurmdbd_available_on_unit_relation_data(self, slurmdbd_available):
         """Set slurmdbd_available."""
         slurmdbd_relations = self.framework.model.relations['slurmdbd']
-        # Iterate over each of the relations setting the slurmdbd_available on each.
+        # Iterate over each of the relations setting the relation data.
         for relation in slurmdbd_relations:
-            relation.data[self.model.unit]['slurmdbd_available'] = slurmdbd_available
+            relation.data[self.model.unit]['slurmdbd_available'] = \
+                slurmdbd_available
 
     def _on_relation_created(self, event):
-        event.relation.data[self.model.unit]['hostname'] = socket.gethostname().split(".")[0]
+        event.relation.data[self.model.unit]['hostname'] = \
+            socket.gethostname().split(".")[0]
         event.relation.data[self.model.unit]['port'] = "6819"
         event.relation.data[self.model.unit]['slurmdbd_available'] = "false"
 

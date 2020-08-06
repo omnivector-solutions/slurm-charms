@@ -1,10 +1,10 @@
 """requires interface for slurmctld."""
-from base64 import b64encode
 import collections
 import json
 import logging
-from pathlib import Path
 import socket
+from base64 import b64encode
+from pathlib import Path
 
 
 from ops.framework import (
@@ -47,7 +47,8 @@ class SlurmdRequires(Object):
         self.charm = charm
         self._relation_name = relation_name
 
-        self._MUNGE_KEY_PATH = Path("/var/snap/slurm/common/etc/munge/munge.key")
+        self._MUNGE_KEY_PATH = \
+            Path("/var/snap/slurm/common/etc/munge/munge.key")
 
         self._state.set_default(ingress_address=None)
 
@@ -72,6 +73,8 @@ class SlurmdRequires(Object):
         """Check for slurmdbd and slurmd, write config, set relation data."""
         slurmdbd_acquired = self.charm.is_slurmdbd_available()
         slurmd_acquired = self.charm.is_slurmd_available()
+        slurm_login_acquired = self.charm.is_slurm_login_available()
+        slurmrestd_acquired = self.charm.is_slurmrestd_available()
 
         if len(self.framework.model.relations['slurmd']) > 0:
             if not slurmd_acquired:
@@ -86,8 +89,19 @@ class SlurmdRequires(Object):
             slurm_config = self._get_slurm_config()
             self.charm.set_slurm_config(slurm_config)
             self._set_slurm_config_on_app_relation_data(
+                'slurmd',
                 json.dumps(slurm_config)
             )
+            if slurmrestd_acquired:
+                self._set_slurm_config_on_app_relation_data(
+                    'slurmrestd',
+                    json.dumps(slurm_config)
+                )
+            if slurm_login_acquired:
+                self._set_slurm_config_on_app_relation_data(
+                    'slurm-login',
+                    json.dumps(slurm_config)
+                )
             self.on.slurmd_available.emit()
         else:
             event.defer()
@@ -106,9 +120,11 @@ class SlurmdRequires(Object):
         for node in self._slurmd_node_data:
             part_dict[node['partition_name']].setdefault('hosts', [])
             part_dict[node['partition_name']]['hosts'].append(node['hostname'])
-            part_dict[node['partition_name']]['partition_default'] = node['partition_default']
+            part_dict[node['partition_name']]['partition_default'] = \
+                node['partition_default']
             if node.get('partition_config'):
-                part_dict[node['partition_name']]['partition_config'] = node['partition_config']
+                part_dict[node['partition_name']]['partition_config'] = \
+                    node['partition_config']
         return dict(part_dict)
 
     @property
@@ -123,13 +139,15 @@ class SlurmdRequires(Object):
                     'hostname': relation.data[unit]['hostname'],
                     'inventory': relation.data[unit]['inventory'],
                     'partition_name': relation.data[unit]['partition_name'],
-                    'partition_default': relation.data[unit]['partition_default'],
+                    'partition_default':
+                    relation.data[unit]['partition_default'],
                 }
                 # Related slurmd units don't specify custom partition_config
                 # by default. Only get partition_config if it exists on in the
                 # related unit's unit data.
                 if relation.data[unit].get('partition_config'):
-                    ctxt['partition_config'] = relation.data[unit]['partition_config']
+                    ctxt['partition_config'] = \
+                        relation.data[unit]['partition_config']
                 nodes_info.append(ctxt)
         return nodes_info
 
@@ -138,15 +156,19 @@ class SlurmdRequires(Object):
         munge_key = self._MUNGE_KEY_PATH.read_bytes()
         return b64encode(munge_key).decode()
 
-    def _set_slurm_config_on_app_relation_data(self, slurm_config=None):
+    def _set_slurm_config_on_app_relation_data(
+        self,
+        relation,
+        slurm_config=None
+    ):
         """Set the slurm_conifg to the app data on the relation.
 
         Setting data on the relation forces the units of related applications
         to observe the relation-changed event so they can acquire and
         render the updated slurm_config.
         """
-        slurmd_relations = self.framework.model.relations['slurmd']
-        for relation in slurmd_relations:
+        relations = self.charm.framework.model.relations[relation]
+        for relation in relations:
             relation.data[self.model.app]['slurm_config'] = slurm_config
 
     def _get_slurm_config(self):

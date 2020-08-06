@@ -43,7 +43,8 @@ class SlurmdbdCharm(CharmBase):
             self.on.config_changed: self._on_config_changed,
             self.db.on.database_available: self._on_database_available,
             self.slurmdbd.on.munge_key_available: self._on_munge_key_available,
-            self.slurmdbd.on.slurmctld_unavailable: self._on_slurmctld_unavailable,
+            self.slurmdbd.on.slurmctld_unavailable:
+            self._on_slurmctld_unavailable,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)

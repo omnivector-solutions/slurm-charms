@@ -16,7 +16,7 @@ logger = logging.getLogger()
 
 
 class SlurmdCharm(CharmBase):
-    """Operator charm responsible for coordinating lifecycle operations for slurmd."""
+    """Operator charm responsible for facilitating slurmd lifecycle events."""
 
     _stored = StoredState()
 
@@ -53,13 +53,18 @@ class SlurmdCharm(CharmBase):
 
     def _on_render_config_and_restart(self, event):
         """Retrieve slurm_config from controller and write slurm.conf."""
-        if self._stored.slurm_installed and self._stored.slurm_config_available:
+        slurm_installed = self._stored.slurm_installed
+        slurm_config_available = self._stored.slurm_config_available
+
+        if (slurm_installed and slurm_config_available):
             # cast StoredState -> python dict
             slurm_config = dict(self._stored.slurm_config)
             self.slurm_ops_manager.render_config_and_restart(slurm_config)
             self.unit.status = ActiveStatus("Slurmd Available")
         else:
-            self.unit.status = BlockedStatus("Blocked need relation to slurmctld.")
+            self.unit.status = BlockedStatus(
+                "Blocked need relation to slurmctld."
+            )
             event.defer()
             return
 

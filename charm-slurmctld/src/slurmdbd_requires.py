@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """SlurmdbdRequiresRelation."""
-from base64 import b64encode
 import logging
+from base64 import b64encode
 from pathlib import Path
 
 
@@ -42,7 +42,8 @@ class SlurmdbdRequiresRelation(Object):
 
         self.charm = charm
         self._relation_name = relation_name
-        self._MUNGE_KEY_PATH = Path("/var/snap/slurm/common/etc/munge/munge.key")
+        self._MUNGE_KEY_PATH = \
+            Path("/var/snap/slurm/common/etc/munge/munge.key")
 
         self.framework.observe(
             charm.on[self._relation_name].relation_created,
@@ -77,7 +78,6 @@ class SlurmdbdRequiresRelation(Object):
         # observed by the main charm.
         event_unit_data = event.relation.data[event.unit]
 
-        # not sure if there is a point to json.dump if youre just storing in state?
         self.charm.set_slurmdbd_info({
             'ingress_address': event_unit_data['ingress-address'],
             'hostname': event_unit_data['hostname'],

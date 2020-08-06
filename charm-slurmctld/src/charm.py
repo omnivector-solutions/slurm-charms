@@ -145,7 +145,7 @@ class SlurmctldCharm(CharmBase):
         """Get the slurmdbd_info from stored state."""
         return self._stored.slurmdbd_info
 
-     def set_slurmdbd_info(self, slurmdbd_info):
+    def set_slurmdbd_info(self, slurmdbd_info):
         """Set the slurmdbd_info in local stored state."""
         self._stored.slurmdbd_info = slurmdbd_info
 
@@ -172,6 +172,7 @@ class SlurmctldCharm(CharmBase):
     def set_slurm_login_available(self, slurm_login_available):
         """Set stored state slurm_login_available."""
         self._stored.slurm_login_available = slurm_login_available
+
 
 if __name__ == "__main__":
     main(SlurmctldCharm)

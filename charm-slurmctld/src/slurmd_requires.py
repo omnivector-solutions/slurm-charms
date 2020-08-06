@@ -3,7 +3,6 @@ import collections
 import json
 import logging
 import socket
-from base64 import b64encode
 from pathlib import Path
 
 

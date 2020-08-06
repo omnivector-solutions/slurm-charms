@@ -113,10 +113,10 @@ jobs:
      #       /snap/bin/juju deploy ./slurm-all.charm --series focal slurm-all-focal --force
      #       /snap/bin/juju-wait
       - run:
-          name: "Wait for deployment status"
+          name: "Wait for deployment status with timeout of 9 1/2 minutes"
           command: |
             export PATH=$PATH:/snap/bin
-            /snap/bin/juju-wait -w
+            /snap/bin/juju-wait -w -t 570
 
       - run:
           name: "Show juju status"

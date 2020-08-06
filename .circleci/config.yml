@@ -86,6 +86,7 @@ jobs:
           name: "Bootstrap Juju"
           command: |
             /snap/bin/juju bootstrap localhost
+            /snap/bin/juju model-config logging-config="<root>=DEBUG;<unit>=DEBUG"
 
       - run:
           name: "Pull classic slurm snap from github"

@@ -78,6 +78,11 @@ jobs:
             sudo snap install juju-wait --classic
 
       - run:
+          name: "Install jq"
+          command: |
+            sudo snap install jq
+
+      - run:
           name: "Bootstrap Juju"
           command: |
             /snap/bin/juju bootstrap localhost

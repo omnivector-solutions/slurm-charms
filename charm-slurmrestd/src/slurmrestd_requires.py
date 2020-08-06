@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""SlurmdbdProvidesRelation."""
+"""SlurmrestdRequiries."""
 import json
 import logging
 
@@ -30,8 +30,8 @@ class SlurmLoginEvents(ObjectEvents):
     slurmctld_unavailable = EventSource(SlurmctldUnavailableEvent)
 
 
-class RestdRequires(Object):
-    """SlurmdbdProvidesRelation."""
+class SlurmrestdRequires(Object):
+    """SlurmrestdRequires."""
 
     on = SlurmLoginEvents()
 
@@ -39,6 +39,7 @@ class RestdRequires(Object):
         """Set the provides initial data."""
         super().__init__(charm, relation_name)
         self.charm = charm
+
         self.framework.observe(
             charm.on[relation_name].relation_changed,
             self._on_relation_changed

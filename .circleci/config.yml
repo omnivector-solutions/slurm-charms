@@ -116,6 +116,19 @@ jobs:
           name: "Show juju status"
           command: |
             /snap/bin/juju status
+          when: always
+
+      - run:
+          name: Create artifacts from slurm unit logs
+          command: |
+            make grab-slurm-logs
+            mkdir -p /tmp/slurm-unit-logs
+            mv *.log /tmp/slurm-unit-logs/
+          when: always
+
+      - store_artifacts:
+          path: /tmp/slurm-unit-logs
+          when: always
 
       - save_cache:
           name: Cache built charms once we validate they successfully deploy.

@@ -64,6 +64,9 @@ deploy-centos7-bundle-on-aws-from-edge-with-tar: pull-slurm-tar pull-charms-from
 	@juju deploy ./bundles/slurm-core-centos7-aws/bundle.yaml
 
 
+grab-slurm-logs: # Use juju scp to get the logs from slurm application units in the model
+	@scripts/grab_logs_from_slurm_units.sh
+
 # Display target comments in 'make help'
 help: 
 	grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'

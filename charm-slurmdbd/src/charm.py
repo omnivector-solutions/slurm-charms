@@ -1,6 +1,9 @@
-#! /usr/bin/env python3
+#!/usr/bin/python3
 """Slurmdbd Operator Charm."""
+import logging
 import socket
+
+
 from interface_mysql import MySQLClient
 from ops.charm import CharmBase
 from ops.framework import StoredState
@@ -9,13 +12,13 @@ from ops.model import (
     ActiveStatus,
     BlockedStatus,
 )
-import logging
-
 from slurm_ops_manager import SlurmOpsManager
-
 from slurmdbd_provides import SlurmdbdProvidesRelation
 
+
 logger = logging.getLogger()
+
+
 class SlurmdbdCharm(CharmBase):
     """Slurmdbd Charm Class."""
 
@@ -40,7 +43,8 @@ class SlurmdbdCharm(CharmBase):
             self.on.config_changed: self._on_config_changed,
             self.db.on.database_available: self._on_database_available,
             self.slurmdbd.on.munge_key_available: self._on_munge_key_available,
-            self.slurmdbd.on.slurmctld_unavailable: self._on_slurmctld_unavailable,
+            self.slurmdbd.on.slurmctld_unavailable:
+            self._on_slurmctld_unavailable,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)

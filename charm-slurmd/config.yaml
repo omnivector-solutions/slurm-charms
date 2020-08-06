@@ -1,5 +1,11 @@
 options:
-  partition:
+  partition-default:
+    type: boolean
+    default: false
+    description: >-
+      'If this is True, jobs submitted without a partition specification
+      will utilize this partition.'
+  partition-name:
     type: string
     default: partition1
     description: >-
@@ -10,12 +16,11 @@ options:
       in that partition record or replaced with a different set of default
       values. Each line where PartitionName is "DEFAULT" will replace or add to
       previous default values and not a reinitialize the default values.'
-  default:
-    type: boolean
-    default: False
+  partition-config:
+    type: string
+    default: ""
     description: >-
-      'If this is True, jobs submitted without a partition specification
-      will utilize this partition.'
+      'Extra partition configuration specified as a space separated key=value single line.'
   snap-store-channel:
     type: string
     description: snap store channel to install slurm snap from

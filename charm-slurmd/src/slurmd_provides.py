@@ -1,12 +1,12 @@
-#!/usr/bin/env python3
-"""provides interface for slurmd."""
+#!/usr/bin/python3
+"""SlurmdProvides."""
+import json
 import logging
 import os
 import re
 import socket
 import subprocess
 import sys
-import json
 
 
 from ops.framework import (
@@ -21,16 +21,19 @@ from ops.framework import (
 logger = logging.getLogger()
 
 
-class ConfigAvailableEvent(EventBase):
+class SlurmctldAvailableEvent(EventBase):
     """ConfigAvailableEvent."""
 
-class ConfigUnAvailableEvent(EventBase):
+
+class SlurmctldUnAvailableEvent(EventBase):
     """ConfigUnAvailableEvent."""
+
 
 class SlurmdProvidesEvents(ObjectEvents):
     """Slurm Provides Events."""
-    config_available = EventSource(ConfigAvailableEvent)
-    config_unavailable = EventSource(ConfigUnAvailableEvent)
+
+    slurmctld_available = EventSource(SlurmctldAvailableEvent)
+    slurmctld_unavailable = EventSource(SlurmctldUnAvailableEvent)
 
 
 class SlurmdProvides(Object):
@@ -42,7 +45,7 @@ class SlurmdProvides(Object):
         - retrieves the slurm_config from app data
         - stores the config to the charms stored state
         - signals config_available event for main charm to write config
-   * on unavailable:
+    * on unavailable:
         - sets config_available to false
     """
 
@@ -54,9 +57,6 @@ class SlurmdProvides(Object):
         super().__init__(charm, relation_name)
         self.charm = charm
         self._relation_name = relation_name
-
-        self._state.set_default(slurm_config=str())
-        self._state.set_default(config_available=False)
 
         self.framework.observe(
             self.charm.on[self._relation_name].relation_created,
@@ -72,13 +72,15 @@ class SlurmdProvides(Object):
         )
 
     def _on_relation_created(self, event):
-        if self.charm._stored.slurm_installed:
+        if self.charm.is_slurm_installed():
             event.relation.data[self.model.unit]['hostname'] = get_hostname()
             event.relation.data[self.model.unit]['inventory'] = get_inventory()
-            event.relation.data[self.model.unit]['partition'] = \
-                self.charm.config['partition']
-            event.relation.data[self.model.unit]['default'] = \
-                str(self.charm.config['default']).lower()
+            event.relation.data[self.model.unit]['partition_name'] = \
+                self.charm.config['partition-name']
+            event.relation.data[self.model.unit]['partition_config'] = \
+                self.charm.config['partition-config']
+            event.relation.data[self.model.unit]['partition_default'] = \
+                str(self.charm.config['partition-default']).lower()
         else:
             # If we hit this hook/handler before slurm is installed, defer.
             logger.debug("SLURM NOT INSTALLED DEFERING SETTING RELATION DATA")
@@ -97,13 +99,14 @@ class SlurmdProvides(Object):
         if not slurm_config:
             event.defer()
             return
-        self.charm._stored.slurm_config = json.loads(slurm_config)
-        self.charm._stored.config_available = True
-        self.on.config_available.emit()
+
+        self.charm.set_slurm_config(json.loads(slurm_config))
+        self.charm.set_slurm_config_available(True)
+        self.on.slurmctld_available.emit()
 
     def _on_relation_broken(self, event):
-        self.charm._stored.config_available = False
-        self.on.config_unavailable.emit()
+        self.charm.set_slurm_config_available(False)
+        self.on.slurmctld_unavailable.emit()
 
 
 def _get_real_mem():

@@ -30,7 +30,8 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y tox
       - run:
-          command: exit 0 #make lint
+          command: |
+            make lint
       - slack/status:
           fail_only: false
 
@@ -77,9 +78,15 @@ jobs:
             sudo snap install juju-wait --classic
 
       - run:
+          name: "Install jq"
+          command: |
+            sudo snap install jq
+
+      - run:
           name: "Bootstrap Juju"
           command: |
             /snap/bin/juju bootstrap localhost
+            /snap/bin/juju model-config logging-config="<root>=DEBUG;<unit>=DEBUG"
 
       - run:
           name: "Pull classic slurm snap from github"
@@ -89,13 +96,19 @@ jobs:
       - run:
           name: "Deploy slurm charms using the slurm snap resource on Bionic"
           command: |
-            /snap/bin/juju deploy ./slurmd.charm --series bionic --resource slurm=./slurm_snap.resource
-            /snap/bin/juju deploy ./slurmctld.charm --series bionic --resource slurm=./slurm_snap.resource
-            /snap/bin/juju deploy ./slurmdbd.charm --series bionic --resource slurm=./slurm_snap.resource
+            /snap/bin/juju deploy ./slurmd.charm --series bionic --resource slurm=./slurm.resource
+            /snap/bin/juju deploy ./slurmctld.charm --series bionic --resource slurm=./slurm.resource
+            /snap/bin/juju deploy ./slurmdbd.charm --series bionic --resource slurm=./slurm.resource
             /snap/bin/juju deploy percona-cluster --series bionic
             /snap/bin/juju relate slurmdbd percona-cluster
             /snap/bin/juju relate slurmctld slurmdbd
             /snap/bin/juju relate slurmctld slurmd
+
+     #- run:
+     #     name: "Verify slurm-login node works"
+     #     command: |
+     #       make verify-login-node-can-access-the-cluster
+
 
      # TODO: (jamesbeedy)
      # LXD running on this 16.04 image seems to be having issues deploying a focal container
@@ -109,7 +122,25 @@ jobs:
           name: "Wait for deployment status"
           command: |
             export PATH=$PATH:/snap/bin
-            /snap/bin/juju-wait
+            /snap/bin/juju-wait -w
+
+      - run:
+          name: "Show juju status"
+          command: |
+            /snap/bin/juju status
+          when: always
+
+      - run:
+          name: Create artifacts from slurm unit logs
+          command: |
+            make grab-slurm-logs
+            mkdir -p /tmp/slurm-unit-logs
+            mv *.log /tmp/slurm-unit-logs/
+          when: always
+
+      - store_artifacts:
+          path: /tmp/slurm-unit-logs
+          when: always
 
       - save_cache:
           name: Cache built charms once we validate they successfully deploy.

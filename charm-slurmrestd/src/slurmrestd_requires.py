@@ -10,26 +10,30 @@ from ops.framework import (
     Object,
     ObjectEvents,
 )
-from ops.model import BlockedStatus
 
 
 logger = logging.getLogger()
 
 
-class ConfigAvailableEvent(EventBase):
-    """ConfigAvailableEvent."""
+class SlurmctldAvailableEvent(EventBase):
+    """SlurmctldAvailableEvent."""
 
 
-class LoginEvents(ObjectEvents):
+class SlurmctldUnavailableEvent(EventBase):
+    """SlurmctldUnavailableEvent."""
+
+
+class SlurmLoginEvents(ObjectEvents):
     """SlurmLoginEvents."""
 
-    config_available = EventSource(ConfigAvailableEvent)
+    slurmctld_available = EventSource(SlurmctldAvailableEvent)
+    slurmctld_unavailable = EventSource(SlurmctldUnavailableEvent)
 
 
 class RestdRequires(Object):
     """SlurmdbdProvidesRelation."""
 
-    on = LoginEvents()
+    on = SlurmLoginEvents()
 
     def __init__(self, charm, relation_name):
         """Set the provides initial data."""
@@ -40,23 +44,20 @@ class RestdRequires(Object):
             self._on_relation_changed
         )
         self.framework.observe(
-            charm.on[relation_name].relation_joined,
-            self._on_relation_joined
-        )
-        self.framework.observe(
             charm.on[relation_name].relation_broken,
             self._on_relation_broken
         )
 
-    def _on_relation_joined(self, event):
-        self.charm.unit.status = BlockedStatus("need to add-unit slurmd")
-
     def _on_relation_changed(self, event):
+        slurmctld_acquired = self.charm.is_slurmctld_available()
         # this happens when data changes on the relation
         slurm_config = event.relation.data[event.app].get("slurm_config", None)
         if slurm_config:
+            if not slurmctld_acquired:
+                self.charm.set_slurmctld_available(True)
             self.charm.set_slurm_config(json.loads(slurm_config))
-            self.on.config_available.emit()
+            self.on.slurmctld_available.emit()
 
     def _on_relation_broken(self, event):
-        self.charm.unit.status = BlockedStatus("need relation to slurmctld")
+        self.charm.set_slurmctld_available(False)
+        self.on.slurmctld_unavailable.emit()

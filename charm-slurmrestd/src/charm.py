@@ -27,6 +27,7 @@ class SlurmLoginCharm(CharmBase):
         self._stored.set_default(
             slurm_config=dict(),
             slurm_installed=False,
+            slurmctld_available=False,
         )
         self.slurm_ops_manager = SlurmOpsManager(self, "slurmrestd")
         self._slurmrestd = RestdRequires(self, 'slurmrestd')
@@ -36,11 +37,13 @@ class SlurmLoginCharm(CharmBase):
             self._on_install,
 
             self.on.start:
-            self._on_start,
+            self._on_check_status_and_write_config,
 
-            self._slurmrestd.on.config_available:
-            self._on_config_available,
+            self._slurmrestd.on.slurmctld_available:
+            self._on_check_status_and_write_config,
 
+            self._slurmrestd.on.slurmctld_unavailable:
+            self._on_check_status_and_write_config,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -50,12 +53,15 @@ class SlurmLoginCharm(CharmBase):
         self.unit.status = ActiveStatus("slurm installed")
         self._stored.slurm_installed = True
 
-    def _on_start(self, event):
-        if not self._stored.slurm_config:
-            self.unit.status = BlockedStatus("need relation to slurmctld")
+    def _check_status_and_write_config(self, event):
+        slurm_installed = self._stored.slurm_installed
+        slurmctld_acquired = self._stored.slurmctld_available
 
-    def _on_config_available(self, event):
-        if not self._stored.slurm_installed:
+        if not (slurm_installed and slurmctld_acquired):
+            if not slurmctld_acquired:
+                self.unit.status = BlockedStatus("NEED RELATION TO SLURMCTLD")
+            else:
+                self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
             event.defer()
             return
         else:
@@ -63,9 +69,17 @@ class SlurmLoginCharm(CharmBase):
             self.slurm_ops_manager.render_config_and_restart(config)
             self.unit.status = ActiveStatus("Slurmrestd Available")
 
+    def is_slurmctld_available(self):
+        """Return self._stored.slurmctld_available."""
+        return self._stored.slurmctld_available
+
     def set_slurm_config(self, slurm_config):
         """Set self._stored.slurm_config."""
         self._stored.slurm_config = slurm_config
+
+    def set_slurmctld_available(self, slurmctld_available):
+        """Set self._stored.slurmctld_available."""
+        self._stored.slurmctld_available = slurmctld_available
 
 
 if __name__ == "__main__":

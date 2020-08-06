@@ -16,6 +16,7 @@ class SlurmrestdProvides(Object):
     def __init__(self, charm, relation_name):
         """Set the initial data."""
         super().__init__(charm, relation_name)
+
         self.charm = charm
         self.framework.observe(
             charm.on[relation_name].relation_created,
@@ -24,6 +25,7 @@ class SlurmrestdProvides(Object):
 
     def _on_relation_created(self, event):
         slurmdbd_acquired = self.charm.is_slurmdbd_available()
+        slurmrestd_acquired = self.charm.is_slurmrestd_available()
         slurmd_acquired = self.charm.is_slurmd_available()
         slurm_installed = self.charm.is_slurm_installed()
         slurm_config = self.charm.get_slurm_config()
@@ -32,7 +34,11 @@ class SlurmrestdProvides(Object):
             event.defer()
             return
         else:
-            event.relation.data[self.model.unit]["slurm_config"] = json.dumps(
+            event.relation.data[self.model.app]["slurm_config"] = json.dumps(
                 slurm_config
             )
-            self.charm.set_slurmrestd_available(True)
+            if not slurmrestd_acquired:
+                self.charm.set_slurmrestd_available(True)
+
+    def _on_relation_broken(self, event):
+        self.charm.set_slurmrestd_available(False)

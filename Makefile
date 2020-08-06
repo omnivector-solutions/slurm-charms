@@ -13,6 +13,7 @@ charms: ## Build all charms
 	@charmcraft build --from charm-slurmd
 	@charmcraft build --from charm-slurmctld
 	@charmcraft build --from charm-slurmdbd
+	@charmcraft build --from charm-slurmrestd
 
 pull-classic-snap: ## Pull the classic slurm snap from github
 	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource
@@ -49,6 +50,16 @@ deploy-focal-bundle-on-lxd-from-local-with-snap: ## Deploy focal lxd bundle usin
 
 deploy-focal-bundle-on-lxd-from-local-with-tar: pull-slurm-tar ## Deploy focal lxd bundle using localally built charms and slurm.tar.gz
 	@juju deploy ./bundles/slurm-core-focal-lxd/bundle.yaml
+
+
+deploy-bionic-bundle-on-lxd-from-local-with-snap: ## Deploy focal lxd bundle using localally built charms and snap
+	@if ! [[ -f slurm.resource ]]; then\
+	    wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource;\
+	fi
+	@juju deploy ./bundles/slurm-core-bionic-lxd/bundle.yaml
+
+deploy-bionic-bundle-on-lxd-from-local-with-tar: pull-slurm-tar ## Deploy focal lxd bundle using localally built charms and slurm.tar.gz
+	@juju deploy ./bundles/slurm-core-bionic-lxd/bundle.yaml
 
 
 deploy-centos7-bundle-on-aws-from-local-with-snap: ## Deploy centos7 aws bundle using locally built charm and snap

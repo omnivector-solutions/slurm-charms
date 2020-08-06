@@ -70,39 +70,12 @@ class SlurmdRequires(Object):
 
     def _on_relation_changed(self, event):
         """Check for slurmdbd and slurmd, write config, set relation data."""
-        slurmdbd_acquired = self.charm.is_slurmdbd_available()
-        slurmd_acquired = self.charm.is_slurmd_available()
-        slurm_login_acquired = self.charm.is_slurm_login_available()
-        slurmrestd_acquired = self.charm.is_slurmrestd_available()
-
         if len(self.framework.model.relations['slurmd']) > 0:
-            if not slurmd_acquired:
+            if not self.charm.is_slurmd_available():
                 self.charm.set_slurmd_available(True)
-        else:
-            self.charm.unit.status = BlockedStatus("Need > 0 units of slurmd")
-            event.defer()
-            return
-
-        # We are in relation-changed and know we have > 0 units of slurmd
-        if slurmdbd_acquired:
-            slurm_config = self._get_slurm_config()
-            self.charm.set_slurm_config(slurm_config)
-            self._set_slurm_config_on_app_relation_data(
-                'slurmd',
-                json.dumps(slurm_config)
-            )
-            if slurmrestd_acquired:
-                self._set_slurm_config_on_app_relation_data(
-                    'slurmrestd',
-                    json.dumps(slurm_config)
-                )
-            if slurm_login_acquired:
-                self._set_slurm_config_on_app_relation_data(
-                    'slurm-login',
-                    json.dumps(slurm_config)
-                )
             self.on.slurmd_available.emit()
         else:
+            self.charm.unit.status = BlockedStatus("Need > 0 units of slurmd")
             event.defer()
             return
 
@@ -150,10 +123,10 @@ class SlurmdRequires(Object):
                 nodes_info.append(ctxt)
         return nodes_info
 
-    def _set_slurm_config_on_app_relation_data(
+    def set_slurm_config_on_app_relation_data(
         self,
         relation,
-        slurm_config=None
+        slurm_config,
     ):
         """Set the slurm_conifg to the app data on the relation.
 
@@ -163,25 +136,14 @@ class SlurmdRequires(Object):
         """
         relations = self.charm.framework.model.relations[relation]
         for relation in relations:
-            relation.data[self.model.app]['slurm_config'] = slurm_config
+            relation.data[self.model.app]['slurm_config'] = json.dumps(
+                slurm_config
+            )
 
-    def _get_slurm_config(self):
+    def get_slurm_config(self):
         """Assemble and return the slurm_config."""
-        slurmdbd_acquired = self.charm.is_slurmdbd_available()
-        slurmd_acquired = self.charm.is_slurmd_available()
         slurmctld_ingress_address = self._state.ingress_address
         slurmctld_hostname = socket.gethostname().split(".")[0]
-
-        if not (slurmd_acquired and slurmdbd_acquired):
-            if not slurmd_acquired:
-                self.charm.unit.status = BlockedStatus(
-                    "Need relation to slurmd."
-                )
-            elif not slurmdbd_acquired:
-                self.charm.unit.status = BlockedStatus(
-                    "Need relation to slurmdbd."
-                )
-            return {}
 
         slurmdbd_info = dict(self.charm.get_slurmdbd_info())
 

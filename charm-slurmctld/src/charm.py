@@ -161,11 +161,11 @@ class SlurmctldCharm(CharmBase):
 
     def is_slurm_login_available(self):
         """Return slurm_login_acquired from local stored state."""
-        return self._stored.slurm_login_acquired
+        return self._stored.slurm_login_available
 
     def is_slurmrestd_available(self):
         """Return slurmrestd_acquired from local stored state."""
-        return self._stored.slurmrestd_acquired
+        return self._stored.slurmrestd_available
 
 
 if __name__ == "__main__":

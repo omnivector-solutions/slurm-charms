@@ -104,10 +104,10 @@ jobs:
             /snap/bin/juju relate slurmctld slurmdbd
             /snap/bin/juju relate slurmctld slurmd
 
-      - run:
-          name: "Verify slurm-login node works"
-          command: |
-            make verify-login-node-can-access-the-cluster
+     #- run:
+     #     name: "Verify slurm-login node works"
+     #     command: |
+     #       make verify-login-node-can-access-the-cluster
 
 
      # TODO: (jamesbeedy)

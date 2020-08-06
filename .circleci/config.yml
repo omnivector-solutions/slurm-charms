@@ -114,7 +114,7 @@ jobs:
      #       /snap/bin/juju-wait
       - run:
           name: "Wait for deployment status"
-          timeout: 1200
+          no_output_timeout: 20m
           command: |
             export PATH=$PATH:/snap/bin
             /snap/bin/juju-wait -w -t 1150

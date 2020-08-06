@@ -56,10 +56,13 @@ class SlurmLoginCharm(CharmBase):
     def _on_check_status_and_write_config(self, event):
         slurm_installed = self._stored.slurm_installed
         slurmctld_acquired = self._stored.slurmctld_available
+        slurm_config = self._stored.slurm_config
 
-        if not (slurm_installed and slurmctld_acquired):
+        if not (slurm_installed and slurmctld_acquired and slurm_config):
             if not slurmctld_acquired:
                 self.unit.status = BlockedStatus("NEED RELATION TO SLURMCTLD")
+            elif not slurm_config:
+                self.unit.status = BlockedStatus("NEED SLURM CONFIG")
             else:
                 self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
             event.defer()

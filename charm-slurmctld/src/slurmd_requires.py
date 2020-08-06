@@ -151,11 +151,6 @@ class SlurmdRequires(Object):
                 nodes_info.append(ctxt)
         return nodes_info
 
-    def _get_munge_key(self) -> str:
-        """Read, encode, decode and return the munge key."""
-        munge_key = self._MUNGE_KEY_PATH.read_bytes()
-        return b64encode(munge_key).decode()
-
     def _set_slurm_config_on_app_relation_data(
         self,
         relation,
@@ -200,6 +195,6 @@ class SlurmdRequires(Object):
             'active_controller_hostname': slurmctld_hostname,
             'active_controller_ingress_address': slurmctld_ingress_address,
             'active_controller_port': "6817",
-            'munge_key': self._get_munge_key(),
+            'munge_key': self.charm.get_munge_key(),
             **self.model.config,
         }

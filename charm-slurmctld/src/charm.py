@@ -137,7 +137,7 @@ class SlurmctldCharm(CharmBase):
         """Get the slurmdbd_info from stored state."""
         return self._stored.munge_key
 
-    def get_slurm_config(self, slurm_config):
+    def get_slurm_config(self):
         """Return slurm_config from local stored state."""
         return self._stored.slurm_config
 

@@ -26,11 +26,13 @@ class SlurmrestdProvides(Object):
         slurmdbd_acquired = self.charm.is_slurmdbd_available()
         slurmd_acquired = self.charm.is_slurmd_available()
         slurm_installed = self.charm.is_slurm_installed()
-        if not (slurmdbd_acquired and slurmd_acquired and slurm_installed):
+        slurm_config = self.charm.get_slurm_config()
+        if not (slurmdbd_acquired and slurmd_acquired and
+                slurm_installed and slurm_config):
             event.defer()
             return
         else:
             event.relation.data[self.model.unit]["slurm_config"] = json.dumps(
-                self.charm.get_slurm_config()
+                slurm_config
             )
             self.charm.set_slurmrestd_available(True)

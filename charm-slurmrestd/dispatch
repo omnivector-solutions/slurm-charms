@@ -21,11 +21,10 @@ if ! [[ -f '.installed' ]]; then
 	if [[ $major == "7" ]]; then
 	    yum -y install epel-release
             yum -y install python3 chrony
-	    yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 	    yum -y --enablerepo=epel-testing install snapd
 	elif [[ $major == "8" ]]; then
+	    dnf -y install epel-release
 	    dnf -y install python3 chrony
-            dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
             dnf -y upgrade
 	    dnf -y install snapd
         else

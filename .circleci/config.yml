@@ -96,6 +96,7 @@ jobs:
       - run:
           name: "Deploy slurm charms using the slurm snap resource on Bionic"
           command: |
+            make charms
             make deploy-bionic-bundle-on-lxd-from-local-with-snap
 
      # TODO: (jamesbeedy)
@@ -144,6 +145,7 @@ jobs:
           name: Cache built charms once we validate they successfully deploy.
           key: built-slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
           paths:
+            - slurmrestd.charm
             - slurmctld.charm
             - slurmdbd.charm
             - slurmd.charm

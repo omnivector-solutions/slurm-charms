@@ -116,8 +116,10 @@ jobs:
       - run:
           name: "Verify slurmrestd"
           command: |
-            sudo apt install python3-pip
-            sudo pip3 install jwt
+            sudo apt install python3-venv
+            python3 -m venv venv
+            source venv/bin/activate
+            pip3 install jwt
             make test-slurmrestd-api-returns-200
 
       - run:

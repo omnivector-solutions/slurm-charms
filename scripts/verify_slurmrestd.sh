@@ -5,7 +5,7 @@
 set -e
 
 token=$($(which python3) -c "import jwt; print(jwt.encode({'some': 'payload'}, 'secret', algorithm='HS256').decode())")
-slurmrestd_ip=$(juju status --format json | jq -r '.applications["slurmrestd"].units[]["public-address"]')
+slurmrestd_ip=$(/snap/bin/juju status --format json | jq -r '.applications["slurmrestd"].units[]["public-address"]')
 slurmrestd_api_status_code=$(curl -H "X-SLURM-USER-NAME: ubuntu" \
                                   -H "X-SLURM-USER-TOKEN: $token" \
                                   -s -o /dev/null -w "%{http_code}" \

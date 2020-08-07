@@ -43,6 +43,10 @@ class SlurmrestdProvides(Object):
             charm.on[relation_name].relation_created,
             self._on_relation_created
         )
+        self.framework.observe(
+            charm.on[relation_name].relation_broken,
+            self._on_relation_broken
+        )
 
     def _on_relation_created(self, event):
         self.charm.set_slurmrestd_available(True)

@@ -23,16 +23,4 @@ class SlurmLoginProvides(Object):
         )
 
     def _on_relation_created(self, event):
-        slurmdbd_acquired = self.charm.is_slurmdbd_available()
-        slurmd_acquired = self.charm.is_slurmd_available()
-        slurm_installed = self.charm.is_slurm_installed()
-        if not (slurmdbd_acquired and slurmd_acquired and slurm_installed):
-            event.defer()
-            return
-        else:
-            # Send the current slurm_config, let the slurmd relation-changed
-            # update the relation data for additional config changes.
-            event.relation.data[self.model.app]["slurm_config"] = json.dumps(
-                self.charm.get_slurm_config()
-            )
-            self.charm.set_slurm_login_available(True)
+        self.charm.set_slurm_login_available(True)

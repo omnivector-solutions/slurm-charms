@@ -38,12 +38,12 @@ class SlurmctldCharm(CharmBase):
             slurmdbd_available=False,
             slurmd_available=False,
             slurmrestd_available=False,
-            slurm_login_available=False,
+            login_available=False,
         )
         self.slurm_ops_manager = SlurmOpsManager(self, "slurmctld")
         self.slurmdbd = SlurmdbdRequiresRelation(self, "slurmdbd")
         self.slurmd = SlurmdRequires(self, "slurmd")
-        self.slurm_login_provides = SlurmLoginProvides(self, "slurm-login")
+        self.slurm_login_provides = SlurmLoginProvides(self, "login")
         self.slurmrestd_provides = SlurmrestdProvides(self, "slurmrestd")
         self.elasticsearch_requires = ElasticsearchRequires(
             self,
@@ -100,6 +100,11 @@ class SlurmctldCharm(CharmBase):
         if self._stored.slurmrestd_available:
             self.slurmd.set_slurm_config_on_app_relation_data(
                 'slurmrestd',
+                slurm_config,
+            )
+        if self._stored.login_available:
+            self.slurmd.set_slurm_config_on_app_relation_data(
+                'login',
                 slurm_config,
             )
         self.slurm_ops_manager.render_config_and_restart(slurm_config)
@@ -201,7 +206,7 @@ class SlurmctldCharm(CharmBase):
 
     def set_slurm_login_available(self, slurm_login_available):
         """Set stored state slurm_login_available."""
-        self._stored.slurm_login_available = slurm_login_available
+        self._stored.login_available = slurm_login_available
 
 
 if __name__ == "__main__":

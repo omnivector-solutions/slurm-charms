@@ -98,12 +98,6 @@ jobs:
           command: |
             make deploy-bionic-bundle-on-lxd-from-local-with-snap
 
-     #- run:
-     #     name: "Verify slurm-login node works"
-     #     command: |
-     #       make verify-login-node-can-access-the-cluster
-
-
      # TODO: (jamesbeedy)
      # LXD running on this 16.04 image seems to be having issues deploying a focal container
      # leave this commented out until we find a fix.
@@ -118,6 +112,13 @@ jobs:
           command: |
             export PATH=$PATH:/snap/bin
             /snap/bin/juju-wait -w -t 1150
+
+     - run:
+          name: "Verify slurmrestd"
+          command: |
+            sudo apt install python3-pip
+            sudo pip3 install jwt
+            make test-slurmrestd-api-returns-200
 
       - run:
           name: "Show juju status"

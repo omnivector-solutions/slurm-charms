@@ -34,7 +34,6 @@ class SlurmctldCharm(CharmBase):
             munge_key=str(),
             elasticsearch_endpoint=str(),
             slurmdbd_info=dict(),
-            slurm_config=dict(),
             slurm_installed=False,
             slurmdbd_available=False,
             slurmd_available=False,
@@ -73,6 +72,9 @@ class SlurmctldCharm(CharmBase):
             self.slurmd.on.slurmd_unavailable:
             self._on_check_status_and_write_config,
 
+            self.slurmrestd_provides.on.slurmrestd_available:
+            self._on_provide_slurmrestd,
+
             self.elasticsearch_requires.on.elasticsearch_available:
             self._on_check_status_and_write_config,
         }
@@ -86,32 +88,60 @@ class SlurmctldCharm(CharmBase):
         self.unit.status = ActiveStatus("Slurm Installed")
 
     def _on_check_status_and_write_config(self, event):
+        if not self._check_status(event):
+            event.defer()
+            return
+        slurm_config = self._assemble_slurm_config()
+
+        self.slurmd.set_slurm_config_on_app_relation_data(
+            'slurmd',
+            slurm_config,
+        )
+        if self._stored.slurmrestd_available:
+            self.slurmd.set_slurm_config_on_app_relation_data(
+                'slurmrestd',
+                slurm_config,
+            )
+        self.slurm_ops_manager.render_config_and_restart(slurm_config)
+        self.unit.status = ActiveStatus("Slurmctld Available")
+
+    def _on_provide_slurmrestd(self, event):
+        if not self._check_status(event):
+            event.defer()
+            return
+
+        slurm_config = self._assemble_slurm_config()
+        self.slurmd.set_slurm_config_on_app_relation_data(
+            'slurmrestd',
+            slurm_config,
+        )
+
+    def _assemble_slurm_config(self):
+        slurm_config = self.slurmd.get_slurm_config()
         elasticsearch_endpoint = self._stored.elasticsearch_endpoint
+
+        if elasticsearch_endpoint:
+            slurm_config = {
+                **slurm_config,
+                **{'elasticsearch_http_endpoint': elasticsearch_endpoint},
+            }
+        return slurm_config
+
+    def _check_status(self, event):
         slurmdbd_acquired = self._stored.slurmdbd_available
         slurmd_acquired = self._stored.slurmd_available
         slurm_installed = self._stored.slurm_installed
-        slurm_config = self._stored.slurm_config
 
-        if not (slurmdbd_acquired and slurmd_acquired and
-                slurm_installed and slurm_config):
+        if not (slurmdbd_acquired and slurmd_acquired and slurm_installed):
             if not slurmd_acquired:
                 self.unit.status = BlockedStatus("NEED RELATION TO SLURMD")
             elif not slurmdbd_acquired:
                 self.unit.status = BlockedStatus("NEED RELATION TO SLURMDBD")
-            elif not slurm_config:
-                self.unit.status = BlockedStatus("NEED SLURM CONFIG")
             else:
                 self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
-            event.defer()
-            return
+            return False
         else:
-            if elasticsearch_endpoint:
-                slurm_config = {
-                    **slurm_config,
-                    **{'elasticsearch_http_endpoint': elasticsearch_endpoint},
-                }
-            self.slurm_ops_manager.render_config_and_restart(slurm_config)
-            self.unit.status = ActiveStatus("Slurmctld Available")
+            return True
 
     def is_slurmd_available(self):
         """Set stored state slurmd_available."""
@@ -137,7 +167,7 @@ class SlurmctldCharm(CharmBase):
         """Get the slurmdbd_info from stored state."""
         return self._stored.munge_key
 
-    def get_slurm_config(self, slurm_config):
+    def get_slurm_config(self):
         """Return slurm_config from local stored state."""
         return self._stored.slurm_config
 

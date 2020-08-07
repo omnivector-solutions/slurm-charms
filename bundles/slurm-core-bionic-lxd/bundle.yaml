@@ -1,25 +1,25 @@
 applications:
   slurmrestd:
     charm: ./../../slurmrestd.charm
-    series: focal
+    series: bionic
     num_units: 1
     resources:
       slurm: ./../../slurm.resource
   slurmctld:
     charm: ./../../slurmctld.charm
-    series: focal
+    series: bionic
     num_units: 1
     resources:
       slurm: ./../../slurm.resource
   slurmd:
     charm: ./../../slurmd.charm
-    series: focal
+    series: bionic
     num_units: 1
     resources:
       slurm: ./../../slurm.resource
   slurmdbd:
     charm: ./../../slurmdbd.charm
-    series: focal
+    series: bionic
     num_units: 1
     resources:
       slurm: ./../../slurm.resource

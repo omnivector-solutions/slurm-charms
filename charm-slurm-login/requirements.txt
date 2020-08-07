@@ -1,0 +1,2 @@
+ops
+git+https://github.com/omnivector-solutions/slurm-ops-manager.git@snap_v2

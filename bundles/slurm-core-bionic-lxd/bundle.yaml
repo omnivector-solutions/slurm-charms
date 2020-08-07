@@ -1,25 +1,31 @@
 applications:
+  slurm-login:
+    charm: ./../../slurm-login.charm
+    series: focal
+    num_units: 1
+    resources:
+      slurm: ./../../slurm.resource
   slurmrestd:
     charm: ./../../slurmrestd.charm
-    series: bionic
+    series: focal
     num_units: 1
     resources:
       slurm: ./../../slurm.resource
   slurmctld:
     charm: ./../../slurmctld.charm
-    series: bionic
+    series: focal
     num_units: 1
     resources:
       slurm: ./../../slurm.resource
   slurmd:
     charm: ./../../slurmd.charm
-    series: bionic
+    series: focal
     num_units: 1
     resources:
       slurm: ./../../slurm.resource
   slurmdbd:
     charm: ./../../slurmdbd.charm
-    series: bionic
+    series: focal
     num_units: 1
     resources:
       slurm: ./../../slurm.resource
@@ -29,6 +35,8 @@ applications:
     num_units: 1
 
 relations:
+  - - slurmctld:login
+    - slurm-login:login
   - - slurmctld:slurmrestd
     - slurmrestd:slurmrestd
   - - slurmctld:slurmd

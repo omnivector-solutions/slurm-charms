@@ -1,0 +1,24 @@
+name: slurm-login
+summary: login charm for slurm cluster
+maintainers:
+    - OmniVector Solutions <admin@omnivector.solutions>
+description: |
+    A nice long description of what the product does and any
+    high level information about how the charm provides the product,
+    on which platform, etc.
+
+tags:
+    - slurm
+
+series:
+    - focal
+
+requires:
+  login:
+    interface: login
+
+resources:
+  slurm:
+    type: file
+    filename: slurm.resource
+    description: slurm tarbal

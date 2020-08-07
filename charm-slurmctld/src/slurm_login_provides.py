@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 """SlurmLoginProvides."""
-import json
 import logging
 
 

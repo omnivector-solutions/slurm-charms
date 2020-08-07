@@ -96,7 +96,6 @@ jobs:
       - run:
           name: "Deploy slurm charms using the slurm snap resource on Bionic"
           command: |
-            make charms
             make deploy-bionic-bundle-on-lxd-from-local-with-snap
 
      # TODO: (jamesbeedy)

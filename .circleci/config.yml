@@ -113,7 +113,7 @@ jobs:
             export PATH=$PATH:/snap/bin
             /snap/bin/juju-wait -w -t 1150
 
-     - run:
+      - run:
           name: "Verify slurmrestd"
           command: |
             sudo apt install python3-pip

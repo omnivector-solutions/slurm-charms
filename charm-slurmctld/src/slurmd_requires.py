@@ -23,6 +23,10 @@ class SlurmdUnAvailableEvent(EventBase):
     """Emmited when the slurmd relation is broken."""
 
 
+class SlurmdDepartedEvent(EventBase):
+    """Emmited when a slurmd unit departs."""
+
+
 class SlurmdAvailableEvent(EventBase):
     """Emmited when slurmd is available."""
 
@@ -31,6 +35,7 @@ class SlurmdRequiresEvents(ObjectEvents):
     """SlurmClusterProviderRelationEvents."""
 
     slurmd_available = EventSource(SlurmdAvailableEvent)
+    slurmd_departed = EventSource(SlurmdDepartedEvent)
     slurmd_unavailable = EventSource(SlurmdUnAvailableEvent)
 
 
@@ -60,6 +65,10 @@ class SlurmdRequires(Object):
             self._on_relation_changed
         )
         self.framework.observe(
+            charm.on[self._relation_name].relation_departed,
+            self._on_relation_broken
+        )
+        self.framework.observe(
             charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
@@ -78,6 +87,10 @@ class SlurmdRequires(Object):
             self.charm.unit.status = BlockedStatus("Need > 0 units of slurmd")
             event.defer()
             return
+
+    def _on_relation_departed(self, event):
+        """Account for relation departed activity."""
+        self.on.slurmd_departed.emit()
 
     def _on_relation_broken(self, event):
         """Account for relation broken activity."""

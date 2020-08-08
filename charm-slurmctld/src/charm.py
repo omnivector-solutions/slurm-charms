@@ -109,7 +109,7 @@ class SlurmctldCharm(CharmBase):
         self.unit.status = ActiveStatus("Slurmctld Available")
 
     def _on_provide_slurmrestd(self, event):
-        if not self._check_status(event):
+        if not self._check_status():
             event.defer()
             return
 

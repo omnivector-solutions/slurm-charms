@@ -1,211 +1,250 @@
 #!/usr/bin/python3
-"""SlurmctldCharm."""
+"""SlurmdRequires."""
+import collections
+import json
 import logging
+import os
+import socket
+import subprocess
+from pathlib import Path
 
 
-from elasticsearch_requires import ElasticsearchRequires
-from ops.charm import CharmBase
-from ops.framework import StoredState
-from ops.main import main
-from ops.model import (
-    ActiveStatus,
-    BlockedStatus,
+from ops.framework import (
+    EventBase,
+    EventSource,
+    Object,
+    ObjectEvents,
+    StoredState,
 )
-from slurm_login_provides import SlurmLoginProvides
-from slurm_ops_manager import SlurmOpsManager
-from slurmd_requires import SlurmdRequires
-from slurmdbd_requires import SlurmdbdRequiresRelation
-from slurmrestd_provides import SlurmrestdProvides
+from ops.model import BlockedStatus
 
 
 logger = logging.getLogger()
 
 
-class SlurmctldCharm(CharmBase):
-    """Operator charm responsible for lifecycle operations for slurmctld."""
+class SlurmdUnAvailableEvent(EventBase):
+    """Emmited when the slurmd relation is broken."""
 
-    _stored = StoredState()
 
-    def __init__(self, *args):
-        """Initialize charm and configure states and events to observe."""
-        super().__init__(*args)
+class SlurmdDepartedEvent(EventBase):
+    """Emmited when a slurmd unit departs."""
 
-        self._stored.set_default(
-            munge_key=str(),
-            elasticsearch_endpoint=str(),
-            slurmdbd_info=dict(),
-            slurm_installed=False,
-            slurmdbd_available=False,
-            slurmd_available=False,
-            slurmrestd_available=False,
-            slurm_login_available=False,
+
+class SlurmdAvailableEvent(EventBase):
+    """Emmited when slurmd is available."""
+
+
+class SlurmdRequiresEvents(ObjectEvents):
+    """SlurmClusterProviderRelationEvents."""
+
+    slurmd_available = EventSource(SlurmdAvailableEvent)
+    slurmd_departed = EventSource(SlurmdDepartedEvent)
+    slurmd_unavailable = EventSource(SlurmdUnAvailableEvent)
+
+
+class SlurmdRequires(Object):
+    """SlurmdRequires."""
+
+    on = SlurmdRequiresEvents()
+    _state = StoredState()
+
+    def __init__(self, charm, relation_name):
+        """Set self._relation_name and self.charm."""
+        super().__init__(charm, relation_name)
+        self.charm = charm
+        self._relation_name = relation_name
+
+        self._MUNGE_KEY_PATH = \
+            Path("/var/snap/slurm/common/etc/munge/munge.key")
+
+        self._state.set_default(ingress_address=None)
+
+        self.framework.observe(
+            charm.on[self._relation_name].relation_created,
+            self._on_relation_created
         )
-        self.slurm_ops_manager = SlurmOpsManager(self, "slurmctld")
-        self.slurmdbd = SlurmdbdRequiresRelation(self, "slurmdbd")
-        self.slurmd = SlurmdRequires(self, "slurmd")
-        self.slurm_login_provides = SlurmLoginProvides(self, "slurm-login")
-        self.slurmrestd_provides = SlurmrestdProvides(self, "slurmrestd")
-        self.elasticsearch_requires = ElasticsearchRequires(
-            self,
-            "elasticsearch"
+        self.framework.observe(
+            charm.on[self._relation_name].relation_changed,
+            self._on_relation_changed
         )
-
-        event_handler_bindings = {
-            self.on.install:
-            self._on_install,
-
-            self.on.start:
-            self._on_check_status_and_write_config,
-
-            self.on.config_changed:
-            self._on_check_status_and_write_config,
-
-            self.slurmdbd.on.slurmdbd_available:
-            self._on_check_status_and_write_config,
-
-            self.slurmdbd.on.slurmdbd_unavailable:
-            self._on_check_status_and_write_config,
-
-            self.slurmd.on.slurmd_available:
-            self._on_check_status_and_write_config,
-
-            self.slurmd.on.slurmd_departed:
-            self._on_check_status_and_write_config,
-
-            self.slurmd.on.slurmd_unavailable:
-            self._on_check_status_and_write_config,
-
-            self.slurmrestd_provides.on.slurmrestd_available:
-            self._on_provide_slurmrestd,
-
-            self.elasticsearch_requires.on.elasticsearch_available:
-            self._on_check_status_and_write_config,
-        }
-        for event, handler in event_handler_bindings.items():
-            self.framework.observe(event, handler)
-
-    def _on_install(self, event):
-        self.slurm_ops_manager.install()
-        self._stored.munge_key = self.slurm_ops_manager.get_munge_key()
-        self._stored.slurm_installed = True
-        self.unit.status = ActiveStatus("Slurm Installed")
-
-    def _on_check_status_and_write_config(self, event):
-        if not self._check_status():
-            event.defer()
-            return
-        slurm_config = self._assemble_slurm_config()
-
-        self.slurmd.set_slurm_config_on_app_relation_data(
-            'slurmd',
-            slurm_config,
+        self.framework.observe(
+            charm.on[self._relation_name].relation_departed,
+            self._on_relation_broken
         )
-        if self._stored.slurmrestd_available:
-            self.slurmd.set_slurm_config_on_app_relation_data(
-                'slurmrestd',
-                slurm_config,
-            )
-        self.slurm_ops_manager.render_config_and_restart(slurm_config)
-        self.unit.status = ActiveStatus("Slurmctld Available")
-
-    def _on_provide_slurmrestd(self, event):
-        if not self._check_status():
-            event.defer()
-            return
-
-        slurm_config = self._assemble_slurm_config()
-        self.slurmd.set_slurm_config_on_app_relation_data(
-            'slurmrestd',
-            slurm_config,
+        self.framework.observe(
+            charm.on[self._relation_name].relation_broken,
+            self._on_relation_broken
         )
 
-    def _assemble_slurm_config(self):
-        slurm_config = self.slurmd.get_slurm_config()
-        elasticsearch_endpoint = self._stored.elasticsearch_endpoint
+    def _on_relation_created(self, event):
+        unit_data = event.relation.data[self.model.unit]
+        self._state.ingress_address = unit_data['ingress-address']
 
-        if elasticsearch_endpoint:
-            slurm_config = {
-                **slurm_config,
-                **{'elasticsearch_http_endpoint': elasticsearch_endpoint},
-            }
-        return slurm_config
-
-    def _check_status(self):
-        slurmdbd_acquired = self._stored.slurmdbd_available
-        slurmd_acquired = self._stored.slurmd_available
-        slurm_installed = self._stored.slurm_installed
-
-        if not (slurmdbd_acquired and slurmd_acquired and slurm_installed):
-            if not slurmd_acquired:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURMD")
-            elif not slurmdbd_acquired:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURMDBD")
-            else:
-                self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
-            return False
+    def _on_relation_changed(self, event):
+        """Check for slurmdbd and slurmd, write config, set relation data."""
+        if len(self.framework.model.relations['slurmd']) > 0:
+            if not self.charm.is_slurmd_available():
+                self.charm.set_slurmd_available(True)
+            self.on.slurmd_available.emit()
         else:
-            return True
+            self.charm.unit.status = BlockedStatus("Need > 0 units of slurmd")
+            event.defer()
+            return
 
-    def is_slurmd_available(self):
-        """Set stored state slurmd_available."""
-        return self._stored.slurmd_available
+    def _on_relation_departed(self, event):
+        """Account for relation departed activity."""
+        self.on.slurmd_departed.emit()
 
-    def is_slurmdbd_available(self):
-        """Set stored state slurmdbd_available."""
-        return self._stored.slurmdbd_available
+    def _on_relation_broken(self, event):
+        """Account for relation broken activity."""
+        if len(self.framework.model.relations['slurmd']) < 1:
+            self.charm.set_slurmd_available(False)
+            self.on.slurmd_unavailable.emit()
 
-    def is_slurm_installed(self):
-        """Return true/false based on whether or not slurm is installed."""
-        return self._stored.slurm_installed
+    def _get_partitions(self, node_data):
+        """Parse the node_data and return the hosts -> partition mapping."""
+        part_dict = collections.defaultdict(dict)
+        for node in node_data:
+            part_dict[node['partition_name']].setdefault('hosts', [])
+            part_dict[node['partition_name']]['hosts'].append(node['hostname'])
+            part_dict[node['partition_name']]['partition_default'] = \
+                node['partition_default']
+            if node.get('partition_config'):
+                part_dict[node['partition_name']]['partition_config'] = \
+                    node['partition_config']
+        return dict(part_dict)
 
-    def is_slurm_login_available(self):
-        """Return slurm_login_acquired from local stored state."""
-        return self._stored.slurm_login_available
+    def _get_slurmd_node_data(self):
+        """Return the node info for units of applications on the relation."""
+        nodes_info = list()
+        relations = self.framework.model.relations['slurmd']
 
-    def is_slurmrestd_available(self):
-        """Return slurmrestd_acquired from local stored state."""
-        return self._stored.slurmrestd_available
+        slurmd_active_units = _get_slurmd_active_units()
+        self.charm.framework.breakpoint('ratty-rat-rat')
 
-    def get_munge_key(self):
-        """Get the slurmdbd_info from stored state."""
-        return self._stored.munge_key
+        for relation in relations:
+            for unit in relation.units:
+                if unit.name in slurmd_active_units:
+                    ctxt = {
+                        'ingress_address':
+                        relation.data[unit]['ingress-address'],
+                        'hostname': relation.data[unit]['hostname'],
+                        'inventory': relation.data[unit]['inventory'],
+                        'partition_name':
+                        relation.data[unit]['partition_name'],
+                        'partition_default':
+                        relation.data[unit]['partition_default'],
+                    }
+                    # Related slurmd units don't specify custom
+                    # partition_config by default.
+                    # Only get partition_config if it exists on in the
+                    # related unit's unit data.
+                    if relation.data[unit].get('partition_config'):
+                        ctxt['partition_config'] = \
+                            relation.data[unit]['partition_config']
+                    nodes_info.append(ctxt)
+        return nodes_info
+
+    def set_slurm_config_on_app_relation_data(
+        self,
+        relation,
+        slurm_config,
+    ):
+        """Set the slurm_conifg to the app data on the relation.
+
+        Setting data on the relation forces the units of related applications
+        to observe the relation-changed event so they can acquire and
+        render the updated slurm_config.
+        """
+        relations = self.charm.framework.model.relations[relation]
+        for relation in relations:
+            relation.data[self.model.app]['slurm_config'] = json.dumps(
+                slurm_config
+            )
 
     def get_slurm_config(self):
-        """Return slurm_config from local stored state."""
-        return self._stored.slurm_config
+        """Assemble and return the slurm_config."""
+        slurmctld_ingress_address = self._state.ingress_address
+        slurmctld_hostname = socket.gethostname().split(".")[0]
 
-    def get_slurmdbd_info(self):
-        """Get the slurmdbd_info from stored state."""
-        return self._stored.slurmdbd_info
+        slurmdbd_info = dict(self.charm.get_slurmdbd_info())
+        slurmd_node_data = self._get_slurmd_node_data()
 
-    def set_slurmdbd_info(self, slurmdbd_info):
-        """Set the slurmdbd_info in local stored state."""
-        self._stored.slurmdbd_info = slurmdbd_info
-
-    def set_elasticsearch_endpoint(self, elasticsearch_endpoint):
-        """Set the elasticsearch_endpoint in local stored state."""
-        self._stored.elasticsearch_endpoint = elasticsearch_endpoint
-
-    def set_slurm_config(self, slurm_config):
-        """Set the slurm_config in local stored state."""
-        self._stored.slurm_config = slurm_config
-
-    def set_slurmdbd_available(self, slurmdbd_available):
-        """Set stored state slurmdbd_available."""
-        self._stored.slurmdbd_available = slurmdbd_available
-
-    def set_slurmd_available(self, slurmd_available):
-        """Set stored state slurmd_available."""
-        self._stored.slurmd_available = slurmd_available
-
-    def set_slurmrestd_available(self, slurmrestd_available):
-        """Set stored state slurmrestd_available."""
-        self._stored.slurmrestd_available = slurmrestd_available
-
-    def set_slurm_login_available(self, slurm_login_available):
-        """Set stored state slurm_login_available."""
-        self._stored.slurm_login_available = slurm_login_available
+        return {
+            'nodes': slurmd_node_data,
+            'partitions': self._get_partitions(node_data=slurmd_node_data),
+            'slurmdbd_port': slurmdbd_info['port'],
+            'slurmdbd_hostname': slurmdbd_info['hostname'],
+            'slurmdbd_ingress_address': slurmdbd_info['ingress_address'],
+            'active_controller_hostname': slurmctld_hostname,
+            'active_controller_ingress_address': slurmctld_ingress_address,
+            'active_controller_port': "6817",
+            'munge_key': self.charm.get_munge_key(),
+            **self.model.config,
+        }
 
 
-if __name__ == "__main__":
-    main(SlurmctldCharm)
+def _remote_service_name(relid=None):
+    """Return the remote service name for a given relation-id."""
+    if relid is None:
+        unit = _remote_unit()
+    else:
+        units = _related_units(relid)
+        unit = units[0] if units else None
+    return unit.split('/')[0] if unit else None
+
+
+def _remote_unit():
+    """Return the remote unit for the current relation hook."""
+    return os.environ.get('JUJU_REMOTE_UNIT', None)
+
+
+def _relation_type():
+    """Return the scope for the current relation hook."""
+    return os.environ.get('JUJU_RELATION', None)
+
+
+def _relation_id(relation_name=None, service_or_unit=None):
+    """Return the relation ID for the current or a specified relation."""
+    if not relation_name and not service_or_unit:
+        return os.environ.get('JUJU_RELATION_ID', None)
+    elif relation_name and service_or_unit:
+        service_name = service_or_unit.split('/')[0]
+        for relid in _relation_ids(relation_name):
+            remote_service = _remote_service_name(relid)
+            if remote_service == service_name:
+                return relid
+    else:
+        raise ValueError(
+            'Must specify neither or both of relation_name and service_or_unit'
+        )
+
+
+def _related_units(relid=None):
+    """List of related units."""
+    relid = relid or _relation_id()
+    units_cmd_line = ['relation-list', '--format=json']
+    if relid is not None:
+        units_cmd_line.extend(('-r', relid))
+    return json.loads(
+        subprocess.check_output(units_cmd_line).decode('UTF-8')) or []
+
+
+def _relation_ids(reltype=None):
+    """List of relation_ids."""
+    reltype = reltype or _relation_type()
+    relid_cmd_line = ['relation-ids', '--format=json']
+    if reltype is not None:
+        relid_cmd_line.append(reltype)
+        return json.loads(
+            subprocess.check_output(relid_cmd_line).decode('UTF-8')) or []
+    return []
+
+
+def _get_slurmd_active_units():
+    """Return the active_units."""
+    active_units = []
+    for rel_id in _relation_ids('slurmd'):
+        for unit in _related_units(rel_id):
+            active_units.append(unit)
+    return active_units

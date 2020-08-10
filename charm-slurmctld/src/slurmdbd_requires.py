@@ -77,16 +77,17 @@ class SlurmdbdRequiresRelation(Object):
         # Set slurmdbd_acquired = True and emit slurmdbd_available to be
         # observed by the main charm.
         event_unit_data = event.relation.data[event.unit]
-        if event_unit_data['slurmdbd_available'] == "true":
-            self.charm.set_slurmdbd_info({
-                'ingress_address': event_unit_data['ingress-address'],
-                'hostname': event_unit_data['hostname'],
-                'port': event_unit_data['port'],
-            })
-            self.charm.set_slurmdbd_available(True)
-            self.on.slurmdbd_available.emit()
-        else:
-            event.defer()
+        if event_unit_data.get('slurmdbd_available'):
+            if event_unit_data['slurmdbd_available'] == "true":
+                self.charm.set_slurmdbd_info({
+                    'ingress_address': event_unit_data['ingress-address'],
+                    'hostname': event_unit_data['hostname'],
+                    'port': event_unit_data['port'],
+                })
+                self.charm.set_slurmdbd_available(True)
+                self.on.slurmdbd_available.emit()
+                return
+        event.defer()
 
     def get_munge_key(self) -> str:
         """Read, encode, decode and return the munge key."""

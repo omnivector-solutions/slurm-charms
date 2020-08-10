@@ -1,4 +1,5 @@
-"""requires interface for slurmctld."""
+#!/usr/bin/python3
+"""SlurmdRequires."""
 import collections
 import json
 import logging
@@ -68,7 +69,7 @@ class SlurmdRequires(Object):
         )
         self.framework.observe(
             charm.on[self._relation_name].relation_departed,
-            self._on_relation_broken
+            self._on_relation_departed
         )
         self.framework.observe(
             charm.on[self._relation_name].relation_broken,
@@ -117,13 +118,13 @@ class SlurmdRequires(Object):
         """Return the node info for units of applications on the relation."""
         nodes_info = list()
         relations = self.framework.model.relations['slurmd']
-        active_units = [
-            related_units(rel_id) for rel_id in relation_ids('slurmd')
-        ]
+
+        slurmd_active_units = _get_slurmd_active_units()
+        self.charm.framework.breakpoint('ratty-rat-rat')
 
         for relation in relations:
             for unit in relation.units:
-                if unit.name in active_units:
+                if unit.name in slurmd_active_units:
                     ctxt = {
                         'ingress_address':
                         relation.data[unit]['ingress-address'],
@@ -183,34 +184,34 @@ class SlurmdRequires(Object):
         }
 
 
-def remote_service_name(relid=None):
+def _remote_service_name(relid=None):
     """Return the remote service name for a given relation-id."""
     if relid is None:
-        unit = remote_unit()
+        unit = _remote_unit()
     else:
-        units = related_units(relid)
+        units = _related_units(relid)
         unit = units[0] if units else None
     return unit.split('/')[0] if unit else None
 
 
-def remote_unit():
+def _remote_unit():
     """Return the remote unit for the current relation hook."""
     return os.environ.get('JUJU_REMOTE_UNIT', None)
 
 
-def relation_type():
+def _relation_type():
     """Return the scope for the current relation hook."""
     return os.environ.get('JUJU_RELATION', None)
 
 
-def relation_id(relation_name=None, service_or_unit=None):
+def _relation_id(relation_name=None, service_or_unit=None):
     """Return the relation ID for the current or a specified relation."""
     if not relation_name and not service_or_unit:
         return os.environ.get('JUJU_RELATION_ID', None)
     elif relation_name and service_or_unit:
         service_name = service_or_unit.split('/')[0]
-        for relid in relation_ids(relation_name):
-            remote_service = remote_service_name(relid)
+        for relid in _relation_ids(relation_name):
+            remote_service = _remote_service_name(relid)
             if remote_service == service_name:
                 return relid
     else:
@@ -219,9 +220,9 @@ def relation_id(relation_name=None, service_or_unit=None):
         )
 
 
-def related_units(relid=None):
+def _related_units(relid=None):
     """List of related units."""
-    relid = relid or relation_id()
+    relid = relid or _relation_id()
     units_cmd_line = ['relation-list', '--format=json']
     if relid is not None:
         units_cmd_line.extend(('-r', relid))
@@ -229,12 +230,21 @@ def related_units(relid=None):
         subprocess.check_output(units_cmd_line).decode('UTF-8')) or []
 
 
-def relation_ids(reltype=None):
+def _relation_ids(reltype=None):
     """List of relation_ids."""
-    reltype = reltype or relation_type()
+    reltype = reltype or _relation_type()
     relid_cmd_line = ['relation-ids', '--format=json']
     if reltype is not None:
         relid_cmd_line.append(reltype)
         return json.loads(
             subprocess.check_output(relid_cmd_line).decode('UTF-8')) or []
     return []
+
+
+def _get_slurmd_active_units():
+    """Return the active_units."""
+    active_units = []
+    for rel_id in _relation_ids('slurmd'):
+        for unit in _related_units(rel_id):
+            active_units.append(unit)
+    return active_units

@@ -2,6 +2,7 @@
 import collections
 import json
 import logging
+import os
 import socket
 import subprocess
 from pathlib import Path
@@ -116,22 +117,28 @@ class SlurmdRequires(Object):
     @property
     def _slurmd_node_data(self):
         """Return the node info for units of applications on the relation."""
-        relations = self.framework.model.relations['slurmd']
-        active_units = [related_units(rel_id) for rel_id in relation_ids('slurmd')]
         nodes_info = list()
+        relations = self.framework.model.relations['slurmd']
+        active_units = [
+            related_units(rel_id) for rel_id in relation_ids('slurmd')
+        ]
+
         for relation in relations:
             for unit in relation.units:
                 if unit.name in active_units:
                     ctxt = {
-                        'ingress_address': relation.data[unit]['ingress-address'],
+                        'ingress_address':
+                        relation.data[unit]['ingress-address'],
                         'hostname': relation.data[unit]['hostname'],
                         'inventory': relation.data[unit]['inventory'],
-                        'partition_name': relation.data[unit]['partition_name'],
+                        'partition_name':
+                        relation.data[unit]['partition_name'],
                         'partition_default':
                         relation.data[unit]['partition_default'],
                     }
-                    # Related slurmd units don't specify custom partition_config
-                    # by default. Only get partition_config if it exists on in the
+                    # Related slurmd units don't specify custom
+                    # partition_config by default.
+                    # Only get partition_config if it exists on in the
                     # related unit's unit data.
                     if relation.data[unit].get('partition_config'):
                         ctxt['partition_config'] = \
@@ -178,8 +185,44 @@ class SlurmdRequires(Object):
         }
 
 
+def remote_service_name(relid=None):
+    """Return the remote service name for a given relation-id."""
+    if relid is None:
+        unit = remote_unit()
+    else:
+        units = related_units(relid)
+        unit = units[0] if units else None
+    return unit.split('/')[0] if unit else None
+
+
+def remote_unit():
+    """Return the remote unit for the current relation hook."""
+    return os.environ.get('JUJU_REMOTE_UNIT', None)
+
+
+def relation_type():
+    """Return the scope for the current relation hook."""
+    return os.environ.get('JUJU_RELATION', None)
+
+
+def relation_id(relation_name=None, service_or_unit=None):
+    """Return the relation ID for the current or a specified relation."""
+    if not relation_name and not service_or_unit:
+        return os.environ.get('JUJU_RELATION_ID', None)
+    elif relation_name and service_or_unit:
+        service_name = service_or_unit.split('/')[0]
+        for relid in relation_ids(relation_name):
+            remote_service = remote_service_name(relid)
+            if remote_service == service_name:
+                return relid
+    else:
+        raise ValueError(
+            'Must specify neither or both of relation_name and service_or_unit'
+        )
+
+
 def related_units(relid=None):
-    """A list of related units"""
+    """List of related units."""
     relid = relid or relation_id()
     units_cmd_line = ['relation-list', '--format=json']
     if relid is not None:
@@ -189,7 +232,7 @@ def related_units(relid=None):
 
 
 def relation_ids(reltype=None):
-    """A list of relation_ids"""
+    """List of relation_ids."""
     reltype = reltype or relation_type()
     relid_cmd_line = ['relation-ids', '--format=json']
     if reltype is not None:

@@ -77,13 +77,12 @@ class SlurmdbdRequiresRelation(Object):
         # Set slurmdbd_acquired = True and emit slurmdbd_available to be
         # observed by the main charm.
         event_unit_data = event.relation.data[event.unit]
-
-        self.charm.set_slurmdbd_info({
-            'ingress_address': event_unit_data['ingress-address'],
-            'hostname': event_unit_data['hostname'],
-            'port': event_unit_data['port'],
-        })
         if event_unit_data['slurmdbd_available'] == "true":
+            self.charm.set_slurmdbd_info({
+                'ingress_address': event_unit_data['ingress-address'],
+                'hostname': event_unit_data['hostname'],
+                'port': event_unit_data['port'],
+            })
             self.charm.set_slurmdbd_available(True)
             self.on.slurmdbd_available.emit()
         else:

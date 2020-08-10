@@ -1,8 +1,11 @@
-"""requires interface for slurmctld."""
+#!/usr/bin/python3
+"""SlurmdRequires."""
 import collections
 import json
 import logging
+import os
 import socket
+import subprocess
 from pathlib import Path
 
 
@@ -23,6 +26,10 @@ class SlurmdUnAvailableEvent(EventBase):
     """Emmited when the slurmd relation is broken."""
 
 
+class SlurmdDepartedEvent(EventBase):
+    """Emmited when a slurmd unit departs."""
+
+
 class SlurmdAvailableEvent(EventBase):
     """Emmited when slurmd is available."""
 
@@ -31,6 +38,7 @@ class SlurmdRequiresEvents(ObjectEvents):
     """SlurmClusterProviderRelationEvents."""
 
     slurmd_available = EventSource(SlurmdAvailableEvent)
+    slurmd_departed = EventSource(SlurmdDepartedEvent)
     slurmd_unavailable = EventSource(SlurmdUnAvailableEvent)
 
 
@@ -60,6 +68,10 @@ class SlurmdRequires(Object):
             self._on_relation_changed
         )
         self.framework.observe(
+            charm.on[self._relation_name].relation_departed,
+            self._on_relation_departed
+        )
+        self.framework.observe(
             charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
@@ -79,17 +91,20 @@ class SlurmdRequires(Object):
             event.defer()
             return
 
+    def _on_relation_departed(self, event):
+        """Account for relation departed activity."""
+        self.on.slurmd_departed.emit()
+
     def _on_relation_broken(self, event):
         """Account for relation broken activity."""
         if len(self.framework.model.relations['slurmd']) < 1:
             self.charm.set_slurmd_available(False)
             self.on.slurmd_unavailable.emit()
 
-    @property
-    def _partitions(self):
+    def _get_partitions(self, node_data):
         """Parse the node_data and return the hosts -> partition mapping."""
         part_dict = collections.defaultdict(dict)
-        for node in self._slurmd_node_data:
+        for node in node_data:
             part_dict[node['partition_name']].setdefault('hosts', [])
             part_dict[node['partition_name']]['hosts'].append(node['hostname'])
             part_dict[node['partition_name']]['partition_default'] = \
@@ -99,28 +114,35 @@ class SlurmdRequires(Object):
                     node['partition_config']
         return dict(part_dict)
 
-    @property
-    def _slurmd_node_data(self):
+    def _get_slurmd_node_data(self):
         """Return the node info for units of applications on the relation."""
-        relations = self.framework.model.relations['slurmd']
         nodes_info = list()
+        relations = self.framework.model.relations['slurmd']
+
+        slurmd_active_units = _get_slurmd_active_units()
+        self.charm.framework.breakpoint('ratty-rat-rat')
+
         for relation in relations:
             for unit in relation.units:
-                ctxt = {
-                    'ingress_address': relation.data[unit]['ingress-address'],
-                    'hostname': relation.data[unit]['hostname'],
-                    'inventory': relation.data[unit]['inventory'],
-                    'partition_name': relation.data[unit]['partition_name'],
-                    'partition_default':
-                    relation.data[unit]['partition_default'],
-                }
-                # Related slurmd units don't specify custom partition_config
-                # by default. Only get partition_config if it exists on in the
-                # related unit's unit data.
-                if relation.data[unit].get('partition_config'):
-                    ctxt['partition_config'] = \
-                        relation.data[unit]['partition_config']
-                nodes_info.append(ctxt)
+                if unit.name in slurmd_active_units:
+                    ctxt = {
+                        'ingress_address':
+                        relation.data[unit]['ingress-address'],
+                        'hostname': relation.data[unit]['hostname'],
+                        'inventory': relation.data[unit]['inventory'],
+                        'partition_name':
+                        relation.data[unit]['partition_name'],
+                        'partition_default':
+                        relation.data[unit]['partition_default'],
+                    }
+                    # Related slurmd units don't specify custom
+                    # partition_config by default.
+                    # Only get partition_config if it exists on in the
+                    # related unit's unit data.
+                    if relation.data[unit].get('partition_config'):
+                        ctxt['partition_config'] = \
+                            relation.data[unit]['partition_config']
+                    nodes_info.append(ctxt)
         return nodes_info
 
     def set_slurm_config_on_app_relation_data(
@@ -146,10 +168,11 @@ class SlurmdRequires(Object):
         slurmctld_hostname = socket.gethostname().split(".")[0]
 
         slurmdbd_info = dict(self.charm.get_slurmdbd_info())
+        slurmd_node_data = self._get_slurmd_node_data()
 
         return {
-            'nodes': self._slurmd_node_data,
-            'partitions': self._partitions,
+            'nodes': slurmd_node_data,
+            'partitions': self._get_partitions(node_data=slurmd_node_data),
             'slurmdbd_port': slurmdbd_info['port'],
             'slurmdbd_hostname': slurmdbd_info['hostname'],
             'slurmdbd_ingress_address': slurmdbd_info['ingress_address'],
@@ -159,3 +182,69 @@ class SlurmdRequires(Object):
             'munge_key': self.charm.get_munge_key(),
             **self.model.config,
         }
+
+
+def _remote_service_name(relid=None):
+    """Return the remote service name for a given relation-id."""
+    if relid is None:
+        unit = _remote_unit()
+    else:
+        units = _related_units(relid)
+        unit = units[0] if units else None
+    return unit.split('/')[0] if unit else None
+
+
+def _remote_unit():
+    """Return the remote unit for the current relation hook."""
+    return os.environ.get('JUJU_REMOTE_UNIT', None)
+
+
+def _relation_type():
+    """Return the scope for the current relation hook."""
+    return os.environ.get('JUJU_RELATION', None)
+
+
+def _relation_id(relation_name=None, service_or_unit=None):
+    """Return the relation ID for the current or a specified relation."""
+    if not relation_name and not service_or_unit:
+        return os.environ.get('JUJU_RELATION_ID', None)
+    elif relation_name and service_or_unit:
+        service_name = service_or_unit.split('/')[0]
+        for relid in _relation_ids(relation_name):
+            remote_service = _remote_service_name(relid)
+            if remote_service == service_name:
+                return relid
+    else:
+        raise ValueError(
+            'Must specify neither or both of relation_name and service_or_unit'
+        )
+
+
+def _related_units(relid=None):
+    """List of related units."""
+    relid = relid or _relation_id()
+    units_cmd_line = ['relation-list', '--format=json']
+    if relid is not None:
+        units_cmd_line.extend(('-r', relid))
+    return json.loads(
+        subprocess.check_output(units_cmd_line).decode('UTF-8')) or []
+
+
+def _relation_ids(reltype=None):
+    """List of relation_ids."""
+    reltype = reltype or _relation_type()
+    relid_cmd_line = ['relation-ids', '--format=json']
+    if reltype is not None:
+        relid_cmd_line.append(reltype)
+        return json.loads(
+            subprocess.check_output(relid_cmd_line).decode('UTF-8')) or []
+    return []
+
+
+def _get_slurmd_active_units():
+    """Return the active_units."""
+    active_units = []
+    for rel_id in _relation_ids('slurmd'):
+        for unit in _related_units(rel_id):
+            active_units.append(unit)
+    return active_units

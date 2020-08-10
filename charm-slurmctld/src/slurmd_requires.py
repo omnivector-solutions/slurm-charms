@@ -100,8 +100,7 @@ class SlurmdRequires(Object):
             self.charm.set_slurmd_available(False)
             self.on.slurmd_unavailable.emit()
 
-    @property
-    def _partitions(self, node_data):
+    def _get_partitions(self, node_data):
         """Parse the node_data and return the hosts -> partition mapping."""
         part_dict = collections.defaultdict(dict)
         for node in node_data:
@@ -114,8 +113,7 @@ class SlurmdRequires(Object):
                     node['partition_config']
         return dict(part_dict)
 
-    @property
-    def _slurmd_node_data(self):
+    def _get_slurmd_node_data(self):
         """Return the node info for units of applications on the relation."""
         nodes_info = list()
         relations = self.framework.model.relations['slurmd']
@@ -169,11 +167,11 @@ class SlurmdRequires(Object):
         slurmctld_hostname = socket.gethostname().split(".")[0]
 
         slurmdbd_info = dict(self.charm.get_slurmdbd_info())
-        slurmd_node_data = self._slurmd_node_data
+        slurmd_node_data = self._get_slurmd_node_data()
 
         return {
             'nodes': slurmd_node_data,
-            'partitions': self._partitions(slurmd_node_data),
+            'partitions': self._get_partitions(node_data=slurmd_node_data),
             'slurmdbd_port': slurmdbd_info['port'],
             'slurmdbd_hostname': slurmdbd_info['hostname'],
             'slurmdbd_ingress_address': slurmdbd_info['ingress_address'],

@@ -3,6 +3,7 @@ import collections
 import json
 import logging
 import socket
+import subprocess
 from pathlib import Path
 
 
@@ -99,10 +100,10 @@ class SlurmdRequires(Object):
             self.on.slurmd_unavailable.emit()
 
     @property
-    def _partitions(self):
+    def _partitions(self, node_data):
         """Parse the node_data and return the hosts -> partition mapping."""
         part_dict = collections.defaultdict(dict)
-        for node in self._slurmd_node_data:
+        for node in node_data:
             part_dict[node['partition_name']].setdefault('hosts', [])
             part_dict[node['partition_name']]['hosts'].append(node['hostname'])
             part_dict[node['partition_name']]['partition_default'] = \
@@ -116,24 +117,26 @@ class SlurmdRequires(Object):
     def _slurmd_node_data(self):
         """Return the node info for units of applications on the relation."""
         relations = self.framework.model.relations['slurmd']
+        active_units = [related_units(rel_id) for rel_id in relation_ids('slurmd')]
         nodes_info = list()
         for relation in relations:
             for unit in relation.units:
-                ctxt = {
-                    'ingress_address': relation.data[unit]['ingress-address'],
-                    'hostname': relation.data[unit]['hostname'],
-                    'inventory': relation.data[unit]['inventory'],
-                    'partition_name': relation.data[unit]['partition_name'],
-                    'partition_default':
-                    relation.data[unit]['partition_default'],
-                }
-                # Related slurmd units don't specify custom partition_config
-                # by default. Only get partition_config if it exists on in the
-                # related unit's unit data.
-                if relation.data[unit].get('partition_config'):
-                    ctxt['partition_config'] = \
-                        relation.data[unit]['partition_config']
-                nodes_info.append(ctxt)
+                if unit.name in active_units:
+                    ctxt = {
+                        'ingress_address': relation.data[unit]['ingress-address'],
+                        'hostname': relation.data[unit]['hostname'],
+                        'inventory': relation.data[unit]['inventory'],
+                        'partition_name': relation.data[unit]['partition_name'],
+                        'partition_default':
+                        relation.data[unit]['partition_default'],
+                    }
+                    # Related slurmd units don't specify custom partition_config
+                    # by default. Only get partition_config if it exists on in the
+                    # related unit's unit data.
+                    if relation.data[unit].get('partition_config'):
+                        ctxt['partition_config'] = \
+                            relation.data[unit]['partition_config']
+                    nodes_info.append(ctxt)
         return nodes_info
 
     def set_slurm_config_on_app_relation_data(
@@ -159,10 +162,11 @@ class SlurmdRequires(Object):
         slurmctld_hostname = socket.gethostname().split(".")[0]
 
         slurmdbd_info = dict(self.charm.get_slurmdbd_info())
+        slurmd_node_data = self._slurmd_node_data
 
         return {
-            'nodes': self._slurmd_node_data,
-            'partitions': self._partitions,
+            'nodes': slurmd_node_data,
+            'partitions': self._partitions(slurmd_node_data),
             'slurmdbd_port': slurmdbd_info['port'],
             'slurmdbd_hostname': slurmdbd_info['hostname'],
             'slurmdbd_ingress_address': slurmdbd_info['ingress_address'],
@@ -172,3 +176,24 @@ class SlurmdRequires(Object):
             'munge_key': self.charm.get_munge_key(),
             **self.model.config,
         }
+
+
+def related_units(relid=None):
+    """A list of related units"""
+    relid = relid or relation_id()
+    units_cmd_line = ['relation-list', '--format=json']
+    if relid is not None:
+        units_cmd_line.extend(('-r', relid))
+    return json.loads(
+        subprocess.check_output(units_cmd_line).decode('UTF-8')) or []
+
+
+def relation_ids(reltype=None):
+    """A list of relation_ids"""
+    reltype = reltype or relation_type()
+    relid_cmd_line = ['relation-ids', '--format=json']
+    if reltype is not None:
+        relid_cmd_line.append(reltype)
+        return json.loads(
+            subprocess.check_output(relid_cmd_line).decode('UTF-8')) or []
+    return []

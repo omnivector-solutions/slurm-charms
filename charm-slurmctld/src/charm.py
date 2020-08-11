@@ -32,7 +32,7 @@ class SlurmctldCharm(CharmBase):
 
         self._stored.set_default(
             munge_key=str(),
-            elasticsearch_endpoint=str(),
+            elasticsearch_hostname=None,
             slurmdbd_info=dict(),
             slurm_installed=False,
             slurmdbd_available=False,
@@ -123,13 +123,17 @@ class SlurmctldCharm(CharmBase):
 
     def _assemble_slurm_config(self):
         slurm_config = self.slurmd.get_slurm_config()
-        elasticsearch_endpoint = self._stored.elasticsearch_endpoint
+        elasticsearch_endpoint = self._stored.elasticsearch_hostname
+        logger.debug("_______________IN ASSEMBLE CONFIG_________________")
+        logger.debug(elasticsearch_endpoint)
 
         if elasticsearch_endpoint:
             slurm_config = {
                 **slurm_config,
-                **{'elasticsearch_http_endpoint': elasticsearch_endpoint},
+                **{'elasticsearch_address': elasticsearch_endpoint},
             }
+            logger.debug("_______________IN ASSEMBLE CONFIG_________________")
+            logger.debug(slurm_config["elasticsearch_address"])    
         return slurm_config
 
     def _check_status(self, event):
@@ -183,10 +187,6 @@ class SlurmctldCharm(CharmBase):
     def set_slurmdbd_info(self, slurmdbd_info):
         """Set the slurmdbd_info in local stored state."""
         self._stored.slurmdbd_info = slurmdbd_info
-
-    def set_elasticsearch_endpoint(self, elasticsearch_endpoint):
-        """Set the elasticsearch_endpoint in local stored state."""
-        self._stored.elasticsearch_endpoint = elasticsearch_endpoint
 
     def set_slurm_config(self, slurm_config):
         """Set the slurm_config in local stored state."""

@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """ElasticsearchRequires."""
+import logging
 from ops.framework import (
     EventBase,
     EventSource,
@@ -7,11 +8,11 @@ from ops.framework import (
     ObjectEvents,
 )
 
+logger = logging.getLogger()
+
 
 class ElasticsearchAvailableEvent(EventBase):
     """ElasticsearchAvailable event."""
-
-    pass
 
 
 class ElasticsearchEvents(ObjectEvents):
@@ -22,24 +23,20 @@ class ElasticsearchEvents(ObjectEvents):
 
 class ElasticsearchRequires(Object):
     """Connect Slurmctld to elasticsearch."""
-
     on = ElasticsearchEvents()
-
+    
     def __init(self, charm, relation_name):
-        """Initialize the class."""
+        """set the provide relation data"""
         super().__init__(charm, relation_name)
 
-        self.charm = charm
         self.framework.observe(
-            charm.on[self._relation_name].relation_created,
-            self._on_relation_created
-        )
-        self.framework.observe(
-            charm.on[self._relation_name].relation_changed,
+            charm.on[self.relation_name].relation_changed,
             self._on_relation_changed
         )
-
+        
         def _on_relation_changed(self, event):
             host = event.relation.data[event.unit].get('hostname', None)
-            self.charm.set_elasticsearch_endpoint(f"http://{host}:9200")
+            self.charm._stored.elasticsearch_hostname = { 'elasticsearch_address': f"http://{host}:9200" }
+            logger.debug("_________Inside RELATION CHANGED________________")
+            logger.debug(host)
             self.on.elasticsearch_available.emit()

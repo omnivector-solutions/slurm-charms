@@ -63,7 +63,10 @@ class SlurmdRequires(Object):
             charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
-
+        self.framework.observe(
+            charm.on[self._relation_name].relation_departed,
+            self._on_relation_departed
+        )
     def _on_relation_created(self, event):
         unit_data = event.relation.data[self.model.unit]
         self._state.ingress_address = unit_data['ingress-address']
@@ -84,6 +87,9 @@ class SlurmdRequires(Object):
         if len(self.framework.model.relations['slurmd']) < 1:
             self.charm.set_slurmd_available(False)
             self.on.slurmd_unavailable.emit()
+
+    def _on_relation_departed(self, event):
+        pass
 
     @property
     def _partitions(self):

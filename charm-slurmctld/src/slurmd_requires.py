@@ -53,9 +53,6 @@ class SlurmdRequires(Object):
         self.charm = charm
         self._relation_name = relation_name
 
-        self._MUNGE_KEY_PATH = \
-            Path("/var/snap/slurm/common/etc/munge/munge.key")
-
         self._state.set_default(ingress_address=None)
 
         self.framework.observe(

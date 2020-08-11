@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 """SlurmdbdRequiresRelation."""
 import logging
-from base64 import b64encode
-from pathlib import Path
 
 
 from ops.framework import (
@@ -42,8 +40,6 @@ class SlurmdbdRequiresRelation(Object):
 
         self.charm = charm
         self._relation_name = relation_name
-        self._MUNGE_KEY_PATH = \
-            Path("/var/snap/slurm/common/etc/munge/munge.key")
 
         self.framework.observe(
             charm.on[self._relation_name].relation_created,
@@ -68,7 +64,7 @@ class SlurmdbdRequiresRelation(Object):
             return
         # Get the munge_key from the slurm_ops_manager and set it to the app
         # data on the relation to be retrieved on the other side by slurmdbd.
-        munge_key = self.get_munge_key()
+        munge_key = self.charm.get_munge_key()
         event.relation.data[self.model.app]['munge_key'] = munge_key
 
     def _on_relation_changed(self, event):
@@ -88,11 +84,6 @@ class SlurmdbdRequiresRelation(Object):
                 self.on.slurmdbd_available.emit()
                 return
         event.defer()
-
-    def get_munge_key(self) -> str:
-        """Read, encode, decode and return the munge key."""
-        munge_key = self._MUNGE_KEY_PATH.read_bytes()
-        return b64encode(munge_key).decode()
 
     def _on_relation_broken(self, event):
         self.on.slurmdbd_unavailable.emit()

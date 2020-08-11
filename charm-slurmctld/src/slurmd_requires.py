@@ -5,7 +5,6 @@ import json
 import logging
 import socket
 import subprocess
-from pathlib import Path
 
 
 from ops.framework import (

@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 """SlurmdbdRequiresRelation."""
 import logging
-from base64 import b64encode
-from pathlib import Path
 
 
 from ops.framework import (

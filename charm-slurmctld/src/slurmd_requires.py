@@ -124,23 +124,21 @@ class SlurmdRequires(Object):
         for relation in relations:
             for unit in relation.units:
                 if unit.name in slurmd_active_units:
+                    unit_data = relation.data[unit]
                     ctxt = {
-                        'ingress_address':
-                        relation.data[unit]['ingress-address'],
-                        'hostname': relation.data[unit]['hostname'],
-                        'inventory': relation.data[unit]['inventory'],
-                        'partition_name':
-                        relation.data[unit]['partition_name'],
-                        'partition_default':
-                        relation.data[unit]['partition_default'],
+                        'ingress_address': unit_data['ingress-address'],
+                        'hostname': unit_data['hostname'],
+                        'inventory': unit_data['inventory'],
+                        'partition_name': unit_data['partition_name'],
+                        'partition_default': unit_data['partition_default'],
                     }
                     # Related slurmd units don't specify custom
                     # partition_config by default.
                     # Only get partition_config if it exists on in the
                     # related unit's unit data.
-                    if relation.data[unit].get('partition_config'):
+                    if unit_data.get('partition_config'):
                         ctxt['partition_config'] = \
-                            relation.data[unit]['partition_config']
+                                unit_data['partition_config']
                     nodes_info.append(ctxt)
         return nodes_info
 

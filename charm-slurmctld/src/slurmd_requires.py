@@ -3,7 +3,6 @@
 import collections
 import json
 import logging
-import os
 import socket
 import subprocess
 from pathlib import Path

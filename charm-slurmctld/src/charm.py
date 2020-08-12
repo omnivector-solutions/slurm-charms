@@ -66,6 +66,9 @@ class SlurmctldCharm(CharmBase):
             self.slurmd.on.slurmd_available:
             self._on_check_status_and_write_config,
 
+            self.slurmd.on.slurmd_departed:
+            self._on_check_status_and_write_config,
+
             self.slurmd.on.slurmd_unavailable:
             self._on_check_status_and_write_config,
 
@@ -87,7 +90,7 @@ class SlurmctldCharm(CharmBase):
         self.unit.status = ActiveStatus("Slurm Installed")
 
     def _on_check_status_and_write_config(self, event):
-        if not self._check_status(event):
+        if not self._check_status():
             event.defer()
             return
         slurm_config = self._assemble_slurm_config()
@@ -110,7 +113,7 @@ class SlurmctldCharm(CharmBase):
         self.unit.status = ActiveStatus("Slurmctld Available")
 
     def _on_provide_slurmrestd(self, event):
-        if not self._check_status(event):
+        if not self._check_status():
             event.defer()
             return
 
@@ -131,7 +134,7 @@ class SlurmctldCharm(CharmBase):
             }
         return slurm_config
 
-    def _check_status(self, event):
+    def _check_status(self):
         slurmdbd_acquired = self._stored.slurmdbd_available
         slurmd_acquired = self._stored.slurmd_available
         slurm_installed = self._stored.slurm_installed

@@ -30,10 +30,10 @@ class ElasticsearchRequires(Object):
         super().__init__(charm, relation_name)
 
         self.framework.observe(
-            charm.on[self.relation_name].relation_changed,
+            charm.on[relation_name].relation_changed,
             self._on_relation_changed
         )
-        
+
         def _on_relation_changed(self, event):
             host = event.relation.data[event.unit].get('hostname', None)
             self.charm._stored.elasticsearch_hostname = { 'elasticsearch_address': f"http://{host}:9200" }

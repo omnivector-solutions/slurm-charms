@@ -2,8 +2,6 @@
 """SlurmctldCharm."""
 import logging
 
-
-from elasticsearch_requires import ElasticsearchRequires
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -11,6 +9,7 @@ from ops.model import (
     ActiveStatus,
     BlockedStatus,
 )
+from elasticsearch_requires import ElasticsearchRequires
 from slurm_login_provides import SlurmLoginProvides
 from slurm_ops_manager import SlurmOpsManager
 from slurmd_requires import SlurmdRequires

@@ -28,7 +28,7 @@ class SlurmLoginCharm(CharmBase):
             slurm_config = None,
             slurm_installed = False,
             )
-        self.slurm_ops_manager = SlurmOpsManager(self, "none")
+        self.slurm_ops_manager = SlurmOpsManager(self, "slurmd")
         self._login = LoginRequires(self, 'login')
 
 

@@ -41,11 +41,4 @@ class ElasticsearchRequires(Object):
         ingress = event.relation.data[event.unit]['ingress-address']
         logger.debug(f'ingress address: {ingress}')
         self.charm._stored.elasticsearch_ingress = f'http://{ingress}:9200'
-        foo = event.relation.data[event.unit].get('host', None)
-        if foo is not None:
-            logger.info(f"The value for 'host' is {foo}!")
-        else:
-            logger.warning("'foo' not in relation data")
-            event.defer()
-            return
         self.on.elasticsearch_available.emit()

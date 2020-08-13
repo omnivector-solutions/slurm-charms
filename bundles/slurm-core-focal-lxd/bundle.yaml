@@ -1,10 +1,4 @@
 applications:
-  slurm-login:
-    charm: ./../../slurm-login.charm
-    series: focal
-    num_units: 1
-    resources:
-      slurm: ./../../slurm.resource
   slurmrestd:
     charm: ./../../slurmrestd.charm
     series: focal
@@ -35,8 +29,6 @@ applications:
     num_units: 1
 
 relations:
-  - - slurmctld:login
-    - slurm-login:login
   - - slurmctld:slurmrestd
     - slurmrestd:slurmrestd
   - - slurmctld:slurmd

@@ -14,7 +14,6 @@ charms: ## Build all charms
 	@charmcraft build --from charm-slurmctld
 	@charmcraft build --from charm-slurmdbd
 	@charmcraft build --from charm-slurmrestd
-	@charmcraft build --from charm-slurm-login
 
 pull-classic-snap: ## Pull the classic slurm snap from github
 	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource

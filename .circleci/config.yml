@@ -145,7 +145,6 @@ jobs:
           key: built-slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
           paths:
             - slurmrestd.charm
-            - slurmlogin.charm
             - slurmctld.charm
             - slurmdbd.charm
             - slurmd.charm

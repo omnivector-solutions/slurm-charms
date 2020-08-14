@@ -26,8 +26,6 @@ requires:
 provides:
   slurmrestd:
     interface: slurmrestd
-  slurm-login:
-    interface: slurm-login
 
 resources:
   slurm:

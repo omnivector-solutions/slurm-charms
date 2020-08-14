@@ -70,6 +70,10 @@ class SlurmdRequires(Object):
             charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
+        self.framework.observe(
+            charm.on[self._relation_name].relation_departed,
+            self._on_relation_departed
+        )
 
     def _on_relation_created(self, event):
         unit_data = event.relation.data[self.model.unit]

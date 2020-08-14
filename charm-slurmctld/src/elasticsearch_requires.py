@@ -1,5 +1,7 @@
 #!/usr/bin/python3
-"""ElasticsearchRequires."""
+"""Elasticserch interface."""
+import logging
+
 from ops.framework import (
     EventBase,
     EventSource,
@@ -7,11 +9,11 @@ from ops.framework import (
     ObjectEvents,
 )
 
+logger = logging.getLogger()
+
 
 class ElasticsearchAvailableEvent(EventBase):
     """ElasticsearchAvailable event."""
-
-    pass
 
 
 class ElasticsearchEvents(ObjectEvents):
@@ -21,25 +23,22 @@ class ElasticsearchEvents(ObjectEvents):
 
 
 class ElasticsearchRequires(Object):
-    """Connect Slurmctld to elasticsearch."""
+    """Require side of elasticsearch interface."""
 
     on = ElasticsearchEvents()
 
-    def __init(self, charm, relation_name):
-        """Initialize the class."""
+    def __init__(self, charm, relation_name):
+        """Observe relation changed."""
         super().__init__(charm, relation_name)
-
         self.charm = charm
         self.framework.observe(
-            charm.on[self._relation_name].relation_created,
-            self._on_relation_created
-        )
-        self.framework.observe(
-            charm.on[self._relation_name].relation_changed,
+            charm.on[relation_name].relation_changed,
             self._on_relation_changed
         )
 
-        def _on_relation_changed(self, event):
-            host = event.relation.data[event.unit].get('hostname', None)
-            self.charm.set_elasticsearch_endpoint(f"http://{host}:9200")
-            self.on.elasticsearch_available.emit()
+    def _on_relation_changed(self, event):
+        """Get relation data from provides."""
+        ingress = event.relation.data[event.unit]['ingress-address']
+        logger.debug(f'ingress address: {ingress}')
+        self.charm._stored.elasticsearch_ingress = f'http://{ingress}:9200'
+        self.on.elasticsearch_available.emit()

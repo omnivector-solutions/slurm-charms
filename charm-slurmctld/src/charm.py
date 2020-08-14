@@ -2,7 +2,6 @@
 """SlurmctldCharm."""
 import logging
 
-
 from elasticsearch_requires import ElasticsearchRequires
 from ops.charm import CharmBase
 from ops.framework import StoredState
@@ -11,7 +10,6 @@ from ops.model import (
     ActiveStatus,
     BlockedStatus,
 )
-from slurm_login_provides import SlurmLoginProvides
 from slurm_ops_manager import SlurmOpsManager
 from slurmd_requires import SlurmdRequires
 from slurmdbd_requires import SlurmdbdRequiresRelation
@@ -32,23 +30,19 @@ class SlurmctldCharm(CharmBase):
 
         self._stored.set_default(
             munge_key=str(),
-            elasticsearch_endpoint=str(),
+            elasticsearch_ingress=None,
             slurmdbd_info=dict(),
             slurm_installed=False,
             slurmdbd_available=False,
             slurmd_available=False,
             slurmrestd_available=False,
-            slurm_login_available=False,
+
         )
+        self.elasticsearch = ElasticsearchRequires(self, "elasticsearch")
         self.slurm_ops_manager = SlurmOpsManager(self, "slurmctld")
         self.slurmdbd = SlurmdbdRequiresRelation(self, "slurmdbd")
         self.slurmd = SlurmdRequires(self, "slurmd")
-        self.slurm_login_provides = SlurmLoginProvides(self, "slurm-login")
         self.slurmrestd_provides = SlurmrestdProvides(self, "slurmrestd")
-        self.elasticsearch_requires = ElasticsearchRequires(
-            self,
-            "elasticsearch"
-        )
 
         event_handler_bindings = {
             self.on.install:
@@ -78,8 +72,10 @@ class SlurmctldCharm(CharmBase):
             self.slurmrestd_provides.on.slurmrestd_available:
             self._on_provide_slurmrestd,
 
-            self.elasticsearch_requires.on.elasticsearch_available:
+            self.elasticsearch.on.elasticsearch_available:
             self._on_check_status_and_write_config,
+
+
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -121,12 +117,12 @@ class SlurmctldCharm(CharmBase):
 
     def _assemble_slurm_config(self):
         slurm_config = self.slurmd.get_slurm_config()
-        elasticsearch_endpoint = self._stored.elasticsearch_endpoint
+        elasticsearch_endpoint = self._stored.elasticsearch_ingress
 
         if elasticsearch_endpoint:
             slurm_config = {
                 **slurm_config,
-                **{'elasticsearch_http_endpoint': elasticsearch_endpoint},
+                **{'elasticsearch_address': elasticsearch_endpoint},
             }
         return slurm_config
 
@@ -182,10 +178,6 @@ class SlurmctldCharm(CharmBase):
         """Set the slurmdbd_info in local stored state."""
         self._stored.slurmdbd_info = slurmdbd_info
 
-    def set_elasticsearch_endpoint(self, elasticsearch_endpoint):
-        """Set the elasticsearch_endpoint in local stored state."""
-        self._stored.elasticsearch_endpoint = elasticsearch_endpoint
-
     def set_slurm_config(self, slurm_config):
         """Set the slurm_config in local stored state."""
         self._stored.slurm_config = slurm_config
@@ -201,10 +193,6 @@ class SlurmctldCharm(CharmBase):
     def set_slurmrestd_available(self, slurmrestd_available):
         """Set stored state slurmrestd_available."""
         self._stored.slurmrestd_available = slurmrestd_available
-
-    def set_slurm_login_available(self, slurm_login_available):
-        """Set stored state slurm_login_available."""
-        self._stored.slurm_login_available = slurm_login_available
 
 
 if __name__ == "__main__":

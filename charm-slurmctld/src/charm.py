@@ -14,6 +14,7 @@ from slurm_ops_manager import SlurmOpsManager
 from slurmd_requires import SlurmdRequires
 from slurmdbd_requires import SlurmdbdRequiresRelation
 from slurmrestd_provides import SlurmrestdProvides
+from prometheus_slurm_exporter import PrometheusSlurmExporterProvides
 
 
 logger = logging.getLogger()
@@ -43,6 +44,11 @@ class SlurmctldCharm(CharmBase):
         self.slurmdbd = SlurmdbdRequiresRelation(self, "slurmdbd")
         self.slurmd = SlurmdRequires(self, "slurmd")
         self.slurmrestd_provides = SlurmrestdProvides(self, "slurmrestd")
+
+        self.prometheus_slurm_exporter = PrometheusSlurmExporterProvides(
+            self,
+            "prometheus"
+        )
 
         event_handler_bindings = {
             self.on.install:

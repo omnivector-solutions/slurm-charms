@@ -1,0 +1,50 @@
+applications:
+  slurmrestd:
+    charm: ./../../slurmrestd.charm
+    series: focal
+    num_units: 1
+    resources:
+      slurm: ./../../slurm.resource
+  slurmctld:
+    charm: ./../../slurmctld.charm
+    series: focal
+    num_units: 1
+    resources:
+      slurm: ./../../slurm.resource
+  slurmd:
+    charm: ./../../slurmd.charm
+    series: focal
+    num_units: 1
+    resources:
+      slurm: ./../../slurm.resource
+  slurmdbd:
+    charm: ./../../slurmdbd.charm
+    series: focal
+    num_units: 1
+    resources:
+      slurm: ./../../slurm.resource
+  percona-cluster:
+    charm: cs:percona-cluster
+    series: bionic
+    num_units: 1
+  grafana:
+    charm: cs:grafana
+    series: focal
+    num_units: 1
+  prometheus2:
+    charm: cs:prometheus2
+    series: focal
+
+relations:
+  - - slurmctld:prometheus
+    - prometheus2:scrape
+  - - prometheus2:grafana-source
+    - grafana:grafana-source
+  - - slurmctld:slurmrestd
+    - slurmrestd:slurmrestd
+  - - slurmctld:slurmd
+    - slurmd:slurmd
+  - - slurmctld:slurmdbd
+    - slurmdbd:slurmdbd
+  - - slurmdbd:db
+    - percona-cluster:db

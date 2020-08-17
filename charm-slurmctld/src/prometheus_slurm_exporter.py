@@ -13,7 +13,7 @@ class PrometheusSlurmExporterProvides(Object):
         self._relation_name = relation
 
         self.framework.observe(
-            self.on[self._relation_name].relation_created,
+            self._charm.on[self._relation_name].relation_created,
             self._on_relation_created
         )
 
@@ -21,4 +21,4 @@ class PrometheusSlurmExporterProvides(Object):
         event.relation.data[self.model.unit]['hostname'] = \
             event.relation.data[self.model.unit]['ingress-address']
         event.relation.data[self.model.unit]['port'] = "8080"
-        event.relation.data[self.model.unit]['path'] = "/metrics"
+        event.relation.data[self.model.unit]['metrics_path'] = "/metrics"

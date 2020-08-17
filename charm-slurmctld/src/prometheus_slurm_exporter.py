@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"PrometheusSlurmExporterProvides."
+"""PrometheusSlurmExporterProvides."""
 from ops.framework import Object
 
 

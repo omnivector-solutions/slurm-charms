@@ -10,11 +10,11 @@ from ops.model import (
     ActiveStatus,
     BlockedStatus,
 )
+from prometheus_slurm_exporter import PrometheusSlurmExporterProvides
 from slurm_ops_manager import SlurmOpsManager
 from slurmd_requires import SlurmdRequires
 from slurmdbd_requires import SlurmdbdRequiresRelation
 from slurmrestd_provides import SlurmrestdProvides
-from prometheus_slurm_exporter import PrometheusSlurmExporterProvides
 
 
 logger = logging.getLogger()

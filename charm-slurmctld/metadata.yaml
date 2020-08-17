@@ -26,15 +26,9 @@ requires:
 provides:
   slurmrestd:
     interface: slurmrestd
-  prometheus:
-    interface: prometheus
 
 resources:
   slurm:
     type: file
     filename: slurm.resource
     description: slurm tarbal
-  prometheus-slurm-exporter:
-    type: file
-    filename: prometheus-slurm-exporter.snap
-    description: prometheus slurm exporter

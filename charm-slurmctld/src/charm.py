@@ -3,6 +3,7 @@
 import logging
 
 from elasticsearch_requires import ElasticsearchRequires
+from nhc_requires import NhcRequires
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -30,6 +31,7 @@ class SlurmctldCharm(CharmBase):
 
         self._stored.set_default(
             munge_key=str(),
+            nhc_info=dict(),
             elasticsearch_ingress=None,
             slurmdbd_info=dict(),
             slurm_installed=False,
@@ -43,6 +45,7 @@ class SlurmctldCharm(CharmBase):
         self.slurmdbd = SlurmdbdRequiresRelation(self, "slurmdbd")
         self.slurmd = SlurmdRequires(self, "slurmd")
         self.slurmrestd_provides = SlurmrestdProvides(self, "slurmrestd")
+        self.nhc_requires = NhcRequires(self, "nhc")
 
         event_handler_bindings = {
             self.on.install:
@@ -75,7 +78,8 @@ class SlurmctldCharm(CharmBase):
             self.elasticsearch.on.elasticsearch_available:
             self._on_check_status_and_write_config,
 
-
+            self.nhc_requires.on.nhc_bin_available:
+            self._on_check_status_and_write_config,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -118,13 +122,23 @@ class SlurmctldCharm(CharmBase):
     def _assemble_slurm_config(self):
         slurm_config = self.slurmd.get_slurm_config()
         elasticsearch_endpoint = self._stored.elasticsearch_ingress
+        nhc_info = self._stored.nhc_info
+
+        ctxt = {
+            'nhc': {},
+            'elasticsearch_address': "",
+        }
+        if nhc_info:
+            ctxt['nhc']['nhc_bin'] = nhc_info['nhc_bin']
+            ctxt['nhc']['health_check_interval'] = \
+                nhc_info['health_check_interval']
+            ctxt['nhc']['health_check_node_state'] = \
+                nhc_info['health_check_node_state']
 
         if elasticsearch_endpoint:
-            slurm_config = {
-                **slurm_config,
-                **{'elasticsearch_address': elasticsearch_endpoint},
-            }
-        return slurm_config
+            ctxt['elasticsearch_address'] = elasticsearch_endpoint
+
+        return {**slurm_config, **ctxt}
 
     def _check_status(self):
         slurmdbd_acquired = self._stored.slurmdbd_available
@@ -193,6 +207,10 @@ class SlurmctldCharm(CharmBase):
     def set_slurmrestd_available(self, slurmrestd_available):
         """Set stored state slurmrestd_available."""
         self._stored.slurmrestd_available = slurmrestd_available
+
+    def set_nhc_info(self, nhc_info):
+        """Set the nhc_info in local stored state."""
+        self._stored.nhc_info = nhc_info
 
 
 if __name__ == "__main__":

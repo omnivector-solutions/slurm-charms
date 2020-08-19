@@ -15,9 +15,6 @@ charms: ## Build all charms
 	@charmcraft build --from charm-slurmdbd
 	@charmcraft build --from charm-slurmrestd
 
-pull-slurm-prometheus-exporter-snap: ## Pull the classic slurm snap from github
-	@wget https://omnivector-public-assets.s3-us-west-2.amazonaws.com/resources/prometheus-slurm-exporter/prometheus-slurm-exporter_0.11-1-g01dd959_amd64.snap -O prometheus-slurm-exporter.snap
-
 pull-classic-snap: ## Pull the classic slurm snap from github
 	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource
 
@@ -30,9 +27,6 @@ push-charms-to-edge: ## Push charms to edge s3
 pull-charms-from-edge: clean ## pull charms from edge s3
 	@./scripts/pull_charms.sh edge
 
-
-deploy-focal-bundle-on-lxd-from-edge-with-snap-prometheus: pull-slurm-prometheus-exporter-snap pull-classic-snap pull-charms-from-edge ## Deploy focal lxd bundle using the slurm snap and edge charms
-	@juju deploy ./bundles/slurm-core-prometheus-focal-lxd/bundle.yaml
 
 deploy-focal-bundle-on-aws-from-edge-with-snap: pull-classic-snap pull-charms-from-edge ## Deploy focal aws bundle using the slurm snap and edge charms
 	@juju deploy ./bundles/slurm-core-focal-aws/bundle.yaml

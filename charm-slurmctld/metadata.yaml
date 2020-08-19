@@ -22,6 +22,8 @@ requires:
     interface: slurmd
   elasticsearch:
     interface: elasticsearch
+  nhc:
+    interface: nhc
 
 provides:
   slurmrestd:

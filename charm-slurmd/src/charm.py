@@ -68,6 +68,10 @@ class SlurmdCharm(CharmBase):
             event.defer()
             return
 
+    def is_slurm_installed(self):
+        """Return true/false based on whether or not slurm is installed."""
+        return self._stored.slurm_installed
+
     def set_slurm_config_available(self, config_available):
         """Set slurm_config_available in local stored state."""
         self._stored.slurm_config_available = config_available
@@ -75,10 +79,6 @@ class SlurmdCharm(CharmBase):
     def set_slurm_config(self, slurm_config):
         """Set the slurm_config in local stored state."""
         self._stored.slurm_config = slurm_config
-
-    def is_slurm_installed(self):
-        """Return true/false based on whether or not slurm is installed."""
-        return self._stored.slurm_installed
 
 
 if __name__ == "__main__":

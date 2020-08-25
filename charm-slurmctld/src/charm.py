@@ -87,6 +87,9 @@ class SlurmctldCharm(CharmBase):
         self.unit.status = ActiveStatus("Slurm Installed")
 
     def _on_check_status_and_write_config(self, event):
+        b = self._check_status()
+        logger.debug(f"########## INSIDE ON CHECK STATUS ############")
+        logger.debug(f"check status returned: {b}")
         if not self._check_status():
             event.defer()
             return
@@ -130,7 +133,7 @@ class SlurmctldCharm(CharmBase):
         slurmdbd_acquired = self._stored.slurmdbd_available
         slurmd_acquired = self._stored.slurmd_available
         slurm_installed = self._stored.slurm_installed
-
+        logger.debug(f"slurmdbd: {slurmdbd_acquired} slurmd: {slurmd_acquired} ")
         if not (slurmdbd_acquired and slurmd_acquired and slurm_installed):
             if not slurmd_acquired:
                 self.unit.status = BlockedStatus("NEED RELATION TO SLURMD")

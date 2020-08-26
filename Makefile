@@ -28,6 +28,13 @@ pull-charms-from-edge: clean ## pull charms from edge s3
 	@./scripts/pull_charms.sh edge
 
 
+deploy-bionic-bundle-on-aws-from-local-with-snap: ## Deploy focal lxd bundle using localally built charms and snap
+	@if ! [[ -f slurm.resource ]]; then\
+	    wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource;\
+	fi
+	@juju deploy ./bundles/slurm-core-bionic-aws/bundle.yaml
+
+
 deploy-focal-bundle-on-aws-from-edge-with-snap: pull-classic-snap pull-charms-from-edge ## Deploy focal aws bundle using the slurm snap and edge charms
 	@juju deploy ./bundles/slurm-core-focal-aws/bundle.yaml
 

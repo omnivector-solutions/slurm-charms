@@ -1,0 +1,17 @@
+name: Sync OAS to ReadMe
+on:
+  push:
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: readmeio/github-readme-sync@2.0.0
+        with:
+          readme-oas-key: ${{ secrets.README_OAS_KEY }}
+          oas-file-path: './docs/slurmrestd/swagger.yaml'
+           
+          # OPTIONAL CONFIG, use if necessary
+          # api-version: 'v1.0.0'

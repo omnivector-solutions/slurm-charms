@@ -14,7 +14,6 @@ series:
     - bionic
     - centos7
 
-
 provides:
   slurmd:
     interface: slurmd

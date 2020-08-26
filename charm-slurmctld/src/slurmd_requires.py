@@ -92,13 +92,15 @@ class SlurmdRequires(Object):
 
     def _on_relation_departed(self, event):
         """Account for relation departed activity."""
+        relations = len(_get_slurmd_active_units())
+        logger.debug(f"number of slurmd relations:  {relations}")
+        if relations < 1:
+            self.charm._stored.slurmd_available = False
         self.on.slurmd_departed.emit()
 
     def _on_relation_broken(self, event):
         """Account for relation broken activity."""
-        if len(self.framework.model.relations['slurmd']) < 1:
-            self.charm.set_slurmd_available(False)
-            self.on.slurmd_unavailable.emit()
+        pass
 
     def _get_partitions(self, node_data):
         """Parse the node_data and return the hosts -> partition mapping."""

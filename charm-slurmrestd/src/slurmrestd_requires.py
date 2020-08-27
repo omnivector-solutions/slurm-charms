@@ -52,6 +52,10 @@ class SlurmrestdRequires(Object):
     def _on_relation_changed(self, event):
         slurmctld_acquired = self.charm.is_slurmctld_available()
         # this happens when data changes on the relation
+        if not event.relation.data.get(event.app):
+            event.defer()
+            return
+
         slurm_config = event.relation.data[event.app].get("slurm_config", None)
         if slurm_config:
             if not slurmctld_acquired:

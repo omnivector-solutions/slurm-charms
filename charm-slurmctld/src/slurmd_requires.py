@@ -109,7 +109,7 @@ class SlurmdRequires(Object):
             part_dict[node['partition_name']].setdefault('hosts', [])
             part_dict[node['partition_name']]['hosts'].append(node['hostname'])
             part_dict[node['partition_name']]['partition_default'] = \
-                node['partition_default']
+                True if node['partition_default'] == "true" else False
             if node.get('partition_config'):
                 part_dict[node['partition_name']]['partition_config'] = \
                     node['partition_config']

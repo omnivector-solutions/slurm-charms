@@ -76,16 +76,10 @@ class SlurmdProvides(Object):
         conf = self.charm.config
         app_rel_data = relation.data[self.model.app]
 
-        if conf['partition-name'] != app_rel_data['partition_name']:
-            app_rel_data['partition_name'] = conf['partition-name']
-
-        if conf['partition-config'] != app_rel_data['partition_config']:
-            app_rel_data['partition_config'] = conf['partition-config']
-
-        if conf['partition-default'] != app_rel_data['partition_default']:
-            app_rel_data['partition_default'] = str(
-                conf['partition-default']
-            ).lower()
+        app_rel_data['partition_name'] = conf['partition-name']
+        app_rel_data['partition_config'] = conf['partition-config']
+        app_rel_data['partition_default'] = \
+            str(conf['partition-default']).lower()
 
     def _on_relation_created(self, event):
         if self.charm.is_slurm_installed():

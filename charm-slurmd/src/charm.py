@@ -36,7 +36,7 @@ class SlurmdCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
-            self.on.config_changed: self._on_render_config_and_restart,
+            self.on.config_changed: self._on_config_changed,
             self.slurmd.on.slurmctld_available:
             self._on_render_config_and_restart,
             self.slurmd.on.slurmctld_unavailable:
@@ -50,6 +50,9 @@ class SlurmdCharm(CharmBase):
         self.slurm_ops_manager.install()
         self.unit.status = ActiveStatus("Slurm Installed")
         self._stored.slurm_installed = True
+
+    def _on_config_changed(self, event):
+        self.slurmd.force_set_config_on_app_relation_data()
 
     def _on_render_config_and_restart(self, event):
         """Retrieve slurm_config from controller and write slurm.conf."""

@@ -71,16 +71,25 @@ class SlurmdProvides(Object):
             self._on_relation_broken
         )
 
+    def set_partition_app_relation_data(self, relation):
+        """Set partition application relation data."""
+        conf = self.charm.config
+        app_rel_data = relation.data[self.model.app]
+
+        app_rel_data['partition_name'] = conf['partition-name']
+        app_rel_data['partition_config'] = conf['partition-config']
+        app_rel_data['partition_default'] = \
+            str(conf['partition-default']).lower()
+
     def _on_relation_created(self, event):
         if self.charm.is_slurm_installed():
+            # Every unit needs to set its own hostname and inventory data
+            # in its' unit data on the relation.
             event.relation.data[self.model.unit]['hostname'] = get_hostname()
             event.relation.data[self.model.unit]['inventory'] = get_inventory()
-            event.relation.data[self.model.unit]['partition_name'] = \
-                self.charm.config['partition-name']
-            event.relation.data[self.model.unit]['partition_config'] = \
-                self.charm.config['partition-config']
-            event.relation.data[self.model.unit]['partition_default'] = \
-                str(self.charm.config['partition-default']).lower()
+
+            if self.framework.model.unit.is_leader():
+                self.set_partition_app_relation_data(event.relation)
         else:
             # If we hit this hook/handler before slurm is installed, defer.
             logger.debug("SLURM NOT INSTALLED DEFERING SETTING RELATION DATA")
@@ -107,6 +116,12 @@ class SlurmdProvides(Object):
     def _on_relation_broken(self, event):
         self.charm.set_slurm_config_available(False)
         self.on.slurmctld_unavailable.emit()
+
+    def force_set_config_on_app_relation_data(self):
+        """Force set app relation data."""
+        relations = self.charm.framework.model.relations["slurmd"]
+        for relation in relations:
+            self.set_partition_app_relation_data(relation)
 
 
 def _get_real_mem():

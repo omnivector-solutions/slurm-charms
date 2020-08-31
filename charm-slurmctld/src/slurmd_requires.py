@@ -109,7 +109,7 @@ class SlurmdRequires(Object):
             part_dict[node['partition_name']].setdefault('hosts', [])
             part_dict[node['partition_name']]['hosts'].append(node['hostname'])
             part_dict[node['partition_name']]['partition_default'] = \
-                node['partition_default']
+                True if node['partition_default'] == "true" else False
             if node.get('partition_config'):
                 part_dict[node['partition_name']]['partition_config'] = \
                     node['partition_config']
@@ -121,26 +121,27 @@ class SlurmdRequires(Object):
         relations = self.framework.model.relations['slurmd']
 
         slurmd_active_units = _get_slurmd_active_units()
-        self.charm.framework.breakpoint('ratty-rat-rat')
 
         for relation in relations:
+            app = relation.app
             for unit in relation.units:
                 if unit.name in slurmd_active_units:
                     unit_data = relation.data[unit]
+                    app_data = relation.data[app]
                     ctxt = {
                         'ingress_address': unit_data['ingress-address'],
                         'hostname': unit_data['hostname'],
                         'inventory': unit_data['inventory'],
-                        'partition_name': unit_data['partition_name'],
-                        'partition_default': unit_data['partition_default'],
+                        'partition_name': app_data['partition_name'],
+                        'partition_default': app_data['partition_default'],
                     }
                     # Related slurmd units don't specify custom
                     # partition_config by default.
                     # Only get partition_config if it exists on in the
                     # related unit's unit data.
-                    if unit_data.get('partition_config'):
+                    if app_data.get('partition_config'):
                         ctxt['partition_config'] = \
-                                unit_data['partition_config']
+                                app_data['partition_config']
                     nodes_info.append(ctxt)
         return nodes_info
 

@@ -107,6 +107,8 @@ class SlurmdRequires(Object):
     def _get_slurmd_node_data(self):
         """Return the node info for units of applications on the relation."""
         nodes_info = list()
+        partition_info = dict()
+
         relations = self.framework.model.relations['slurmd']
 
         slurmd_active_units = _get_slurmd_active_units()

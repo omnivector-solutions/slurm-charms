@@ -82,13 +82,17 @@ class SlurmdProvides(Object):
 
     def set_partition_app_relation_data(self, relation):
         """Set partition information on the relation application data."""
-        conf = self.charm.config
-        app_rel_data = relation.data[self.model.app]
+        # We only need to set the partition data one time to represent the
+        # partition data of all units of an application. Do this if we are the
+        # leader.
+        if self.framework.model.unit.is_leader():
+            conf = self.charm.config
+            app_rel_data = relation.data[self.model.app]
 
-        app_rel_data['partition_name'] = conf['partition-name']
-        app_rel_data['partition_config'] = conf['partition-config']
-        app_rel_data['partition_default'] = \
-            str(conf['partition-default']).lower()
+            app_rel_data['partition_name'] = conf['partition-name']
+            app_rel_data['partition_config'] = conf['partition-config']
+            app_rel_data['partition_default'] = \
+                str(conf['partition-default']).lower()
 
     def _on_relation_created(self, event):
         """Relation created event handler.
@@ -108,6 +112,8 @@ class SlurmdProvides(Object):
         # leader.
         if self.framework.model.unit.is_leader():
             self.set_partition_app_relation_data(event.relation)
+
+        self.charm.set_slurmctld_available(True)
 
     def _on_relation_joined(self, event):
         munge_key = event.relation.data[event.app]['munge_key']

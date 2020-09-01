@@ -31,6 +31,7 @@ class SlurmdCharm(CharmBase):
         self._stored.set_default(
             munge_key=str(),
             slurm_installed=False,
+            slurmctld_available=False,
             slurm_config_available=False,
             slurm_config=dict(),
         )
@@ -55,6 +56,9 @@ class SlurmdCharm(CharmBase):
         self._stored.slurm_installed = True
 
     def _on_config_changed(self, event):
+        if not self._stored.slurmctld_available:
+            event.defer()
+            return
         self.slurmd.force_set_config_on_app_relation_data()
 
     def _on_render_munge_key(self, event):
@@ -90,6 +94,10 @@ class SlurmdCharm(CharmBase):
     def set_slurm_config_available(self, config_available):
         """Set slurm_config_available in local stored state."""
         self._stored.slurm_config_available = config_available
+
+    def set_slurmctld_available(self, slurmctld_available):
+        """Set slurmctld_available in local stored state."""
+        self._stored.slurmctld_available = slurmctld_available
 
     def set_slurm_config(self, slurm_config):
         """Set the slurm_config in local stored state."""

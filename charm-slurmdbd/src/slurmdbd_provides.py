@@ -96,8 +96,8 @@ class SlurmdbdProvidesRelation(Object):
         if not munge_key:
             event.defer()
             return
-        logger.debug("emitting event relation changed munge available")
-        self._state.munge_key = munge_key
+
+        self.charm.set_munge_key(munge_key)
         self.on.munge_key_available.emit()
 
     def _on_relation_broken(self, event):

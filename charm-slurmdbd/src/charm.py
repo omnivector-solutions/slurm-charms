@@ -28,10 +28,11 @@ class SlurmdbdCharm(CharmBase):
         """Set the defaults for slurmdbd."""
         super().__init__(*args)
 
-        self._stored.set_default(db_info=None)
-        self._stored.set_default(db_info_acquired=False)
-        self._stored.set_default(munge_key_available=False)
-        self._stored.set_default(slurm_installed=False)
+        self._stored.set_default(
+            db_info=dict(),
+            munge_key=str(),
+            slurm_installed=False
+        )
 
         self.slurm_ops_manager = SlurmOpsManager(self, "slurmdbd")
         self.slurmdbd = SlurmdbdProvidesRelation(self, "slurmdbd")
@@ -66,28 +67,32 @@ class SlurmdbdCharm(CharmBase):
             'db_port': event.db_info.port,
             'db_name': event.db_info.database,
         }
-        logger.debug("database available")
 
-        self._stored.db_info_acquired = True
         _write_config_and_restart_slurmdbd(self, event)
 
     def _on_munge_key_available(self, event):
-        logger.debug("ctld available")
-        self._stored.munge_key_available = True
-        _write_config_and_restart_slurmdbd(self, event)
+        self.slurm_ops_manager.write_munge_key_and_restart(
+            self._stored.munge_key
+        )
 
     def _on_slurmctld_unavailable(self, event):
         self.unit.status = BlockedStatus("Need relation to slurmctld.")
 
+    def set_munge_key(self, munge_key):
+        """Set the munge key in the stored state."""
+        self._stored.munge_key = munge_key
+
 
 def _write_config_and_restart_slurmdbd(charm, event):
     """Check for prerequisites before writing config/restart of slurmdbd."""
-    if not (charm._stored.db_info_acquired and
-            charm._stored.slurm_installed and
-            charm._stored.munge_key_available):
-        if not charm._stored.db_info_acquired:
+    db_info = charm._stored.db_info
+    slurm_installed = charm._stored.slurm_installed
+    munge_key = charm._stored.munge_key
+
+    if not db_info and slurm_installed and munge_key:
+        if not db_info:
             charm.unit.status = BlockedStatus("Need relation to MySQL.")
-        elif not charm._stored.munge_key_available:
+        elif not munge_key:
             charm.unit.status = BlockedStatus("Need relation to slurmctld.")
         event.defer()
         return
@@ -97,10 +102,9 @@ def _write_config_and_restart_slurmdbd(charm, event):
         'slurmdbd_port': "6819",
     }
     slurmdbd_config = {
-        'munge_key': charm.slurmdbd.munge_key,
         **slurmdbd_host_port_addr,
         **charm.model.config,
-        **charm._stored.db_info,
+        **db_info
     }
     charm.slurm_ops_manager.render_config_and_restart(slurmdbd_config)
     charm.slurmdbd.set_slurmdbd_available_on_unit_relation_data("true")

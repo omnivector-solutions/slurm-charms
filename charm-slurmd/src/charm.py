@@ -41,6 +41,8 @@ class SlurmdCharm(CharmBase):
             self._on_render_config_and_restart,
             self.slurmd.on.slurmctld_unavailable:
             self._on_render_config_and_restart,
+            self.slurmd.on.munge_key_available:
+            self._on_render_munge_key,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -53,6 +55,15 @@ class SlurmdCharm(CharmBase):
 
     def _on_config_changed(self, event):
         self.slurmd.force_set_config_on_app_relation_data()
+
+    def _on_render_munge_key(self, event):
+        if not self._stored.slurm_installed:
+            event.defer()
+            return
+
+        self.slurm_ops_manager._write_munge_key_and_restart(
+            self._stored.munge_key
+        )
 
     def _on_render_config_and_restart(self, event):
         """Retrieve slurm_config from controller and write slurm.conf."""

@@ -99,5 +99,6 @@ class SlurmdCharm(CharmBase):
         """Set the munge_key in local stored state."""
         self._stored.munge_key = munge_key
 
+
 if __name__ == "__main__":
     main(SlurmdCharm)

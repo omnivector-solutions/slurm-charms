@@ -29,11 +29,16 @@ class SlurmctldUnAvailableEvent(EventBase):
     """ConfigUnAvailableEvent."""
 
 
+class MungeKeyAvailableEvent(EventBase):
+    """MungeKeyAvailableEvent."""
+
+
 class SlurmdProvidesEvents(ObjectEvents):
     """Slurm Provides Events."""
 
     slurmctld_available = EventSource(SlurmctldAvailableEvent)
     slurmctld_unavailable = EventSource(SlurmctldUnAvailableEvent)
+    munge_key_available = EventSource(MungeKeyAvailableEvent)
 
 
 class SlurmdProvides(Object):
@@ -63,6 +68,10 @@ class SlurmdProvides(Object):
             self._on_relation_created
         )
         self.framework.observe(
+            self.charm.on[self._relation_name].relation_joined,
+            self._on_relation_joined
+        )
+        self.framework.observe(
             self.charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
@@ -72,7 +81,7 @@ class SlurmdProvides(Object):
         )
 
     def set_partition_app_relation_data(self, relation):
-        """Set partition application relation data."""
+        """Set partition information on the relation application data."""
         conf = self.charm.config
         app_rel_data = relation.data[self.model.app]
 
@@ -82,28 +91,40 @@ class SlurmdProvides(Object):
             str(conf['partition-default']).lower()
 
     def _on_relation_created(self, event):
-        if self.charm.is_slurm_installed():
-            # Every unit needs to set its own hostname and inventory data
-            # in its' unit data on the relation.
-            event.relation.data[self.model.unit]['hostname'] = get_hostname()
-            event.relation.data[self.model.unit]['inventory'] = get_inventory()
+        """Relation created event handler.
 
-            if self.framework.model.unit.is_leader():
-                self.set_partition_app_relation_data(event.relation)
-        else:
-            # If we hit this hook/handler before slurm is installed, defer.
-            logger.debug("SLURM NOT INSTALLED DEFERING SETTING RELATION DATA")
-            event.defer()
-            return
+        Every slurmd unit will run this code to add its hostname and inventory
+        to it's unit data on the relation. The partition info should be shared
+        by all units of an application, so only set the partition info on the
+        application data on the relation one time (if we are the leader).
+        """
+        # Every unit needs to set its hostname and inventory data
+        # in the unit data on the relation.
+        event.relation.data[self.model.unit]['hostname'] = get_hostname()
+        event.relation.data[self.model.unit]['inventory'] = get_inventory()
+
+        # We only need to set the partition data one time to represent the
+        # partition data of all units of an application. Do this if we are the
+        # leader.
+        if self.framework.model.unit.is_leader():
+            self.set_partition_app_relation_data(event.relation)
+
+    def _on_relation_joined(self, event):
+        self.charm.set_slurmctld_ingress_address(
+            event.relation.data[event.unit]['ingress-address']
+        )
+        munge_key = event.relation.data[event.app]['munge_key']
+        self.charm.set_munge_key(munge_key)
+        self.on.munge_key_available.emit()
 
     def _on_relation_changed(self, event):
-        # Check that the app exists in the event
+        # Check that the app exists in the event, if not, defer.
         if not event.relation.data.get(event.app):
             event.defer()
             return
 
         slurm_config = event.relation.data[event.app].get('slurm_config')
-        # Check that slurm_config exists in the relation data
+        # Check that slurm_config exists in the relation data, if not, defer.
         # for the application.
         if not slurm_config:
             event.defer()

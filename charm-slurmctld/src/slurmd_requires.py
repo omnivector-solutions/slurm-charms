@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 """SlurmdRequires."""
-import collections
 import json
 import logging
 import socket
@@ -63,10 +62,6 @@ class SlurmdRequires(Object):
             self._on_relation_changed
         )
         self.framework.observe(
-            charm.on[self._relation_name].relation_departed,
-            self._on_relation_departed
-        )
-        self.framework.observe(
             charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
@@ -78,6 +73,13 @@ class SlurmdRequires(Object):
     def _on_relation_created(self, event):
         unit_data = event.relation.data[self.model.unit]
         self._state.ingress_address = unit_data['ingress-address']
+
+        if not self.charm.is_slurm_installed():
+            event.defer()
+            return
+
+        app_data = event.relation.data[self.model.app]
+        app_data['munge_key'] = self.charm.get_munge_key()
 
     def _on_relation_changed(self, event):
         """Check for slurmdbd and slurmd, write config, set relation data."""
@@ -102,19 +104,6 @@ class SlurmdRequires(Object):
         """Account for relation broken activity."""
         pass
 
-    def _get_partitions(self, node_data):
-        """Parse the node_data and return the hosts -> partition mapping."""
-        part_dict = collections.defaultdict(dict)
-        for node in node_data:
-            part_dict[node['partition_name']].setdefault('hosts', [])
-            part_dict[node['partition_name']]['hosts'].append(node['hostname'])
-            part_dict[node['partition_name']]['partition_default'] = \
-                True if node['partition_default'] == "true" else False
-            if node.get('partition_config'):
-                part_dict[node['partition_name']]['partition_config'] = \
-                    node['partition_config']
-        return dict(part_dict)
-
     def _get_slurmd_node_data(self):
         """Return the node info for units of applications on the relation."""
         nodes_info = list()
@@ -123,27 +112,30 @@ class SlurmdRequires(Object):
         slurmd_active_units = _get_slurmd_active_units()
 
         for relation in relations:
-            app = relation.app
+            application_data = relation.data[relation.app]
+            partition_name = application_data['partition_name']
+            partition_info = {
+                partition_name: {
+                    'hosts': [],
+                    'partition_default': application_data['partition_default'],
+                }
+            }
+
+            if application_data.get('partition_config'):
+                partition_info[partition_name]['partition_config'] =  \
+                    application_data['partition_config']
+
             for unit in relation.units:
                 if unit.name in slurmd_active_units:
                     unit_data = relation.data[unit]
-                    app_data = relation.data[app]
                     ctxt = {
                         'ingress_address': unit_data['ingress-address'],
                         'hostname': unit_data['hostname'],
                         'inventory': unit_data['inventory'],
-                        'partition_name': app_data['partition_name'],
-                        'partition_default': app_data['partition_default'],
                     }
-                    # Related slurmd units don't specify custom
-                    # partition_config by default.
-                    # Only get partition_config if it exists on in the
-                    # related unit's unit data.
-                    if app_data.get('partition_config'):
-                        ctxt['partition_config'] = \
-                                app_data['partition_config']
+                    partition_info['hosts'].append(unit_data['hostname'])
                     nodes_info.append(ctxt)
-        return nodes_info
+        return nodes_info, partition_info
 
     def set_slurm_config_on_app_relation_data(
         self,
@@ -168,8 +160,7 @@ class SlurmdRequires(Object):
         slurmctld_hostname = socket.gethostname().split(".")[0]
 
         slurmdbd_info = dict(self.charm.get_slurmdbd_info())
-        slurmd_node_data = self._get_slurmd_node_data()
-        partitions = self._get_partitions(slurmd_node_data)
+        slurmd_node_data, partitions = self._get_slurmd_node_data()
 
         return {
             'nodes': slurmd_node_data,
@@ -180,7 +171,6 @@ class SlurmdRequires(Object):
             'active_controller_hostname': slurmctld_hostname,
             'active_controller_ingress_address': slurmctld_ingress_address,
             'active_controller_port': "6817",
-            'munge_key': self.charm.get_munge_key(),
             **self.model.config,
         }
 

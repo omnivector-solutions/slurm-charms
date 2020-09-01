@@ -94,17 +94,12 @@ class SlurmctldCharm(CharmBase):
         if not self._check_status():
             event.defer()
             return
-        slurm_config = self._assemble_slurm_config()
 
+        slurm_config = self._assemble_slurm_config()
         self.slurmd.set_slurm_config_on_app_relation_data(
             'slurmd',
             slurm_config,
         )
-        if self._stored.slurmrestd_available:
-            self.slurmd.set_slurm_config_on_app_relation_data(
-                'slurmrestd',
-                slurm_config,
-            )
         self.slurm_ops_manager.render_config_and_restart(slurm_config)
         self.unit.status = ActiveStatus("Slurmctld Available")
 

@@ -62,7 +62,7 @@ class SlurmdCharm(CharmBase):
             event.defer()
             return
 
-        self.slurm_ops_manager._write_munge_key_and_restart(
+        self.slurm_ops_manager.write_munge_key_and_restart(
             self._stored.munge_key
         )
 

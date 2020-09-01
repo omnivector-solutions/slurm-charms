@@ -135,7 +135,9 @@ class SlurmdRequires(Object):
                         'hostname': unit_data['hostname'],
                         'inventory': unit_data['inventory'],
                     }
-                    partition_info['hosts'].append(unit_data['hostname'])
+                    partition_info[partition_name]['hosts'].append(
+                        unit_data['hostname']
+                    )
                     nodes_info.append(ctxt)
         return nodes_info, partition_info
 

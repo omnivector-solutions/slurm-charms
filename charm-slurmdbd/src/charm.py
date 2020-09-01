@@ -74,6 +74,7 @@ class SlurmdbdCharm(CharmBase):
         self.slurm_ops_manager.write_munge_key_and_restart(
             self._stored.munge_key
         )
+        _write_config_and_restart_slurmdbd(self, event)
 
     def _on_slurmctld_unavailable(self, event):
         self.unit.status = BlockedStatus("Need relation to slurmctld.")

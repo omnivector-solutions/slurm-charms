@@ -46,7 +46,7 @@ class SlurmrestdCharm(CharmBase):
             self._slurmrestd.on.slurmctld_unavailable:
             self._on_check_status_and_write_config,
 
-            self.slurmrestd.on.munge_key_available:
+            self._slurmrestd.on.munge_key_available:
             self._on_render_munge_key,
 
         }

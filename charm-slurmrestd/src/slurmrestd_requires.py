@@ -27,7 +27,7 @@ class MungeKeyAvailableEvent(EventBase):
     """MungeKeyAvailableEvent."""
 
 
-class SlurmLoginEvents(ObjectEvents):
+class SlurmrestdEvents(ObjectEvents):
     """SlurmLoginEvents."""
 
     slurmctld_available = EventSource(SlurmctldAvailableEvent)
@@ -38,7 +38,7 @@ class SlurmLoginEvents(ObjectEvents):
 class SlurmrestdRequires(Object):
     """SlurmrestdRequires."""
 
-    on = SlurmLoginEvents()
+    on = SlurmrestdEvents()
 
     def __init__(self, charm, relation_name):
         """Set the provides initial data."""

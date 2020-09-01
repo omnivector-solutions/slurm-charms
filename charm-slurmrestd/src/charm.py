@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""SlurmLoginCharm."""
+"""SlurmrestdCharm."""
 import logging
 
 from ops.charm import CharmBase
@@ -16,7 +16,7 @@ from slurmrestd_requires import SlurmrestdRequires
 logger = logging.getLogger()
 
 
-class SlurmLoginCharm(CharmBase):
+class SlurmrestdCharm(CharmBase):
     """Operator charm responsible for lifecycle operations for slurmctld."""
 
     _stored = StoredState()
@@ -28,6 +28,7 @@ class SlurmLoginCharm(CharmBase):
             slurm_config=dict(),
             slurm_installed=False,
             slurmctld_available=False,
+            munge_key=str(),
         )
         self.slurm_ops_manager = SlurmOpsManager(self, "slurmrestd")
         self._slurmrestd = SlurmrestdRequires(self, 'slurmrestd')
@@ -44,6 +45,10 @@ class SlurmLoginCharm(CharmBase):
 
             self._slurmrestd.on.slurmctld_unavailable:
             self._on_check_status_and_write_config,
+
+            self.slurmrestd.on.munge_key_available:
+            self._on_render_munge_key,
+
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -52,6 +57,15 @@ class SlurmLoginCharm(CharmBase):
         self.slurm_ops_manager.install()
         self.unit.status = ActiveStatus("slurm installed")
         self._stored.slurm_installed = True
+
+    def _on_render_munge_key(self, event):
+        if not self._stored.slurm_installed:
+            event.defer()
+            return
+
+        self.slurm_ops_manager.write_munge_key_and_restart(
+            self._stored.munge_key
+        )
 
     def _on_check_status_and_write_config(self, event):
         slurm_installed = self._stored.slurm_installed
@@ -84,6 +98,10 @@ class SlurmLoginCharm(CharmBase):
         """Set self._stored.slurmctld_available."""
         self._stored.slurmctld_available = slurmctld_available
 
+    def set_munge_key(self, munge_key):
+        """Set self._stored.munge_key."""
+        self._stored.munge_key = munge_key
+
 
 if __name__ == "__main__":
-    main(SlurmLoginCharm)
+    main(SlurmrestdCharm)

@@ -49,6 +49,16 @@ class SlurmrestdProvides(Object):
         )
 
     def _on_relation_created(self, event):
+        # Check that slurm has been installed so that we know the munge key is
+        # available. Defer if slurm has not been installed yet.
+        if not self.charm.is_slurm_installed():
+            event.defer()
+            return
+        # Get the munge_key from the slurm_ops_manager and set it to the app
+        # data on the relation to be retrieved on the other side by slurmdbd.
+        munge_key = self.charm.get_munge_key()
+        event.relation.data[self.model.app]['munge_key'] = munge_key
+
         self.charm.set_slurmrestd_available(True)
         self.on.slurmrestd_available.emit()
 

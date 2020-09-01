@@ -29,6 +29,7 @@ class SlurmdCharm(CharmBase):
         self.slurmd = SlurmdProvides(self, "slurmd")
 
         self._stored.set_default(
+            munge_key=str(),
             slurm_installed=False,
             slurm_config_available=False,
             slurm_config=dict(),
@@ -94,6 +95,9 @@ class SlurmdCharm(CharmBase):
         """Set the slurm_config in local stored state."""
         self._stored.slurm_config = slurm_config
 
+    def set_munge_key(self, munge_key):
+        """Set the munge_key in local stored state."""
+        self._stored.munge_key = munge_key
 
 if __name__ == "__main__":
     main(SlurmdCharm)

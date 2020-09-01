@@ -110,9 +110,6 @@ class SlurmdProvides(Object):
             self.set_partition_app_relation_data(event.relation)
 
     def _on_relation_joined(self, event):
-        self.charm.set_slurmctld_ingress_address(
-            event.relation.data[event.unit]['ingress-address']
-        )
         munge_key = event.relation.data[event.app]['munge_key']
         self.charm.set_munge_key(munge_key)
         self.on.munge_key_available.emit()

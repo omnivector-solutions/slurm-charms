@@ -66,13 +66,16 @@ class SlurmrestdCharm(CharmBase):
         self.slurm_ops_manager.write_munge_key_and_restart(
             self._stored.munge_key
         )
+        self._on_check_status_and_write_config(event)
 
     def _on_check_status_and_write_config(self, event):
         slurm_installed = self._stored.slurm_installed
         slurmctld_acquired = self._stored.slurmctld_available
         slurm_config = self._stored.slurm_config
+        munge_key = self._stored.munge_key
 
-        if not (slurm_installed and slurmctld_acquired and slurm_config):
+        if not (slurm_installed and slurmctld_acquired and
+                slurm_config and munge_key):
             if not slurmctld_acquired:
                 self.unit.status = BlockedStatus("NEED RELATION TO SLURMCTLD")
             elif not slurm_config:

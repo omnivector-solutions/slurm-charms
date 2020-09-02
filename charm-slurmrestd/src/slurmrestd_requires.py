@@ -47,7 +47,7 @@ class SlurmrestdRequires(Object):
 
         self.framework.observe(
             charm.on[relation_name].relation_joined,
-            self._on_relation_changed
+            self._on_relation_joined
         )
         self.framework.observe(
             charm.on[relation_name].relation_changed,
@@ -63,7 +63,7 @@ class SlurmrestdRequires(Object):
             event.defer()
             return
 
-        munge_key = event.relation.data[event.app]['munge_key']
+        munge_key = event.relation.data[event.app].get('munge_key')
         if not munge_key:
             event.defer()
             return
@@ -72,21 +72,20 @@ class SlurmrestdRequires(Object):
         self.on.munge_key_available.emit()
 
     def _on_relation_changed(self, event):
-        slurmctld_acquired = self.charm.is_slurmctld_available()
         app_relation_data = event.relation.data.get(event.app)
-
-        # this happens when data changes on the relation
         if not app_relation_data:
             event.defer()
             return
 
-        slurm_config = app_relation_data.get("slurm_config", None)
+        slurm_config = app_relation_data.get("slurm_config")
         if not slurm_config:
             event.defer()
             return
 
+        slurmctld_acquired = self.charm.is_slurmctld_available()
         if not slurmctld_acquired:
             self.charm.set_slurmctld_available(True)
+
         self.charm.set_slurm_config(json.loads(slurm_config))
         self.on.slurmctld_available.emit()
 

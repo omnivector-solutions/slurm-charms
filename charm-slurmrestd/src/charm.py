@@ -59,7 +59,7 @@ class SlurmrestdCharm(CharmBase):
         self._stored.slurm_installed = True
 
     def _on_render_munge_key(self, event):
-        if not self._stored.slurm_installed:
+        if not self._check_status():
             event.defer()
             return
 
@@ -69,6 +69,14 @@ class SlurmrestdCharm(CharmBase):
         self._on_check_status_and_write_config(event)
 
     def _on_check_status_and_write_config(self, event):
+        if not self._check_status():
+            event.defer()
+            return
+        config = dict(self._stored.slurm_config)
+        self.slurm_ops_manager.render_config_and_restart(config)
+        self.unit.status = ActiveStatus("Slurmrestd Available")
+
+    def _check_status(self):
         slurm_installed = self._stored.slurm_installed
         slurmctld_acquired = self._stored.slurmctld_available
         slurm_config = self._stored.slurm_config
@@ -80,14 +88,12 @@ class SlurmrestdCharm(CharmBase):
                 self.unit.status = BlockedStatus("NEED RELATION TO SLURMCTLD")
             elif not slurm_config:
                 self.unit.status = BlockedStatus("NEED SLURM CONFIG")
+            elif not munge_key:
+                self.unit.status = BlockedStatus("NEED MUNGE KEY")
             else:
                 self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
-            event.defer()
-            return
-        else:
-            config = dict(self._stored.slurm_config)
-            self.slurm_ops_manager.render_config_and_restart(config)
-            self.unit.status = ActiveStatus("Slurmrestd Available")
+            return False
+        return True
 
     def is_slurmctld_available(self):
         """Return self._stored.slurmctld_available."""

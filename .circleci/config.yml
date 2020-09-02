@@ -137,6 +137,7 @@ jobs:
             source venv/bin/activate
             pip3 install python_jwt
             sudo openvpn --config osl-aws-us-west-2.ovpn --daemon
+            juju expose slurmrestd
             make test-slurmrestd-api-returns-200
             sudo kill -9 `pgrep -u root openvpn`
 

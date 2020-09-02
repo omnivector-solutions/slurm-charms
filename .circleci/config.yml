@@ -38,6 +38,10 @@ jobs:
   build-and-deploy-charms-on-lxd:
     machine:
       image: ubuntu-1604:202004-01
+
+    environment:
+      JUJU_DATA: /home/circleci/project/.local/share/juju
+
     steps:
       - checkout
 
@@ -46,6 +50,12 @@ jobs:
           command: |
             sudo apt-get update
             sudo apt-get install --only-upgrade -y snapd
+
+      - run:
+          name: "Add /snap/bin to PATH"
+          command: |
+            echo 'export PATH=/snap/bin:$PATH' >> $BASH_ENV
+            source /home/circleci/.bashrc
 
       - run:
           name: "Install charmcraft"
@@ -64,7 +74,7 @@ jobs:
             sudo snap install lxd
             sudo lxd init --auto
             sleep 5
-            sudo /snap/bin/lxd.lxc network set lxdbr0 ipv6.address none
+            sudo lxd.lxc network set lxdbr0 ipv6.address none
 
       - run:
           name: "Install Juju"
@@ -83,10 +93,23 @@ jobs:
             sudo snap install jq
 
       - run:
-          name: "Bootstrap Juju"
+          name: "Install aws-cli"
           command: |
-            /snap/bin/juju bootstrap localhost
-            /snap/bin/juju model-config logging-config="<root>=DEBUG;<unit>=DEBUG"
+            sudo snap install aws-cli --classic
+
+      - run:
+          name: "Circleci juju creds from s3"
+          command: |
+            aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
+            tar -xzvf juju-local.tar.gz
+
+      - run:
+          name: "Add and configure model"
+          command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+            juju add-model circleci-$CIRCLE_SHA1
+            juju add-space -m circleci-$CIRCLE_SHA1 nat 172.31.80.0/24 172.31.81.0/24 172.31.82.0/24 172.31.83.0/24
+            juju model-config logging-config="<root>=DEBUG;<unit>=DEBUG"
 
       - run:
           name: "Pull classic slurm snap from github"
@@ -94,33 +117,28 @@ jobs:
             make pull-classic-snap
 
       - run:
-          name: "Deploy slurm charms using the slurm snap resource on Bionic"
+          name: "Deploy slurm charms using the slurm snap resource on Focal on AWS"
           command: |
-            make deploy-bionic-bundle-on-lxd-from-local-with-snap
+            juju deploy ./bundles/slurm-core-focal-aws/bundle.yaml
+            #make deploy-focal-bundle-on-aws-from-local-with-snap
 
-     # TODO: (jamesbeedy)
-     # LXD running on this 16.04 image seems to be having issues deploying a focal container
-     # leave this commented out until we find a fix.
-     #- run:
-     #     name: "Deploy Slurm on Focal"
-     #     command: |
-     #       /snap/bin/juju deploy ./slurm-all.charm --series focal slurm-all-focal --force
-     #       /snap/bin/juju-wait
       - run:
           name: "Wait for deployment status"
           no_output_timeout: 20m
           command: |
-            export PATH=$PATH:/snap/bin
-            /snap/bin/juju-wait -w -t 1150
+            juju-wait -w -t 1150
 
       - run:
           name: "Verify slurmrestd"
           command: |
-            sudo apt install python3-venv
+            aws s3 cp s3://omnivector-misc/vpn/osl-aws-us-west-2.ovpn .
+            sudo apt install python3-venv openvpn
             python3 -m venv venv
             source venv/bin/activate
             pip3 install python_jwt
+            sudo openvpn --config osl-aws-us-west-2.ovpn --daemon
             make test-slurmrestd-api-returns-200
+            sudo kill -9 `pgrep -u root openvpn`
 
       - run:
           name: "Show juju status"
@@ -148,6 +166,16 @@ jobs:
             - slurmctld.charm
             - slurmdbd.charm
             - slurmd.charm
+
+      - run:
+          name: Tear down the juju environment
+          no_output_timeout: 5m
+          when: always
+          command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+            juju remove-application slurmd slurmctld slurmdbd slurmrestd percona-cluster
+            juju destroy-model circleci-$CIRCLECI_SHA1
+          
 
       - slack/status:
           fail_only: false

@@ -55,6 +55,7 @@ class SlurmrestdCharm(CharmBase):
 
     def _on_install(self, event):
         self.slurm_ops_manager.install()
+        self.slurm_ops_manager.open_port()
         self.unit.status = ActiveStatus("slurm installed")
         self._stored.slurm_installed = True
 

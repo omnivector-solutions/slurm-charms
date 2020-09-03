@@ -36,8 +36,8 @@ jobs:
           fail_only: false
 
   build-and-deploy-charms-on-lxd:
-    machine:
-        image: cimg/base:2020.01
+    docker:
+      - image: cimg/base:2020.09
 
     environment:
       JUJU_DATA: /home/circleci/project/.local/share/juju
@@ -66,15 +66,6 @@ jobs:
           name: "Build charms"
           command: |
             make charms
-
-      - run:
-          name: "Install LXD"
-          command: |
-            sudo apt-get purge lxd lxd-client lxcfs
-            sudo snap install lxd
-            sudo lxd init --auto
-            sleep 5
-            sudo lxd.lxc network set lxdbr0 ipv6.address none
 
       - run:
           name: "Install Juju"

@@ -54,12 +54,12 @@ jobs:
       - run:
           name: "Add /snap/bin to PATH"
           command: |
-            echo 'export PATH=/snap/bin:/usr/bin/snap:$PATH' >> $BASH_ENV
+            echo 'export PATH=/snap/bin:/usr/bin:$PATH' >> $BASH_ENV
 
       - run:
           name: "Install charmcraft"
           command: |
-            sudo snap install charmcraft --beta
+            sudo /usr/bin/snap install charmcraft --beta
 
       - run:
           name: "Build charms"

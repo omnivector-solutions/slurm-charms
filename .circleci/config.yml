@@ -109,7 +109,7 @@ jobs:
             echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju add-model circleci-$CIRCLE_SHA1
             juju add-space -m circleci-$CIRCLE_SHA1 nat 172.31.80.0/24 172.31.81.0/24 172.31.82.0/24 172.31.83.0/24
-            juju model-config logging-config="<root>=DEBUG;<unit>=DEBUG"
+            juju model-config -m circleci-$CIRCLE_SHA1 logging-config="<root>=DEBUG;<unit>=DEBUG"
 
       - run:
           name: "Pull classic slurm snap from github"
@@ -119,7 +119,7 @@ jobs:
       - run:
           name: "Deploy slurm charms using the slurm snap resource on Focal on AWS"
           command: |
-            juju deploy ./bundles/slurm-core-focal-aws/bundle.yaml
+            juju deploy -m circleci-$CIRCLE_SHA1 ./bundles/slurm-core-focal-aws/bundle.yaml
             #make deploy-focal-bundle-on-aws-from-local-with-snap
 
       - run:

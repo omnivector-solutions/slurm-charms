@@ -37,7 +37,7 @@ jobs:
 
   build-and-deploy-charms-on-lxd:
     machine:
-      image: ubuntu-1604:202004-01
+        image: cimg/base:2020.01
 
     environment:
       JUJU_DATA: /home/circleci/project/.local/share/juju

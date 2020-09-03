@@ -36,8 +36,8 @@ jobs:
           fail_only: false
 
   build-and-deploy-charms-on-lxd:
-    docker:
-      - image: cimg/base:2020.09
+    machine:
+      image: ubuntu-1604:202004-01
 
     environment:
       JUJU_DATA: /home/circleci/project/.local/share/juju
@@ -59,7 +59,7 @@ jobs:
       - run:
           name: "Install charmcraft"
           command: |
-            sudo /usr/bin/snap install charmcraft --beta
+            sudo snap install charmcraft --beta
 
       - run:
           name: "Build charms"

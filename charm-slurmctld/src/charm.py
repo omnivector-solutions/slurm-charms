@@ -32,7 +32,7 @@ class SlurmctldCharm(CharmBase):
         self._stored.set_default(
             munge_key=str(),
             nhc_info=dict(),
-            elasticsearch_ingress=None,
+            elasticsearch_ingress=str(),
             slurmdbd_info=dict(),
             slurm_installed=False,
             slurmdbd_available=False,
@@ -44,7 +44,7 @@ class SlurmctldCharm(CharmBase):
         self.slurm_ops_manager = SlurmOpsManager(self, "slurmctld")
         self.slurmdbd = SlurmdbdRequiresRelation(self, "slurmdbd")
         self.slurmd = SlurmdRequires(self, "slurmd")
-        self.slurmrestd_provides = SlurmrestdProvides(self, "slurmrestd")
+        self.slurmrestd = SlurmrestdProvides(self, "slurmrestd")
         self.nhc_requires = NhcRequires(self, "nhc")
 
         event_handler_bindings = {
@@ -72,7 +72,7 @@ class SlurmctldCharm(CharmBase):
             self.slurmd.on.slurmd_unavailable:
             self._on_check_status_and_write_config,
 
-            self.slurmrestd_provides.on.slurmrestd_available:
+            self.slurmrestd.on.slurmrestd_available:
             self._on_provide_slurmrestd,
 
             self.elasticsearch.on.elasticsearch_available:
@@ -100,6 +100,11 @@ class SlurmctldCharm(CharmBase):
             'slurmd',
             slurm_config,
         )
+        if self._stored.slurmrestd_available:
+            self.slurmrestd.set_slurm_config_on_app_relation_data(
+                'slurmrestd',
+                slurm_config,
+            )
         self.slurm_ops_manager.render_config_and_restart(slurm_config)
         self.unit.status = ActiveStatus("Slurmctld Available")
 
@@ -109,7 +114,7 @@ class SlurmctldCharm(CharmBase):
             return
 
         slurm_config = self._assemble_slurm_config()
-        self.slurmd.set_slurm_config_on_app_relation_data(
+        self.slurmrestd.set_slurm_config_on_app_relation_data(
             'slurmrestd',
             slurm_config,
         )

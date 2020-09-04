@@ -45,7 +45,6 @@ class SlurmdbdRequiresRelation(Object):
             charm.on[self._relation_name].relation_created,
             self._on_relation_created
         )
-
         self.framework.observe(
             charm.on[self._relation_name].relation_changed,
             self._on_relation_changed

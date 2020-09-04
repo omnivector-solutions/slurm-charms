@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """SlurmrestdProvides."""
+import json
 import logging
 
 
@@ -65,3 +66,20 @@ class SlurmrestdProvides(Object):
     def _on_relation_broken(self, event):
         self.charm.set_slurmrestd_available(False)
         self.on.slurmrestd_unavailable.emit()
+
+    def set_slurm_config_on_app_relation_data(
+        self,
+        relation,
+        slurm_config,
+    ):
+        """Set the slurm_conifg to the app data on the relation.
+
+        Setting data on the relation forces the units of related applications
+        to observe the relation-changed event so they can acquire and
+        render the updated slurm_config.
+        """
+        relations = self.charm.framework.model.relations[relation]
+        for relation in relations:
+            relation.data[self.model.app]['slurm_config'] = json.dumps(
+                slurm_config
+            )

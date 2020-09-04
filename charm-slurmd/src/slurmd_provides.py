@@ -113,10 +113,14 @@ class SlurmdProvides(Object):
         if self.framework.model.unit.is_leader():
             self.set_partition_app_relation_data(event.relation)
 
-        self.charm.set_slurmctld_available(True)
-
     def _on_relation_joined(self, event):
-        munge_key = event.relation.data[event.app]['munge_key']
+        if not event.relation.data.get(event.app):
+            event.defer()
+            return
+        munge_key = event.relation.data[event.app].get('munge_key')
+        if not munge_key:
+            event.defer()
+            return
         self.charm.set_munge_key(munge_key)
         self.on.munge_key_available.emit()
 
@@ -134,11 +138,10 @@ class SlurmdProvides(Object):
             return
 
         self.charm.set_slurm_config(json.loads(slurm_config))
-        self.charm.set_slurm_config_available(True)
         self.on.slurmctld_available.emit()
 
     def _on_relation_broken(self, event):
-        self.charm.set_slurm_config_available(False)
+        self.charm.set_slurm_config(str())
         self.on.slurmctld_unavailable.emit()
 
     def force_set_config_on_app_relation_data(self):

@@ -9,7 +9,7 @@ from ops.model import (
     ActiveStatus,
     BlockedStatus,
 )
-from slurm_ops_manager import SlurmOpsManager
+from slurm_ops_manager import SlurmManager
 from slurmd_provides import SlurmdProvides
 
 logger = logging.getLogger()
@@ -25,7 +25,7 @@ class SlurmdCharm(CharmBase):
         super().__init__(*args)
 
         self.config = self.model.config
-        self.slurm_ops_manager = SlurmOpsManager(self, 'slurmd')
+        self.slurm_manager = SlurmManager(self, 'slurmd')
         self.slurmd = SlurmdProvides(self, "slurmd")
 
         self._stored.set_default(
@@ -47,7 +47,7 @@ class SlurmdCharm(CharmBase):
 
     def _on_install(self, event):
         """Install the slurm scheduler as snap or tar file."""
-        self.slurm_ops_manager.install()
+        self.slurm_manager.install()
         self.unit.status = ActiveStatus("Slurm Installed")
         self._stored.slurm_installed = True
 
@@ -62,7 +62,7 @@ class SlurmdCharm(CharmBase):
         if (slurm_installed and slurm_config_available):
             # cast StoredState -> python dict
             slurm_config = dict(self._stored.slurm_config)
-            self.slurm_ops_manager.render_config_and_restart(slurm_config)
+            self.slurm_manager.render_config_and_restart(slurm_config)
             self.unit.status = ActiveStatus("Slurmd Available")
         else:
             self.unit.status = BlockedStatus(

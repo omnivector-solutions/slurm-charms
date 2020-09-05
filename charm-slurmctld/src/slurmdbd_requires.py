@@ -38,33 +38,33 @@ class SlurmdbdRequiresRelation(Object):
         """Set the initial attribute values for this interface."""
         super().__init__(charm, relation_name)
 
-        self.charm = charm
+        self._charm = charm
         self._relation_name = relation_name
 
         self.framework.observe(
-            charm.on[self._relation_name].relation_created,
+            self._charm.on[self._relation_name].relation_created,
             self._on_relation_created
         )
 
         self.framework.observe(
-            charm.on[self._relation_name].relation_changed,
+            self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
 
         self.framework.observe(
-            charm.on[self._relation_name].relation_broken,
+            self._charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
 
     def _on_relation_created(self, event):
         # Check that slurm has been installed so that we know the munge key is
         # available. Defer if slurm has not been installed yet.
-        if not self.charm.is_slurm_installed():
+        if not self._charm.is_slurm_installed():
             event.defer()
             return
         # Get the munge_key from the slurm_ops_manager and set it to the app
         # data on the relation to be retrieved on the other side by slurmdbd.
-        munge_key = self.charm.get_munge_key()
+        munge_key = self._charm.get_munge_key()
         event.relation.data[self.model.app]['munge_key'] = munge_key
 
     def _on_relation_changed(self, event):
@@ -72,17 +72,17 @@ class SlurmdbdRequiresRelation(Object):
         # add them to the interface _state object.
         # Set slurmdbd_acquired = True and emit slurmdbd_available to be
         # observed by the main charm.
-        event_unit_data = event.relation.data[event.unit]
-        if event_unit_data.get('slurmdbd_available'):
-            if event_unit_data['slurmdbd_available'] == "true":
-                self.charm.set_slurmdbd_info({
-                    'ingress_address': event_unit_data['ingress-address'],
-                    'hostname': event_unit_data['hostname'],
-                    'port': event_unit_data['port'],
-                })
-                self.charm.set_slurmdbd_available(True)
-                self.on.slurmdbd_available.emit()
-                return
+        event_unit_data = event.relation.data.get(event.unit)
+        if event_unit_data:
+            if event_unit_data.get('slurmdbd_available'):
+                if event_unit_data['slurmdbd_available'] == "true":
+                    self._charm.set_slurmdbd_info({
+                        'ingress_address': event_unit_data['ingress-address'],
+                        'hostname': event_unit_data['hostname'],
+                        'port': event_unit_data['port'],
+                    })
+                    self.on.slurmdbd_available.emit()
+                    return
         event.defer()
 
     def _on_relation_broken(self, event):

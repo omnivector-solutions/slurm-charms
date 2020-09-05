@@ -39,6 +39,8 @@ class SlurmLoginCharm(CharmBase):
             self.on.start:
             self._on_check_status_and_write_config,
 
+            self.on.upgrade_charm: self._on_upgrade,
+
             self._slurmrestd.on.slurmctld_available:
             self._on_check_status_and_write_config,
 
@@ -52,6 +54,10 @@ class SlurmLoginCharm(CharmBase):
         self.slurm_manager.install()
         self.unit.status = ActiveStatus("slurm installed")
         self._stored.slurm_installed = True
+
+    def _on_upgrade(self, event):
+        """Upgrade charm event handler."""
+        self.slurm_manager.upgrade()
 
     def _on_check_status_and_write_config(self, event):
         slurm_installed = self._stored.slurm_installed

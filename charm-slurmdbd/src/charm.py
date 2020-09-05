@@ -55,6 +55,10 @@ class SlurmdbdCharm(CharmBase):
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("Slurm Installed")
 
+    def _on_upgrade(self, event):
+        """Handle upgrade charm event."""
+        self._slurm_manager.upgrade()
+
     def _on_slurmctld_unavailable(self, event):
         self.unit.status = BlockedStatus("Need relation to slurmctld.")
 

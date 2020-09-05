@@ -1,7 +1,7 @@
 options:
   partition-default:
     type: boolean
-    default: false
+    default: true
     description: >-
       'If this is True, jobs submitted without a partition specification
       will utilize this partition.'

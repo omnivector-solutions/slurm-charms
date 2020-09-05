@@ -49,14 +49,15 @@ class SlurmctldCharm(CharmBase):
         self._slurmrestd_provides = SlurmrestdProvides(self, "slurmrestd")
 
         event_handler_bindings = {
-            self.on.install:
-            self._on_install,
+            self.on.install: self._on_install,
 
             self.on.start:
             self._on_check_status_and_write_config,
 
             self.on.config_changed:
             self._on_check_status_and_write_config,
+
+            self.on.upgrade_charm: self._on_upgrade,
 
             self._slurmdbd.on.slurmdbd_available:
             self._on_check_status_and_write_config,
@@ -90,6 +91,9 @@ class SlurmctldCharm(CharmBase):
         self._stored.munge_key = self._slurm_manager.get_munge_key()
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("Slurm Installed")
+
+    def _on_upgrade(self, event):
+        self._slurm_manager.upgrade()
 
     def _on_check_status_and_write_config(self, event):
         if not self._check_status():

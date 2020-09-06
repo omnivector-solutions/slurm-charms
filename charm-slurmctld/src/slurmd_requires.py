@@ -131,10 +131,10 @@ class SlurmdRequires(Object):
 
                     unit_data = relation.data[unit]
 
-                    add_unit = False
+                    add_unit = True
                     for unit in nodes_info:
                         if unit['hostname'] == unit_data['hostname']:
-                            add_unit = True
+                            add_unit = False
 
                     if add_unit:
                         ctxt = {
@@ -159,7 +159,7 @@ class SlurmdRequires(Object):
         to observe the relation-changed event so they can acquire and
         render the updated slurm_config.
         """
-        relations = self.charm.framework.model.relations[relation]
+        relations = self._charm.framework.model.relations[relation]
         for relation in relations:
             relation.data[self.model.app]['slurm_config'] = json.dumps(
                 slurm_config
@@ -170,7 +170,7 @@ class SlurmdRequires(Object):
         slurmctld_ingress_address = self._state.ingress_address
         slurmctld_hostname = socket.gethostname().split(".")[0]
 
-        slurmdbd_info = dict(self.charm.get_slurmdbd_info())
+        slurmdbd_info = dict(self._charm.get_slurmdbd_info())
         slurmd_node_data, partitions = self._get_slurmd_node_data()
 
         return {
@@ -182,7 +182,7 @@ class SlurmdRequires(Object):
             'active_controller_hostname': slurmctld_hostname,
             'active_controller_ingress_address': slurmctld_ingress_address,
             'active_controller_port': "6817",
-            'munge_key': self.charm.get_munge_key(),
+            'munge_key': self._charm.get_munge_key(),
             **self.model.config,
         }
 

@@ -53,9 +53,9 @@ class SlurmdProvides(Object):
     _state = StoredState()
 
     def __init__(self, charm, relation_name):
-        """Set self._relation_name and self.charm."""
+        """Set self._relation_name and self._charm."""
         super().__init__(charm, relation_name)
-        self.charm = charm
+        self._charm = charm
         self._relation_name = relation_name
 
         self.framework.observe(
@@ -73,7 +73,7 @@ class SlurmdProvides(Object):
 
     def set_partition_app_relation_data(self, relation):
         """Set partition application relation data."""
-        conf = self.charm.config
+        conf = self._charm.config
         app_rel_data = relation.data[self.model.app]
 
         app_rel_data['partition_name'] = conf['partition-name']
@@ -82,7 +82,7 @@ class SlurmdProvides(Object):
             str(conf['partition-default']).lower()
 
     def _on_relation_created(self, event):
-        if self.charm.is_slurm_installed():
+        if self._charm.is_slurm_installed():
             # Every unit needs to set its own hostname and inventory data
             # in its' unit data on the relation.
             event.relation.data[self.model.unit]['hostname'] = get_hostname()
@@ -109,18 +109,18 @@ class SlurmdProvides(Object):
             event.defer()
             return
 
-        self.charm.set_slurm_config(json.loads(slurm_config))
-        self.charm.set_slurm_config_available(True)
+        self._charm.set_slurm_config(json.loads(slurm_config))
+        self._charm.set_slurm_config_available(True)
         self.on.slurmctld_available.emit()
 
     def _on_relation_broken(self, event):
-        self.charm.set_slurm_config_available(False)
+        self._charm.set_slurm_config_available(False)
         self.on.slurmctld_unavailable.emit()
 
     def force_set_config_on_app_relation_data(self):
         """Force set app relation data."""
         if self.framework.model.unit.is_leader():
-            relations = self.charm.framework.model.relations["slurmd"]
+            relations = self._charm.framework.model.relations["slurmd"]
             for relation in relations:
                 self.set_partition_app_relation_data(relation)
 

@@ -55,19 +55,19 @@ class SlurmdRequires(Object):
         self._state.set_default(ingress_address=None)
 
         self.framework.observe(
-            self.on[self._relation_name].relation_created,
+            self._charm.on[self._relation_name].relation_created,
             self._on_relation_created
         )
         self.framework.observe(
-            self.on[self._relation_name].relation_changed,
+            self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
         self.framework.observe(
-            self.on[self._relation_name].relation_broken,
+            self._charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
         self.framework.observe(
-            self.on[self._relation_name].relation_departed,
+            self._charm.on[self._relation_name].relation_departed,
             self._on_relation_departed
         )
 

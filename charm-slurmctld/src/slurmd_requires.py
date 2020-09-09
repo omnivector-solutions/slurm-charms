@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """SlurmdRequires."""
+import collections
 import json
 import logging
 import socket
@@ -97,56 +98,48 @@ class SlurmdRequires(Object):
         """Account for relation broken activity."""
         pass
 
+    def _get_partitions(self, node_data):
+        """Parse the node_data and return the hosts -> partition mapping."""
+        part_dict = collections.defaultdict(dict)
+        for node in node_data:
+            part_dict[node['partition_name']].setdefault('hosts', [])
+            part_dict[node['partition_name']]['hosts'].append(node['hostname'])
+            part_dict[node['partition_name']]['partition_default'] = \
+                True if node['partition_default'] == "true" else False
+            if node.get('partition_config'):
+                part_dict[node['partition_name']]['partition_config'] = \
+                    node['partition_config']
+        return dict(part_dict)
+
     def _get_slurmd_node_data(self):
         """Return the node info for units of applications on the relation."""
         nodes_info = list()
-        partition_info = dict()
-
         relations = self.framework.model.relations['slurmd']
 
         slurmd_active_units = _get_slurmd_active_units()
 
         for relation in relations:
-            application_data = relation.data.get(relation.app)
-            if not application_data:
-                continue
-            partition_name = application_data.get('partition_name')
-            partition_default = application_data.get('partition_default')
-            if not (partition_name and partition_default):
-                continue
-
-            partition_info = {
-                partition_name: {
-                    'hosts': [],
-                    'partition_default': partition_default,
-                }
-            }
-
-            if application_data.get('partition_config'):
-                partition_info[partition_name]['partition_config'] =  \
-                    application_data['partition_config']
-
+            app = relation.app
             for unit in relation.units:
                 if unit.name in slurmd_active_units:
-
                     unit_data = relation.data[unit]
-
-                    add_unit = True
-                    for unit in nodes_info:
-                        if unit['hostname'] == unit_data['hostname']:
-                            add_unit = False
-
-                    if add_unit:
-                        ctxt = {
-                            'ingress_address': unit_data['ingress-address'],
-                            'hostname': unit_data['hostname'],
-                            'inventory': unit_data['inventory'],
-                        }
-                        partition_info[partition_name]['hosts'].append(
-                            unit_data['hostname']
-                        )
-                        nodes_info.append(ctxt)
-        return nodes_info, partition_info
+                    app_data = relation.data[app]
+                    ctxt = {
+                        'ingress_address': unit_data['ingress-address'],
+                        'hostname': unit_data['hostname'],
+                        'inventory': unit_data['inventory'],
+                        'partition_name': app_data['partition_name'],
+                        'partition_default': app_data['partition_default'],
+                    }
+                    # Related slurmd units don't specify custom
+                    # partition_config by default.
+                    # Only get partition_config if it exists on in the
+                    # related unit's unit data.
+                    if app_data.get('partition_config'):
+                        ctxt['partition_config'] = \
+                                app_data['partition_config']
+                    nodes_info.append(ctxt)
+        return nodes_info
 
     def set_slurm_config_on_app_relation_data(
         self,
@@ -171,20 +164,24 @@ class SlurmdRequires(Object):
         slurmctld_hostname = socket.gethostname().split(".")[0]
 
         slurmdbd_info = dict(self._charm.get_slurmdbd_info())
-        slurmd_node_data, partitions = self._get_slurmd_node_data()
+        slurmd_node_data = self._get_slurmd_node_data()
+        partitions = self._get_partitions(slurmd_node_data)
 
-        return {
-            'nodes': slurmd_node_data,
-            'partitions': partitions,
-            'slurmdbd_port': slurmdbd_info['port'],
-            'slurmdbd_hostname': slurmdbd_info['hostname'],
-            'slurmdbd_ingress_address': slurmdbd_info['ingress_address'],
-            'active_controller_hostname': slurmctld_hostname,
-            'active_controller_ingress_address': slurmctld_ingress_address,
-            'active_controller_port': "6817",
-            'munge_key': self._charm.get_munge_key(),
-            **self.model.config,
-        }
+        if slurmd_node_data and partitions:
+            return {
+                'nodes': slurmd_node_data,
+                'partitions': partitions,
+                'slurmdbd_port': slurmdbd_info['port'],
+                'slurmdbd_hostname': slurmdbd_info['hostname'],
+                'slurmdbd_ingress_address': slurmdbd_info['ingress_address'],
+                'active_controller_hostname': slurmctld_hostname,
+                'active_controller_ingress_address': slurmctld_ingress_address,
+                'active_controller_port': "6817",
+                'munge_key': self._charm.get_munge_key(),
+                **self.model.config,
+            }
+        else:
+            return None
 
 
 def _related_units(relid):

@@ -101,6 +101,10 @@ class SlurmctldCharm(CharmBase):
             return
 
         slurm_config = self._assemble_slurm_config()
+        if not slurm_config:
+            event.defer()
+            return
+
         self._slurm_manager.render_config_and_restart(slurm_config)
 
         self._slurmd.set_slurm_config_on_app_relation_data(
@@ -120,6 +124,10 @@ class SlurmctldCharm(CharmBase):
             return
 
         slurm_config = self._assemble_slurm_config()
+        if not slurm_config:
+            event.defer()
+            return
+
         self._slurmd.set_slurm_config_on_app_relation_data(
             'slurmrestd',
             slurm_config,
@@ -127,6 +135,9 @@ class SlurmctldCharm(CharmBase):
 
     def _assemble_slurm_config(self):
         slurm_config = self._slurmd.get_slurm_config()
+        if not slurm_config:
+            return None
+
         elasticsearch_endpoint = self._stored.elasticsearch_ingress
         nhc_info = self._stored.nhc_info
 

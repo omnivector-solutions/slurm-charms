@@ -1,13 +1,13 @@
 applications:
-  slurmrestd:
-    charm: ./../../slurmrestd.charm
-    constraints: spaces=nat root-disk=20G
-    series: centos7
-    num_units: 1
-    resources:
-      slurm: ./../../slurm.resource
-    bindings:
-      "": nat
+#  slurmrestd:
+#    charm: ./../../slurmrestd.charm
+#    constraints: spaces=nat root-disk=20G
+#    series: centos7
+#    num_units: 1
+#    resources:
+#      slurm: ./../../slurm.resource
+#    bindings:
+#      "": nat
   slurmctld:
     charm: ./../../slurmctld.charm
     constraints: spaces=nat root-disk=20G
@@ -44,8 +44,8 @@ applications:
       "": nat
 
 relations:
-  - - slurmctld:slurmrestd
-    - slurmrestd:slurmrestd
+#  - - slurmctld:slurmrestd
+#    - slurmrestd:slurmrestd
   - - slurmctld:slurmd
     - slurmd:slurmd
   - - slurmctld:slurmdbd

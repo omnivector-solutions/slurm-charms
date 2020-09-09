@@ -59,15 +59,15 @@ class SlurmdProvides(Object):
         self._relation_name = relation_name
 
         self.framework.observe(
-            self.charm.on[self._relation_name].relation_created,
+            self._charm.on[self._relation_name].relation_created,
             self._on_relation_created
         )
         self.framework.observe(
-            self.charm.on[self._relation_name].relation_changed,
+            self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
         self.framework.observe(
-            self.charm.on[self._relation_name].relation_broken,
+            self._charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
 

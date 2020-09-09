@@ -79,7 +79,7 @@ class SlurmdbdRequiresRelation(Object):
                 'hostname': event_unit_data['hostname'],
                 'port': event_unit_data['port'],
             })
-            self.on.slurmdbd_available.emit() 
+            self.on.slurmdbd_available.emit()
         else:
             event.defer()
             return

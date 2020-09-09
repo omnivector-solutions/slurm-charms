@@ -30,11 +30,11 @@ class NhcRequires(Object):
         self._relation_name = relation_name
 
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_created,
+            self.on[self._relation_name].relation_created,
             self._on_relation_created
         )
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_changed,
+            self.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
 

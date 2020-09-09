@@ -42,17 +42,17 @@ class SlurmdbdRequiresRelation(Object):
         self._relation_name = relation_name
 
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_created,
+            self.on[self._relation_name].relation_created,
             self._on_relation_created
         )
 
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_changed,
+            self.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
 
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_broken,
+            self.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
 
@@ -73,17 +73,16 @@ class SlurmdbdRequiresRelation(Object):
         # Set slurmdbd_acquired = True and emit slurmdbd_available to be
         # observed by the main charm.
         event_unit_data = event.relation.data.get(event.unit)
-        if event_unit_data:
-            if event_unit_data.get('slurmdbd_available'):
-                if event_unit_data['slurmdbd_available'] == "true":
-                    self._charm.set_slurmdbd_info({
-                        'ingress_address': event_unit_data['ingress-address'],
-                        'hostname': event_unit_data['hostname'],
-                        'port': event_unit_data['port'],
-                    })
-                    self.on.slurmdbd_available.emit()
-                    return
-        event.defer()
+        if event_unit_data.get('slurmdbd_available', None) == "true":
+            self._charm.set_slurmdbd_info({
+                'ingress_address': event_unit_data['ingress-address'],
+                'hostname': event_unit_data['hostname'],
+                'port': event_unit_data['port'],
+            })
+            self.on.slurmdbd_available.emit() 
+        else:
+            event.defer()
+            return
 
     def _on_relation_broken(self, event):
         self.on.slurmdbd_unavailable.emit()

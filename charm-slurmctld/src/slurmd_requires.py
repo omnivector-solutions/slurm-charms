@@ -55,19 +55,19 @@ class SlurmdRequires(Object):
         self._state.set_default(ingress_address=None)
 
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_created,
+            self.on[self._relation_name].relation_created,
             self._on_relation_created
         )
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_changed,
+            self.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_broken,
+            self.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_departed,
+            self.on[self._relation_name].relation_departed,
             self._on_relation_departed
         )
 
@@ -91,7 +91,7 @@ class SlurmdRequires(Object):
         relations = len(_get_slurmd_active_units())
         logger.debug(f"number of slurmd relations:  {relations}")
         if relations < 1:
-            self._charm._stored.slurmd_available = False
+            self._charm.set_slurmd_available(False)
         self.on.slurmd_departed.emit()
 
     def _on_relation_broken(self, event):

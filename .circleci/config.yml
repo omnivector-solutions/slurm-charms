@@ -122,6 +122,17 @@ jobs:
             #  make test-slurmrestd-api-returns-200
 
       - run:
+          name: "add 20 units"
+          command: |
+            juju add-unit slurmd -n 20
+      - run:
+          name: "Wait for deployment status"
+          no_output_timeout: 20m
+          command: |
+            export PATH=$PATH:/snap/bin
+            juju-wait -w -t 2150
+
+      - run:
           name: "Show juju status"
           command: |
             juju status

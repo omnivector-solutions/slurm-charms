@@ -1,2 +1,2 @@
 ops
-git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.1.4
+git+https://github.com/omnivector-solutions/slurm-ops-manager.git@back_to_bdx

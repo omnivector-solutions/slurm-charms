@@ -49,29 +49,25 @@ class SlurmdRequires(Object):
     def __init__(self, charm, relation_name):
         """Set self._relation_name and self.charm."""
         super().__init__(charm, relation_name)
-        self.charm = charm
+        self._charm = charm
         self._relation_name = relation_name
 
         self._state.set_default(ingress_address=None)
 
         self.framework.observe(
-            charm.on[self._relation_name].relation_created,
+            self._charm.on[self._relation_name].relation_created,
             self._on_relation_created
         )
         self.framework.observe(
-            charm.on[self._relation_name].relation_changed,
+            self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
         self.framework.observe(
-            charm.on[self._relation_name].relation_departed,
-            self._on_relation_departed
-        )
-        self.framework.observe(
-            charm.on[self._relation_name].relation_broken,
+            self._charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
         self.framework.observe(
-            charm.on[self._relation_name].relation_departed,
+            self._charm.on[self._relation_name].relation_departed,
             self._on_relation_departed
         )
 
@@ -82,11 +78,11 @@ class SlurmdRequires(Object):
     def _on_relation_changed(self, event):
         """Check for slurmdbd and slurmd, write config, set relation data."""
         if len(self.framework.model.relations['slurmd']) > 0:
-            if not self.charm.is_slurmd_available():
-                self.charm.set_slurmd_available(True)
+            if not self._charm.is_slurmd_available():
+                self._charm.set_slurmd_available(True)
             self.on.slurmd_available.emit()
         else:
-            self.charm.unit.status = BlockedStatus("Need > 0 units of slurmd")
+            self._charm.unit.status = BlockedStatus("Need > 0 units of slurmd")
             event.defer()
             return
 
@@ -95,7 +91,7 @@ class SlurmdRequires(Object):
         relations = len(_get_slurmd_active_units())
         logger.debug(f"number of slurmd relations:  {relations}")
         if relations < 1:
-            self.charm._stored.slurmd_available = False
+            self._charm.set_slurmd_available(False)
         self.on.slurmd_departed.emit()
 
     def _on_relation_broken(self, event):
@@ -156,7 +152,7 @@ class SlurmdRequires(Object):
         to observe the relation-changed event so they can acquire and
         render the updated slurm_config.
         """
-        relations = self.charm.framework.model.relations[relation]
+        relations = self._charm.framework.model.relations[relation]
         for relation in relations:
             relation.data[self.model.app]['slurm_config'] = json.dumps(
                 slurm_config
@@ -167,22 +163,25 @@ class SlurmdRequires(Object):
         slurmctld_ingress_address = self._state.ingress_address
         slurmctld_hostname = socket.gethostname().split(".")[0]
 
-        slurmdbd_info = dict(self.charm.get_slurmdbd_info())
+        slurmdbd_info = dict(self._charm.get_slurmdbd_info())
         slurmd_node_data = self._get_slurmd_node_data()
         partitions = self._get_partitions(slurmd_node_data)
 
-        return {
-            'nodes': slurmd_node_data,
-            'partitions': partitions,
-            'slurmdbd_port': slurmdbd_info['port'],
-            'slurmdbd_hostname': slurmdbd_info['hostname'],
-            'slurmdbd_ingress_address': slurmdbd_info['ingress_address'],
-            'active_controller_hostname': slurmctld_hostname,
-            'active_controller_ingress_address': slurmctld_ingress_address,
-            'active_controller_port': "6817",
-            'munge_key': self.charm.get_munge_key(),
-            **self.model.config,
-        }
+        if slurmd_node_data and partitions:
+            return {
+                'nodes': slurmd_node_data,
+                'partitions': partitions,
+                'slurmdbd_port': slurmdbd_info['port'],
+                'slurmdbd_hostname': slurmdbd_info['hostname'],
+                'slurmdbd_ingress_address': slurmdbd_info['ingress_address'],
+                'active_controller_hostname': slurmctld_hostname,
+                'active_controller_ingress_address': slurmctld_ingress_address,
+                'active_controller_port': "6817",
+                'munge_key': self._charm.get_munge_key(),
+                **self.model.config,
+            }
+        else:
+            return None
 
 
 def _related_units(relid):

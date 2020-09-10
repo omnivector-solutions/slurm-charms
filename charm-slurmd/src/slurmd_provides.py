@@ -119,10 +119,9 @@ class SlurmdProvides(Object):
 
     def force_set_config_on_app_relation_data(self):
         """Force set app relation data."""
-        if self.framework.model.unit.is_leader():
-            relations = self._charm.framework.model.relations["slurmd"]
-            for relation in relations:
-                self.set_partition_app_relation_data(relation)
+        relations = self._charm.framework.model.relations["slurmd"]
+        for relation in relations:
+            self.set_partition_app_relation_data(relation)
 
 
 def _get_real_mem():

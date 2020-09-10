@@ -94,7 +94,7 @@ jobs:
           command: |
             make deploy-bionic-bundle-on-lxd-from-local-with-snap
  
-     - run:
+      - run:
           name: "pull credentials from s3 and add model and deploy bundle"
           no_output_timeout: 20m
           command: |

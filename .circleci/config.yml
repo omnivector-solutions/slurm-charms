@@ -90,11 +90,6 @@ jobs:
             make pull-classic-snap
 
       - run:
-          name: "Deploy slurm charms using the slurm snap resource on Bionic"
-          command: |
-            make deploy-bionic-bundle-on-lxd-from-local-with-snap
- 
-      - run:
           name: "pull credentials from s3 and add model and deploy bundle"
           no_output_timeout: 20m
           command: |

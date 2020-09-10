@@ -38,6 +38,8 @@ jobs:
   build-and-deploy-charms-on-lxd:
     machine:
       image: ubuntu-1604:202004-01
+    environment:
+      JUJU_DATA: /home/circleci/project/.local/share/juju
     steps:
       - checkout
 
@@ -83,12 +85,6 @@ jobs:
             sudo snap install jq
 
       - run:
-          name: "Bootstrap Juju"
-          command: |
-            /snap/bin/juju bootstrap localhost
-            /snap/bin/juju model-config logging-config="<root>=DEBUG;<unit>=DEBUG"
-
-      - run:
           name: "Pull classic slurm snap from github"
           command: |
             make pull-classic-snap
@@ -97,15 +93,18 @@ jobs:
           name: "Deploy slurm charms using the slurm snap resource on Bionic"
           command: |
             make deploy-bionic-bundle-on-lxd-from-local-with-snap
-
-     # TODO: (jamesbeedy)
-     # LXD running on this 16.04 image seems to be having issues deploying a focal container
-     # leave this commented out until we find a fix.
-     #- run:
-     #     name: "Deploy Slurm on Focal"
-     #     command: |
-     #       /snap/bin/juju deploy ./slurm-all.charm --series focal slurm-all-focal --force
-     #       /snap/bin/juju-wait
+ 
+     - run:
+          name: "pull credentials from s3 and add model and deploy bundle"
+          no_output_timeout: 20m
+          command: |
+            aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
+            tar -xzvf juju-local.tar.gz
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+            juju add-model circleci-$CIRCLE_SHA1
+            juju add-space -m circleci-$CIRCLE_SHA1 nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+            juju deploy -m circleci-$CIRCLE_SHA1 ./bundles/slurm-core-bionic-aws/bundle.yaml
+ 
       - run:
           name: "Wait for deployment status"
           no_output_timeout: 20m
@@ -148,7 +147,16 @@ jobs:
             - slurmctld.charm
             - slurmdbd.charm
             - slurmd.charm
-
+      - run:
+          name: "Force remove machine if hanging and destroy-model"
+          command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+            # Check to see if the model is empty, --force detroy-machines if not
+            if ! [ `juju status 2>&1 | grep -c empty` -gt 0 ]; then
+                juju remove-machine -m circleci-$CIRCLE_SHA1 {0..4} --force
+            fi
+            juju destroy-model circleci-$CIRCLE_SHA1 -y
+          when: always
       - slack/status:
           fail_only: false
 

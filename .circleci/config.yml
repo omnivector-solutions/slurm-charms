@@ -111,14 +111,14 @@ jobs:
             export PATH=$PATH:/snap/bin
             juju-wait -w -t 1150
 
-      - run:
-          name: "Verify slurmrestd"
-          command: |
-            sudo apt install python3-venv
-            python3 -m venv venv
-            source venv/bin/activate
-            pip3 install python_jwt
-            make test-slurmrestd-api-returns-200
+            #- run:
+            # name: "Verify slurmrestd"
+            #  command: |
+            #  sudo apt install python3-venv
+            #  python3 -m venv venv
+            #  source venv/bin/activate
+            #  pip3 install python_jwt
+            #  make test-slurmrestd-api-returns-200
 
       - run:
           name: "Show juju status"
@@ -132,9 +132,9 @@ jobs:
             juju debug-log --no-tail --replay
           when: always
 
-      - store_artifacts:
-          path: /tmp/slurm-unit-logs
-          when: always
+          #   - store_artifacts:
+          #  path: /tmp/slurm-unit-logs
+          # when: always
 
       - save_cache:
           name: Cache built charms once we validate they successfully deploy.

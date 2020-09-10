@@ -127,7 +127,7 @@ jobs:
           when: always
 
       - run:
-          name: Create artifacts from slurm unit logs
+          name: show juju logs
           command: |
             juju debug-log --no-tail --replay
           when: always
@@ -175,4 +175,4 @@ jobs:
             make push-charms-to-edge
 
       - slack/status:
-          fail_only: false
+         fail_only: false

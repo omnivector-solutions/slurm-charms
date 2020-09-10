@@ -101,6 +101,7 @@ jobs:
             tar -xzvf juju-local.tar.gz
             echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju add-model circleci-$CIRCLE_SHA1
+            juju model-config logging-config="<root>=DEBUG;juju.worker.dependency=CRITICAL;unit=DEBUG"
             juju add-space -m circleci-$CIRCLE_SHA1 nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
             juju deploy -m circleci-$CIRCLE_SHA1 ./bundles/slurm-core-bionic-aws/bundle.yaml
  

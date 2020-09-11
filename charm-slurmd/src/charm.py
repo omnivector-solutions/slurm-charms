@@ -9,7 +9,7 @@ from ops.model import (
     ActiveStatus,
     BlockedStatus,
 )
-from slurm_ops_manager import SlurmOpsManager
+from slurm_ops_manager import SlurmManager
 from slurmd_provides import SlurmdProvides
 
 logger = logging.getLogger()
@@ -25,7 +25,7 @@ class SlurmdCharm(CharmBase):
         super().__init__(*args)
 
         self.config = self.model.config
-        self.slurm_ops_manager = SlurmOpsManager(self, 'slurmd')
+        self.slurm_ops_manager = SlurmManager(self, 'slurmd')
         self.slurmd = SlurmdProvides(self, "slurmd")
 
         self._stored.set_default(

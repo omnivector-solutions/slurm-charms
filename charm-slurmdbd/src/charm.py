@@ -3,7 +3,6 @@
 import logging
 import socket
 
-
 from interface_mysql import MySQLClient
 from ops.charm import CharmBase
 from ops.framework import StoredState
@@ -12,7 +11,7 @@ from ops.model import (
     ActiveStatus,
     BlockedStatus,
 )
-from slurm_ops_manager import SlurmOpsManager
+from slurm_ops_manager import SlurmManager
 from slurmdbd_provides import SlurmdbdProvidesRelation
 
 
@@ -33,7 +32,7 @@ class SlurmdbdCharm(CharmBase):
         self._stored.set_default(munge_key_available=False)
         self._stored.set_default(slurm_installed=False)
 
-        self.slurm_ops_manager = SlurmOpsManager(self, "slurmdbd")
+        self.slurm_ops_manager = SlurmManager(self, "slurmdbd")
         self.slurmdbd = SlurmdbdProvidesRelation(self, "slurmdbd")
 
         self.db = MySQLClient(self, "db")

@@ -11,7 +11,7 @@ from ops.model import (
     ActiveStatus,
     BlockedStatus,
 )
-from slurm_ops_manager import SlurmOpsManager
+from slurm_ops_manager import SlurmManager
 from slurmd_requires import SlurmdRequires
 from slurmdbd_requires import SlurmdbdRequiresRelation
 from slurmrestd_provides import SlurmrestdProvides
@@ -41,7 +41,7 @@ class SlurmctldCharm(CharmBase):
 
         )
         self.elasticsearch = ElasticsearchRequires(self, "elasticsearch")
-        self.slurm_ops_manager = SlurmOpsManager(self, "slurmctld")
+        self.slurm_ops_manager = SlurmManager(self, "slurmctld")
         self.slurmdbd = SlurmdbdRequiresRelation(self, "slurmdbd")
         self.slurmd = SlurmdRequires(self, "slurmd")
         self.slurmrestd_provides = SlurmrestdProvides(self, "slurmrestd")

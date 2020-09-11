@@ -113,9 +113,9 @@ jobs:
             #  pip3 install python_jwt
             #  make test-slurmrestd-api-returns-200
       - run:
-          name: "add 20 units"
+          name: "add 50 units"
           command: |
-            juju add-unit slurmd -n 20
+            juju add-unit slurmd -n 50
       - run:
           name: "Wait for deployment status"
           no_output_timeout: 20m

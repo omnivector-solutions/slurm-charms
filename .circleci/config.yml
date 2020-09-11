@@ -96,13 +96,8 @@ jobs:
             juju add-model circleci-$CIRCLE_SHA1
             juju model-config logging-config="<root>=DEBUG;juju.worker.dependency=CRITICAL;unit=DEBUG"
             juju add-space -m circleci-$CIRCLE_SHA1 nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
-            juju deploy -m circleci-$CIRCLE_SHA1 ./slurmd.charm --bind nat --series focal
-            juju deploy -m circleci-$CIRCLE_SHA1 ./slurmctld.charm --bind nat --series focal
-            juju deploy -m circleci-$CIRCLE_SHA1 ./slurmdbd.charm --bind nat --series focal
-            juju deploy -m circleci-$CIRCLE_SHA1 percona-cluster --bind nat 
-            juju relate slurmd slurmctld 
-            juju relate slurmdbd slurmctld 
-            juju relate slurmdbd percona-cluster 
+            juju deploy -m circleci-$CIRCLE_SHA1 ./bundles/slurm-core-bionic-aws/bundle.yaml
+
       - run:
           name: "Wait for deployment status"
           no_output_timeout: 20m

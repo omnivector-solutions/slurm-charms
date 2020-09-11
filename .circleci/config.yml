@@ -129,7 +129,7 @@ jobs:
       - run:
           name: "run sinfo"
           command: |
-            juju run --unit slurmd/0 "sinfo"s
+            juju run --unit slurmd/0 "sinfo"
           when: always
 
       - run:

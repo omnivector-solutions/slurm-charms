@@ -126,6 +126,10 @@ jobs:
           name: "Show juju status"
           command: |
             juju status
+      - run:
+          name: "run sinfo"
+          command: |
+            juju run --unit slurmd/0 "sinfo"s
           when: always
 
       - run:

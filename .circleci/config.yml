@@ -121,11 +121,13 @@ jobs:
           no_output_timeout: 20m
           command: |
             export PATH=$PATH:/snap/bin
-            juju-wait -w -t 2150
+            #juju-wait -w -t 2150
+            sleep 5m
       - run:
           name: "Show juju status"
           command: |
             juju status
+          when: always
       - run:
           name: "run sinfo"
           command: |
@@ -133,10 +135,14 @@ jobs:
           when: always
 
       - run:
-          name: show juju logs
+          name: show juju slurmctld logs
           command: |
-            juju debug-log --no-tail --replay
+            juju debug-log --include slurmctld --no-tail --replay
           when: always
+      - run:
+          name: show juju slurmd logs
+          command: |
+            juju debug-log --include slurmd --no-tail --replay
 
           #   - store_artifacts:
           #  path: /tmp/slurm-unit-logs

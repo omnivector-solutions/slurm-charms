@@ -55,32 +55,32 @@ class SlurmdProvides(Object):
     def __init__(self, charm, relation_name):
         """Set self._relation_name and self.charm."""
         super().__init__(charm, relation_name)
-        self.charm = charm
+        self._charm = charm
         self._relation_name = relation_name
 
         self.framework.observe(
-            self.charm.on[self._relation_name].relation_created,
+            self._charm.on[self._relation_name].relation_created,
             self._on_relation_created
         )
         self.framework.observe(
-            self.charm.on[self._relation_name].relation_changed,
+            self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
         self.framework.observe(
-            self.charm.on[self._relation_name].relation_broken,
+            self._charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
 
     def _on_relation_created(self, event):
-        if self.charm.is_slurm_installed():
+        if self._charm.is_slurm_installed():
             event.relation.data[self.model.unit]['hostname'] = get_hostname()
             event.relation.data[self.model.unit]['inventory'] = get_inventory()
             event.relation.data[self.model.unit]['partition_name'] = \
-                self.charm.config['partition-name']
+                self._charm.config['partition-name']
             event.relation.data[self.model.unit]['partition_config'] = \
-                self.charm.config['partition-config']
+                self._charm.config['partition-config']
             event.relation.data[self.model.unit]['partition_default'] = \
-                str(self.charm.config['partition-default']).lower()
+                str(self._charm.config['partition-default']).lower()
         else:
             # If we hit this hook/handler before slurm is installed, defer.
             logger.debug("SLURM NOT INSTALLED DEFERING SETTING RELATION DATA")
@@ -100,12 +100,12 @@ class SlurmdProvides(Object):
             event.defer()
             return
 
-        self.charm.set_slurm_config(json.loads(slurm_config))
-        self.charm.set_slurm_config_available(True)
+        self._charm.set_slurm_config(json.loads(slurm_config))
+        self._charm.set_slurm_config_available(True)
         self.on.slurmctld_available.emit()
 
     def _on_relation_broken(self, event):
-        self.charm.set_slurm_config_available(False)
+        self._charm.set_slurm_config_available(False)
         self.on.slurmctld_unavailable.emit()
 
 

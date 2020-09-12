@@ -26,3 +26,10 @@ options:
       weights should be assigned to smaller nodes. Setting this charm
       option will automatically order and weigh the nodes in ascending
       order. Allowed values are RealMemory, CPUs and CoresPerSocket.'
+  snap_store_channel:
+   type: string
+   default: '--stable'
+   description: >-
+      'Channel you wish to install slurm snap resource from'
+
+

@@ -40,53 +40,55 @@ class SlurmctldCharm(CharmBase):
             slurmrestd_available=False,
 
         )
-        self.elasticsearch = ElasticsearchRequires(self, "elasticsearch")
-        self.slurm_ops_manager = SlurmManager(self, "slurmctld")
-        self.slurmdbd = SlurmdbdRequiresRelation(self, "slurmdbd")
-        self.slurmd = SlurmdRequires(self, "slurmd")
-        self.slurmrestd_provides = SlurmrestdProvides(self, "slurmrestd")
-        self.nhc_requires = NhcRequires(self, "nhc")
+        self._elasticsearch = ElasticsearchRequires(self, "elasticsearch")
+        self._slurm_manager = SlurmManager(self, "slurmctld")
+        self._slurmdbd = SlurmdbdRequiresRelation(self, "slurmdbd")
+        self._slurmd = SlurmdRequires(self, "slurmd")
+        self._slurmrestd_provides = SlurmrestdProvides(self, "slurmrestd")
+        self._nhc_requires = NhcRequires(self, "nhc")
 
         event_handler_bindings = {
-            self.on.install:
-            self._on_install,
+            self.on.install: self._on_install,
 
             self.on.start:
             self._on_check_status_and_write_config,
 
+            self.on.upgrade_charm:
+            self._on_upgrade,
+            
             self.on.config_changed:
             self._on_check_status_and_write_config,
 
-            self.slurmdbd.on.slurmdbd_available:
+            self._slurmdbd.on.slurmdbd_available:
             self._on_check_status_and_write_config,
 
-            self.slurmdbd.on.slurmdbd_unavailable:
+            self._slurmdbd.on.slurmdbd_unavailable:
             self._on_check_status_and_write_config,
 
-            self.slurmd.on.slurmd_available:
+            self._slurmd.on.slurmd_available:
             self._on_check_status_and_write_config,
 
-            self.slurmd.on.slurmd_departed:
+            self._slurmd.on.slurmd_departed:
             self._on_check_status_and_write_config,
 
-            self.slurmd.on.slurmd_unavailable:
+            self._slurmd.on.slurmd_unavailable:
             self._on_check_status_and_write_config,
 
-            self.slurmrestd_provides.on.slurmrestd_available:
+            self._slurmrestd_provides.on.slurmrestd_available:
             self._on_provide_slurmrestd,
 
-            self.elasticsearch.on.elasticsearch_available:
+            self._elasticsearch.on.elasticsearch_available:
             self._on_check_status_and_write_config,
 
-            self.nhc_requires.on.nhc_bin_available:
+            self._nhc_requires.on.nhc_bin_available:
             self._on_check_status_and_write_config,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
-        self.slurm_ops_manager.install()
-        self._stored.munge_key = self.slurm_ops_manager.get_munge_key()
+        self._slurm_manager.install()
+        self._stored.munge_key = self._slurm_manager.get_munge_key()
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("Slurm Installed")
 
@@ -96,17 +98,20 @@ class SlurmctldCharm(CharmBase):
             return
         slurm_config = self._assemble_slurm_config()
 
-        self.slurmd.set_slurm_config_on_app_relation_data(
+        self._slurmd.set_slurm_config_on_app_relation_data(
             'slurmd',
             slurm_config,
         )
         if self._stored.slurmrestd_available:
-            self.slurmd.set_slurm_config_on_app_relation_data(
+            self._slurmd.set_slurm_config_on_app_relation_data(
                 'slurmrestd',
                 slurm_config,
             )
-        self.slurm_ops_manager.render_config_and_restart(slurm_config)
+        self._slurm_manager.render_config_and_restart(slurm_config)
         self.unit.status = ActiveStatus("Slurmctld Available")
+
+    def _on_upgrade(self, event):
+        self._slurm_manager.upgrade()
 
     def _on_provide_slurmrestd(self, event):
         if not self._check_status():
@@ -114,13 +119,13 @@ class SlurmctldCharm(CharmBase):
             return
 
         slurm_config = self._assemble_slurm_config()
-        self.slurmd.set_slurm_config_on_app_relation_data(
+        self._slurmd.set_slurm_config_on_app_relation_data(
             'slurmrestd',
             slurm_config,
         )
 
     def _assemble_slurm_config(self):
-        slurm_config = self.slurmd.get_slurm_config()
+        slurm_config = self._slurmd.get_slurm_config()
         elasticsearch_endpoint = self._stored.elasticsearch_ingress
         nhc_info = self._stored.nhc_info
 

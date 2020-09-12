@@ -25,8 +25,8 @@ class SlurmdCharm(CharmBase):
         super().__init__(*args)
 
         self.config = self.model.config
-        self.slurm_ops_manager = SlurmManager(self, 'slurmd')
-        self.slurmd = SlurmdProvides(self, "slurmd")
+        self._slurm_manager = SlurmManager(self, 'slurmd')
+        self._slurmd = SlurmdProvides(self, "slurmd")
 
         self._stored.set_default(
             slurm_installed=False,
@@ -37,9 +37,11 @@ class SlurmdCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
             self.on.config_changed: self._on_render_config_and_restart,
-            self.slurmd.on.slurmctld_available:
+            self._slurmd.on.slurmctld_available:
             self._on_render_config_and_restart,
-            self.slurmd.on.slurmctld_unavailable:
+            self.on.upgrade_charm:
+            self._on_upgrade,
+            self._slurmd.on.slurmctld_unavailable:
             self._on_render_config_and_restart,
         }
         for event, handler in event_handler_bindings.items():
@@ -47,7 +49,7 @@ class SlurmdCharm(CharmBase):
 
     def _on_install(self, event):
         """Install the slurm scheduler as snap or tar file."""
-        self.slurm_ops_manager.install()
+        self._slurm_manager.install()
         self.unit.status = ActiveStatus("Slurm Installed")
         self._stored.slurm_installed = True
 
@@ -59,7 +61,7 @@ class SlurmdCharm(CharmBase):
         if (slurm_installed and slurm_config_available):
             # cast StoredState -> python dict
             slurm_config = dict(self._stored.slurm_config)
-            self.slurm_ops_manager.render_config_and_restart(slurm_config)
+            self._slurm_manager.render_config_and_restart(slurm_config)
             self.unit.status = ActiveStatus("Slurmd Available")
         else:
             self.unit.status = BlockedStatus(
@@ -67,6 +69,10 @@ class SlurmdCharm(CharmBase):
             )
             event.defer()
             return
+    
+    def _on_upgrade(self, event):
+        """Upgrade charm event handler."""
+        self._slurm_manager.upgrade()
 
     def is_slurm_installed(self):
         """Return true/false based on whether or not slurm is installed."""

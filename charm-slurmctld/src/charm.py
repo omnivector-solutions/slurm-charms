@@ -55,7 +55,7 @@ class SlurmctldCharm(CharmBase):
 
             self.on.upgrade_charm:
             self._on_upgrade,
-            
+
             self.on.config_changed:
             self._on_check_status_and_write_config,
 

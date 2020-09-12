@@ -69,7 +69,7 @@ class SlurmdCharm(CharmBase):
             )
             event.defer()
             return
-    
+
     def _on_upgrade(self, event):
         """Upgrade charm event handler."""
         self._slurm_manager.upgrade()

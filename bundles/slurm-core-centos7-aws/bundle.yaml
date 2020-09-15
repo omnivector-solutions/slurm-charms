@@ -1,51 +1,51 @@
 applications:
-  slurmrestd:
-    charm: ./../../slurmrestd.charm
-    constraints: root-disk=20G
-    bindings:
-      "": nat
-    series: centos7
-    num_units: 1
-    resources:
-      slurm: ./../../slurm.resource
+#  slurmrestd:
+#    charm: ./../../slurmrestd.charm
+#    constraints: spaces=nat root-disk=20G
+#    series: centos7
+#    num_units: 1
+#    resources:
+#      slurm: ./../../slurm.resource
+#    bindings:
+#      "": nat
   slurmctld:
     charm: ./../../slurmctld.charm
-    constraints: root-disk=20G
-    bindings:
-      "": nat
+    constraints: spaces=nat root-disk=20G
     series: centos7
     num_units: 1
     resources:
       slurm: ./../../slurm.resource
+    bindings:
+      "": nat
   slurmd:
     charm: ./../../slurmd.charm
-    constraints: root-disk=20G
-    bindings:
-      "": nat
+    constraints: spaces=nat root-disk=20G
     series: centos7
     num_units: 1
     resources:
       slurm: ./../../slurm.resource
+    bindings:
+      "": nat
   slurmdbd:
     charm: ./../../slurmdbd.charm
-    constraints: root-disk=20G
-    bindings:
-      "": nat
+    constraints: spaces=nat root-disk=20G
     series: centos7
     num_units: 1
     resources:
       slurm: ./../../slurm.resource
-  percona-cluster:
-    charm: cs:percona-cluster
-    constraints: root-disk=20G
     bindings:
       "": nat
+  percona-cluster:
+    charm: cs:percona-cluster
+    constraints: spaces=nat root-disk=20G
     series: bionic
     num_units: 1
+    bindings:
+      "": nat
 
 relations:
-  - - slurmctld:slurmrestd
-    - slurmrestd:slurmrestd
+#  - - slurmctld:slurmrestd
+#    - slurmrestd:slurmrestd
   - - slurmctld:slurmd
     - slurmd:slurmd
   - - slurmctld:slurmdbd

@@ -53,7 +53,7 @@ class SlurmdProvides(Object):
     _state = StoredState()
 
     def __init__(self, charm, relation_name):
-        """Set self._relation_name and self.charm."""
+        """Set self._relation_name and self._charm."""
         super().__init__(charm, relation_name)
         self._charm = charm
         self._relation_name = relation_name
@@ -71,8 +71,19 @@ class SlurmdProvides(Object):
             self._on_relation_broken
         )
 
+    def set_partition_app_relation_data(self, relation):
+        """Set partition application relation data."""
+        conf = self._charm.config
+        app_rel_data = relation.data[self.model.app]
+
+        app_rel_data['partition_name'] = conf['partition-name']
+        app_rel_data['partition_config'] = conf['partition-config']
+        app_rel_data['partition_default'] = \
+            str(conf['partition-default']).lower()
+
     def _on_relation_created(self, event):
         if self._charm.is_slurm_installed():
+<<<<<<< HEAD
             event.relation.data[self.model.unit]['hostname'] = get_hostname()
             event.relation.data[self.model.unit]['inventory'] = get_inventory()
             event.relation.data[self.model.unit]['partition_name'] = \
@@ -81,6 +92,15 @@ class SlurmdProvides(Object):
                 self._charm.config['partition-config']
             event.relation.data[self.model.unit]['partition_default'] = \
                 str(self._charm.config['partition-default']).lower()
+=======
+            # Every unit needs to set its own hostname and inventory data
+            # in its' unit data on the relation.
+            event.relation.data[self.model.unit]['hostname'] = get_hostname()
+            event.relation.data[self.model.unit]['inventory'] = get_inventory()
+
+            if self.framework.model.unit.is_leader():
+                self.set_partition_app_relation_data(event.relation)
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
         else:
             # If we hit this hook/handler before slurm is installed, defer.
             logger.debug("SLURM NOT INSTALLED DEFERING SETTING RELATION DATA")
@@ -107,6 +127,13 @@ class SlurmdProvides(Object):
     def _on_relation_broken(self, event):
         self._charm.set_slurm_config_available(False)
         self.on.slurmctld_unavailable.emit()
+
+    def force_set_config_on_app_relation_data(self):
+        """Force set app relation data."""
+        if self.framework.model.unit.is_leader():
+            relations = self._charm.framework.model.relations["slurmd"]
+            for relation in relations:
+                self.set_partition_app_relation_data(relation)
 
 
 def _get_real_mem():

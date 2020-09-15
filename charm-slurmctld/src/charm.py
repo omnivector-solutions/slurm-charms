@@ -35,17 +35,26 @@ class SlurmctldCharm(CharmBase):
             elasticsearch_ingress=None,
             slurmdbd_info=dict(),
             slurm_installed=False,
-            slurmdbd_available=False,
             slurmd_available=False,
             slurmrestd_available=False,
 
         )
         self._elasticsearch = ElasticsearchRequires(self, "elasticsearch")
+<<<<<<< HEAD
         self._slurm_manager = SlurmManager(self, "slurmctld")
         self._slurmdbd = SlurmdbdRequiresRelation(self, "slurmdbd")
         self._slurmd = SlurmdRequires(self, "slurmd")
         self._slurmrestd_provides = SlurmrestdProvides(self, "slurmrestd")
         self._nhc_requires = NhcRequires(self, "nhc")
+=======
+        self._nhc_requires = NhcRequires(self, "nhc")
+
+        self._slurm_manager = SlurmManager(self, "slurmctld")
+
+        self._slurmdbd = SlurmdbdRequiresRelation(self, "slurmdbd")
+        self._slurmd = SlurmdRequires(self, "slurmd")
+        self._slurmrestd_provides = SlurmrestdProvides(self, "slurmrestd")
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
 
         event_handler_bindings = {
             self.on.install: self._on_install,
@@ -59,6 +68,11 @@ class SlurmctldCharm(CharmBase):
             self.on.config_changed:
             self._on_check_status_and_write_config,
 
+<<<<<<< HEAD
+=======
+            self.on.upgrade_charm: self._on_upgrade,
+
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
             self._slurmdbd.on.slurmdbd_available:
             self._on_check_status_and_write_config,
 
@@ -92,11 +106,20 @@ class SlurmctldCharm(CharmBase):
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("Slurm Installed")
 
+    def _on_upgrade(self, event):
+        self._slurm_manager.upgrade()
+
     def _on_check_status_and_write_config(self, event):
         if not self._check_status():
             event.defer()
             return
+
         slurm_config = self._assemble_slurm_config()
+        if not slurm_config:
+            event.defer()
+            return
+
+        self._slurm_manager.render_config_and_restart(slurm_config)
 
         self._slurmd.set_slurm_config_on_app_relation_data(
             'slurmd',
@@ -107,7 +130,10 @@ class SlurmctldCharm(CharmBase):
                 'slurmrestd',
                 slurm_config,
             )
+<<<<<<< HEAD
         self._slurm_manager.render_config_and_restart(slurm_config)
+=======
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
         self.unit.status = ActiveStatus("Slurmctld Available")
 
     def _on_upgrade(self, event):
@@ -119,6 +145,13 @@ class SlurmctldCharm(CharmBase):
             return
 
         slurm_config = self._assemble_slurm_config()
+<<<<<<< HEAD
+=======
+        if not slurm_config:
+            event.defer()
+            return
+
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
         self._slurmd.set_slurm_config_on_app_relation_data(
             'slurmrestd',
             slurm_config,
@@ -126,6 +159,12 @@ class SlurmctldCharm(CharmBase):
 
     def _assemble_slurm_config(self):
         slurm_config = self._slurmd.get_slurm_config()
+<<<<<<< HEAD
+=======
+        if not slurm_config:
+            return None
+
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
         elasticsearch_endpoint = self._stored.elasticsearch_ingress
         nhc_info = self._stored.nhc_info
 
@@ -146,14 +185,14 @@ class SlurmctldCharm(CharmBase):
         return {**slurm_config, **ctxt}
 
     def _check_status(self):
-        slurmdbd_acquired = self._stored.slurmdbd_available
+        slurmdbd_info = self._stored.slurmdbd_info
         slurmd_acquired = self._stored.slurmd_available
         slurm_installed = self._stored.slurm_installed
 
-        if not (slurmdbd_acquired and slurmd_acquired and slurm_installed):
+        if not (slurmdbd_info and slurmd_acquired and slurm_installed):
             if not slurmd_acquired:
                 self.unit.status = BlockedStatus("NEED RELATION TO SLURMD")
-            elif not slurmdbd_acquired:
+            elif not slurmdbd_info:
                 self.unit.status = BlockedStatus("NEED RELATION TO SLURMDBD")
             else:
                 self.unit.status = BlockedStatus("SLURM NOT INSTALLED")

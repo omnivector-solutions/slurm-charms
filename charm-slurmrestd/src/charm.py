@@ -9,7 +9,7 @@ from ops.model import (
     ActiveStatus,
     BlockedStatus,
 )
-from slurm_ops_manager import SlurmOpsManager
+from slurm_ops_manager import SlurmManager
 from slurmrestd_requires import SlurmrestdRequires
 
 
@@ -29,7 +29,7 @@ class SlurmLoginCharm(CharmBase):
             slurm_installed=False,
             slurmctld_available=False,
         )
-        self.slurm_ops_manager = SlurmOpsManager(self, "slurmrestd")
+        self.slurm_manager = SlurmManager(self, "slurmrestd")
         self._slurmrestd = SlurmrestdRequires(self, 'slurmrestd')
 
         event_handler_bindings = {
@@ -38,6 +38,8 @@ class SlurmLoginCharm(CharmBase):
 
             self.on.start:
             self._on_check_status_and_write_config,
+
+            self.on.upgrade_charm: self._on_upgrade,
 
             self._slurmrestd.on.slurmctld_available:
             self._on_check_status_and_write_config,
@@ -49,9 +51,13 @@ class SlurmLoginCharm(CharmBase):
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
-        self.slurm_ops_manager.install()
+        self.slurm_manager.install()
         self.unit.status = ActiveStatus("slurm installed")
         self._stored.slurm_installed = True
+
+    def _on_upgrade(self, event):
+        """Upgrade charm event handler."""
+        self.slurm_manager.upgrade()
 
     def _on_check_status_and_write_config(self, event):
         slurm_installed = self._stored.slurm_installed
@@ -69,7 +75,7 @@ class SlurmLoginCharm(CharmBase):
             return
         else:
             config = dict(self._stored.slurm_config)
-            self.slurm_ops_manager.render_config_and_restart(config)
+            self.slurm_manager.render_config_and_restart(config)
             self.unit.status = ActiveStatus("Slurmrestd Available")
 
     def is_slurmctld_available(self):

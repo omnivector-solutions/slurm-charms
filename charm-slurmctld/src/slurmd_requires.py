@@ -63,10 +63,13 @@ class SlurmdRequires(Object):
             self._on_relation_changed
         )
         self.framework.observe(
+<<<<<<< HEAD
             self._charm.on[self._relation_name].relation_departed,
             self._on_relation_departed
         )
         self.framework.observe(
+=======
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
             self._charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
@@ -109,7 +112,7 @@ class SlurmdRequires(Object):
             part_dict[node['partition_name']].setdefault('hosts', [])
             part_dict[node['partition_name']]['hosts'].append(node['hostname'])
             part_dict[node['partition_name']]['partition_default'] = \
-                node['partition_default']
+                True if node['partition_default'] == "true" else False
             if node.get('partition_config'):
                 part_dict[node['partition_name']]['partition_config'] = \
                     node['partition_config']
@@ -121,26 +124,31 @@ class SlurmdRequires(Object):
         relations = self.framework.model.relations['slurmd']
 
         slurmd_active_units = _get_slurmd_active_units()
+<<<<<<< HEAD
         self._charm.framework.breakpoint('ratty-rat-rat')
+=======
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
 
         for relation in relations:
+            app = relation.app
             for unit in relation.units:
                 if unit.name in slurmd_active_units:
                     unit_data = relation.data[unit]
+                    app_data = relation.data[app]
                     ctxt = {
                         'ingress_address': unit_data['ingress-address'],
                         'hostname': unit_data['hostname'],
                         'inventory': unit_data['inventory'],
-                        'partition_name': unit_data['partition_name'],
-                        'partition_default': unit_data['partition_default'],
+                        'partition_name': app_data['partition_name'],
+                        'partition_default': app_data['partition_default'],
                     }
                     # Related slurmd units don't specify custom
                     # partition_config by default.
                     # Only get partition_config if it exists on in the
                     # related unit's unit data.
-                    if unit_data.get('partition_config'):
+                    if app_data.get('partition_config'):
                         ctxt['partition_config'] = \
-                                unit_data['partition_config']
+                                app_data['partition_config']
                     nodes_info.append(ctxt)
         return nodes_info
 
@@ -170,6 +178,7 @@ class SlurmdRequires(Object):
         slurmd_node_data = self._get_slurmd_node_data()
         partitions = self._get_partitions(slurmd_node_data)
 
+<<<<<<< HEAD
         return {
             'nodes': slurmd_node_data,
             'partitions': partitions,
@@ -182,6 +191,23 @@ class SlurmdRequires(Object):
             'munge_key': self._charm.get_munge_key(),
             **self.model.config,
         }
+=======
+        if slurmd_node_data and partitions:
+            return {
+                'nodes': slurmd_node_data,
+                'partitions': partitions,
+                'slurmdbd_port': slurmdbd_info['port'],
+                'slurmdbd_hostname': slurmdbd_info['hostname'],
+                'slurmdbd_ingress_address': slurmdbd_info['ingress_address'],
+                'active_controller_hostname': slurmctld_hostname,
+                'active_controller_ingress_address': slurmctld_ingress_address,
+                'active_controller_port': "6817",
+                'munge_key': self._charm.get_munge_key(),
+                **self.model.config,
+            }
+        else:
+            return None
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
 
 
 def _related_units(relid):

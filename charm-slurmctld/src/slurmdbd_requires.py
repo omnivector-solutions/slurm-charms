@@ -72,6 +72,7 @@ class SlurmdbdRequiresRelation(Object):
         # add them to the interface _state object.
         # Set slurmdbd_acquired = True and emit slurmdbd_available to be
         # observed by the main charm.
+<<<<<<< HEAD
         event_unit_data = event.relation.data[event.unit]
         if event_unit_data.get('slurmdbd_available'):
             if event_unit_data['slurmdbd_available'] == "true":
@@ -84,6 +85,19 @@ class SlurmdbdRequiresRelation(Object):
                 self.on.slurmdbd_available.emit()
                 return
         event.defer()
+=======
+        event_unit_data = event.relation.data.get(event.unit)
+        if event_unit_data.get('slurmdbd_available', None) == "true":
+            self._charm.set_slurmdbd_info({
+                'ingress_address': event_unit_data['ingress-address'],
+                'hostname': event_unit_data['hostname'],
+                'port': event_unit_data['port'],
+            })
+            self.on.slurmdbd_available.emit()
+        else:
+            event.defer()
+            return
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
 
     def _on_relation_broken(self, event):
         self.on.slurmdbd_unavailable.emit()

@@ -25,8 +25,13 @@ class SlurmdCharm(CharmBase):
         super().__init__(*args)
 
         self.config = self.model.config
+<<<<<<< HEAD
         self._slurm_manager = SlurmManager(self, 'slurmd')
         self._slurmd = SlurmdProvides(self, "slurmd")
+=======
+        self.slurm_manager = SlurmManager(self, 'slurmd')
+        self.slurmd = SlurmdProvides(self, "slurmd")
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
 
         self._stored.set_default(
             slurm_installed=False,
@@ -36,8 +41,14 @@ class SlurmdCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
+<<<<<<< HEAD
             self.on.config_changed: self._on_render_config_and_restart,
             self._slurmd.on.slurmctld_available:
+=======
+            self.on.config_changed: self._on_config_changed,
+            self.on.upgrade_charm: self._on_upgrade,
+            self.slurmd.on.slurmctld_available:
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
             self._on_render_config_and_restart,
             self.on.upgrade_charm:
             self._on_upgrade,
@@ -49,9 +60,20 @@ class SlurmdCharm(CharmBase):
 
     def _on_install(self, event):
         """Install the slurm scheduler as snap or tar file."""
+<<<<<<< HEAD
         self._slurm_manager.install()
+=======
+        self.slurm_manager.install()
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
         self.unit.status = ActiveStatus("Slurm Installed")
         self._stored.slurm_installed = True
+
+    def _on_upgrade(self, event):
+        """Upgrade charm event handler."""
+        self.slurm_manager.upgrade()
+
+    def _on_config_changed(self, event):
+        self.slurmd.force_set_config_on_app_relation_data()
 
     def _on_render_config_and_restart(self, event):
         """Retrieve slurm_config from controller and write slurm.conf."""
@@ -61,7 +83,11 @@ class SlurmdCharm(CharmBase):
         if (slurm_installed and slurm_config_available):
             # cast StoredState -> python dict
             slurm_config = dict(self._stored.slurm_config)
+<<<<<<< HEAD
             self._slurm_manager.render_config_and_restart(slurm_config)
+=======
+            self.slurm_manager.render_config_and_restart(slurm_config)
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9
             self.unit.status = ActiveStatus("Slurmd Available")
         else:
             self.unit.status = BlockedStatus(

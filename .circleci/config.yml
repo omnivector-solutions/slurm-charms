@@ -13,6 +13,10 @@ workflows:
           context: aws
           requires:
             - lint-charms
+      - build-and-deploy-centos:
+          context: aws
+          requires:
+            - lint-charms
       - push-charms-to-s3:
           context: aws
           requires:
@@ -115,7 +119,7 @@ jobs:
       - run:
           name: "add 50 units"
           command: |
-            juju add-unit slurmd -n 50
+            juju add-unit slurmd -n 5 #0
       - run:
           name: "Wait for deployment status"
           no_output_timeout: 20m
@@ -168,6 +172,80 @@ jobs:
           when: always
       - slack/status:
           fail_only: false
+build-and-deploy-charms-on-lxd:
+    machine:
+      image: ubuntu-1604:202004-01
+    environment:
+      JUJU_DATA: /home/circleci/project/.local/share/juju
+    steps:
+      - checkout
+
+      - run:
+          name: "Install snapd"
+          command: |
+            sudo apt-get update
+            sudo apt-get install --only-upgrade -y snapd
+      - run:
+          name: "Add /snap/bin to PATH"
+          command: |
+            echo 'export PATH=/snap/bin:$PATH' >> $BASH_ENV
+            source /home/circleci/.bashrc
+      - run:
+          name: "Install charmcraft"
+          command: |
+            sudo snap install charmcraft --beta
+      - run:
+          name: "Build charms"
+          command: |
+            make charms
+      - run:
+          name: "Install LXD"
+          command: |
+            sudo apt-get purge lxd lxd-client lxcfs
+            sudo snap install lxd
+            sudo lxd init --auto
+            sleep 5
+            sudo /snap/bin/lxd.lxc network set lxdbr0 ipv6.address none
+      - run:
+          name: "Install Juju"
+          command: |
+            sudo apt-get purge juju
+            sudo snap install juju --classic
+      - run:
+          name: "Install juju-wait"
+          command: |
+            sudo snap install juju-wait --classic
+      - run:
+          name: "Install jq"
+          command: |
+            sudo snap install jq
+      - run:
+          name: "Pull classic slurm snap from github"
+          command: |
+            make pull-classic-snap
+      - run:
+          name: "pull credentials from s3 and add model and deploy bundle"
+          no_output_timeout: 20m
+          command: |
+            aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
+            tar -xzvf juju-local.tar.gz
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+            juju add-model circleci-$CIRCLE_SHA1-centos
+            juju model-config logging-config="<root>=DEBUG;juju.worker.dependency=CRITICAL;unit=DEBUG"
+            juju add-space -m circleci-$CIRCLE_SHA1-centos nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+            juju metadata add-image ami-0a248ce88bcc7bd23 --series centos7 -m circleci-$CIRCLE_SHA1-centos
+            #juju deploy -m circleci-$CIRCLE_SHA1 ./bundles/slurm-core-bionic-aws/bundle.yaml
+
+      - run:
+          name: "Force remove machine if hanging and destroy-model"
+          command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+            # Check to see if the model is empty, --force detroy-machines if not
+            if ! [ `juju status 2>&1 | grep -c empty` -gt 0 ]; then
+                juju remove-machine -m circleci-$CIRCLE_SHA1-centos {0..4} --force
+            fi
+            juju destroy-model circleci-$CIRCLE_SHA1-centos -y
+          when: always
 
   push-charms-to-s3:
     executor: aws-cli/default

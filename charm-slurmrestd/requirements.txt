@@ -1,2 +1,6 @@
 ops
+<<<<<<< HEAD
 git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.1.4
+=======
+git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.1.5
+>>>>>>> 5b6be961010cb4d984b7064ccacc4ec910b8e9c9

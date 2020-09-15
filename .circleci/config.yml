@@ -172,7 +172,8 @@ jobs:
           when: always
       - slack/status:
           fail_only: false
-build-and-deploy-charms-on-lxd:
+
+  build-and-deploy-centos:
     machine:
       image: ubuntu-1604:202004-01
     environment:

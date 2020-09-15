@@ -234,7 +234,7 @@ build-and-deploy-charms-on-lxd:
             juju model-config logging-config="<root>=DEBUG;juju.worker.dependency=CRITICAL;unit=DEBUG"
             juju add-space -m circleci-$CIRCLE_SHA1-centos nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
             juju metadata add-image ami-0a248ce88bcc7bd23 --series centos7 -m circleci-$CIRCLE_SHA1-centos
-            #juju deploy -m circleci-$CIRCLE_SHA1 ./bundles/slurm-core-bionic-aws/bundle.yaml
+            # juju deploy -m circleci-$CIRCLE_SHA1 ./bundles/slurm-core-bionic-aws/bundle.yaml
 
       - run:
           name: "Force remove machine if hanging and destroy-model"

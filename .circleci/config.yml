@@ -4,39 +4,6 @@ orbs:
   aws-cli: circleci/aws-cli@1.2.1
   slack: circleci/slack@3.4.2
 
-workflows:
-  lint-build-deploy:
-    jobs:
-      - lint
-
-      - build-slurm-charms:
-          context: aws
-          requires:
-            - lint
-
-      - deploy-bionic:
-          requires:
-            - build-slurm-charms
-
-      - deploy-focal:
-          requires:
-            - build-slurm-charms
-
-      - deploy-centos7:
-          requires:
-            - build-slurm-charms
-
-      - deploy-centos8:
-          requires:
-            - build-slurm-charms
-
-      - push-charms-to-s3:
-          requires:
-            - deploy-bionic
-            - deploy-focal
-            - deploy-centos7
-            - deploy-centos8
-
 jobs:
   lint:
     docker:
@@ -284,3 +251,39 @@ jobs:
             make push-charms-to-edge
       - slack/status:
          fail_only: false
+
+workflows:
+  lint-build-deploy:
+    jobs:
+      - lint
+
+      - build-slurm-charms:
+          context: aws
+          requires:
+            - lint
+
+      - deploy-bionic:
+          requires:
+            - build-slurm-charms
+
+      - deploy-focal:
+          requires:
+            - build-slurm-charms
+
+      - deploy-centos7:
+          requires:
+            - build-slurm-charms
+
+      - deploy-centos8:
+          requires:
+            - build-slurm-charms
+
+      - push-charms-to-s3:
+          context: aws
+          requires:
+            - deploy-bionic
+            - deploy-focal
+            - deploy-centos7
+            - deploy-centos8
+
+

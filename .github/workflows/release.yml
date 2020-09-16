@@ -22,6 +22,7 @@ jobs:
               mv $charm.charm ../
               cd ..
           done
+          sudo cat /home/runner/snap/charmcraft/common/charmcraft-log-*
           tar -cvf slurm_charms.tar slurmd.charm slurmctld.charm slurmdbd.charm slurmrestd.charm
           #- name: "Upload binaries to release"
           #uses: svenstaro/upload-release-action@v2

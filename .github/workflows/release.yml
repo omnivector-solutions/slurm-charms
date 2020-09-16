@@ -18,6 +18,8 @@ jobs:
           sudo apt-get install git
           for charm in slurmctld slurmd slurmdbd slurmrestd; do
               cd charm-$charm
+              ls -la
+              cat requirements.txt
               charmcraft build --verbose
               mv $charm.charm ../
               cd ..

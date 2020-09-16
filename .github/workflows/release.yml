@@ -15,7 +15,7 @@ jobs:
         run: |
           sudo snap install --edge charmcraft
           ls -la
-          sudo apt install git-all
+          sudo apt-get install git
           for charm in slurmctld slurmd slurmdbd slurmrestd; do
               cd charm-$charm
               charmcraft build --verbose

@@ -261,7 +261,10 @@ jobs:
       - run:
           name: "Deploy charms on centos7"
           command: |
+            ls -la
+            cat Makefile
             make deploy-centos7-bundle-on-aws
+            
 
       - slack/status:
           fail_only: false

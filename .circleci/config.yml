@@ -5,167 +5,263 @@ orbs:
   slack: circleci/slack@3.4.2
 
 workflows:
-  test-build-deploy:
+  pep8-and-build-charm:
     jobs:
-      - lint-charms:
-          context: aws
-      - build-and-deploy-charms-on-lxd:
+      - lint
+      - build-slurm-charms:
           context: aws
           requires:
-            - lint-charms
+            - lint
+
+      - deploy-bionic:
+          requires:
+            - build-slurm-charms
+
+      - deploy-focal:
+          requires:
+            - build-slurm-charms
+
+      - deploy-centos7:
+          requires:
+            - build-slurm-charms
+
+      - deploy-centos8:
+          requires:
+            - build-slurm-charms
+
       - push-charms-to-s3:
-          context: aws
           requires:
-            - build-and-deploy-charms-on-lxd
+            - deploy-bionic
+            - deploy-focal
+            - deploy-centos7
+            - deploy-centos8
 
 jobs:
-  lint-charms:
+  lint:
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.8.5
+
     steps:
       - checkout
+
       - run:
-          name: Install tox
+          name: "Install tox"
           command: |
-            sudo apt-get update
-            sudo apt-get install -y tox
+            pip install tox
+
       - run:
+          name: "Lint charm code"
           command: |
             make lint
+
       - slack/status:
           fail_only: false
 
-  build-and-deploy-charms-on-lxd:
-    machine:
-      image: ubuntu-1604:202004-01
-    environment:
-      JUJU_DATA: /home/circleci/project/.local/share/juju
+  build-slurm-charms:
+    executor: aws-cli/default
+
+    docker:
+      - image: circleci/python:3.8
+
     steps:
       - checkout
 
-      - run:
-          name: "Install snapd"
-          command: |
-            sudo apt-get update
-            sudo apt-get install --only-upgrade -y snapd
-      - run:
-          name: "Add /snap/bin to PATH"
-          command: |
-            echo 'export PATH=/snap/bin:$PATH' >> $BASH_ENV
-            source /home/circleci/.bashrc
+      - aws-cli/setup:
+          profile-name: default
+
       - run:
           name: "Install charmcraft"
           command: |
-            sudo snap install charmcraft --beta
+            pip install charmcraft
+
       - run:
-          name: "Build charms"
+          name: "Build slurm charms"
           command: |
             make charms
+
       - run:
-          name: "Install LXD"
-          command: |
-            sudo apt-get purge lxd lxd-client lxcfs
-            sudo snap install lxd
-            sudo lxd init --auto
-            sleep 5
-            sudo /snap/bin/lxd.lxc network set lxdbr0 ipv6.address none
-      - run:
-          name: "Install Juju"
-          command: |
-            sudo apt-get purge juju
-            sudo snap install juju --classic
-      - run:
-          name: "Install juju-wait"
-          command: |
-            sudo snap install juju-wait --classic
-      - run:
-          name: "Install jq"
-          command: |
-            sudo snap install jq
-      - run:
-          name: "Pull classic slurm snap from github"
-          command: |
-            make pull-classic-snap
-      - run:
-          name: "pull credentials from s3 and add model and deploy bundle"
-          no_output_timeout: 20m
+          name: "Pull juju circleci user creds from s3"
           command: |
             aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
             tar -xzvf juju-local.tar.gz
-            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
-            juju add-model circleci-$CIRCLE_SHA1
-            juju model-config logging-config="<root>=DEBUG;juju.worker.dependency=CRITICAL;unit=DEBUG"
-            juju add-space -m circleci-$CIRCLE_SHA1 nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
-            juju deploy -m circleci-$CIRCLE_SHA1 ./bundles/slurm-core-bionic-aws/bundle.yaml
 
       - run:
-          name: "Wait for deployment status"
-          no_output_timeout: 20m
+          name: "Pull down the latest slurm snap release from github"
           command: |
-            export PATH=$PATH:/snap/bin
-            juju-wait -w -t 1150
-            #- run:
-            # name: "Verify slurmrestd"
-            #  command: |
-            #  sudo apt install python3-venv
-            #  python3 -m venv venv
-            #  source venv/bin/activate
-            #  pip3 install python_jwt
-            #  make test-slurmrestd-api-returns-200
-      - run:
-          name: "add 50 units"
-          command: |
-            juju add-unit slurmd -n 50
-      - run:
-          name: "Wait for deployment status"
-          no_output_timeout: 20m
-          command: |
-            export PATH=$PATH:/snap/bin
-            #juju-wait -w -t 2150
-            sleep 5m
-      - run:
-          name: "Show juju status"
-          command: |
-            juju status
-          when: always
-      - run:
-          name: "run sinfo"
-          command: |
-            juju run --unit slurmd/0 "sinfo"
-          when: always
-
-      - run:
-          name: show juju slurmctld logs
-          command: |
-            juju debug-log --include slurmctld --no-tail --replay
-          when: always
-      - run:
-          name: show juju slurmd logs
-          command: |
-            juju debug-log --include slurmd --no-tail --replay
-
-          #   - store_artifacts:
-          #  path: /tmp/slurm-unit-logs
-          # when: always
+              wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource
 
       - save_cache:
-          name: Cache built charms once we validate they successfully deploy.
-          key: built-slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
+          name: "Cache the built charms and .local/share/juju for the next workflow."
+          key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - slurmrestd.charm
-            - slurmctld.charm
-            - slurmdbd.charm
+            - slurm.resource
             - slurmd.charm
+            - slurmdbd.charm
+            - slurmctld.charm
+            - slurmrestd.charm
+            - .local/
+
+      - slack/status:
+          fail_only: false
+
+
+  deploy-bionic:
+    docker:
+      - image: cimg/python:3.8.5 
+
+    environment:
+      JUJU_DATA: /home/circleci/project/.local/share/juju
+
+    steps:
       - run:
-          name: "Force remove machine if hanging and destroy-model"
+          name: "Install juju"
+          command: |
+            sudo apt install software-properties-common -y
+            sudo add-apt-repository -yu ppa:juju/stable
+            sudo apt-get update
+            sudo apt-get install -y juju
+
+      - run:
+          name: "Clone slurm-charm-bundles"
+          command: |
+             git clone https://github.com/omnivector-solutions/slurm-charm-bundles .
+
+      - restore_cache:
+          name: "Restore the artifacts"
+          key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
+
+      - run:
+          name: "Add model and nat space"
           command: |
             echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
-            # Check to see if the model is empty, --force detroy-machines if not
-            if ! [ `juju status 2>&1 | grep -c empty` -gt 0 ]; then
-                juju remove-machine -m circleci-$CIRCLE_SHA1 {0..4} --force
-            fi
-            juju destroy-model circleci-$CIRCLE_SHA1 -y
-          when: always
+            juju add-model circleci-$CIRCLE_SHA1-bionic
+            juju add-space -m circleci-$CIRCLE_SHA1-bionic nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+
+      - run:
+          name: "Deploy charms on bionic"
+          command: |
+            make deploy-bionic-bundle-on-aws
+
+      - slack/status:
+          fail_only: false
+
+  deploy-focal:
+    docker:
+      - image: cimg/python:3.8.5 
+
+    environment:
+      JUJU_DATA: /home/circleci/project/.local/share/juju
+
+    steps:
+      - run:
+          name: "Install juju"
+          command: |
+            sudo apt install software-properties-common -y
+            sudo add-apt-repository -yu ppa:juju/stable
+            sudo apt-get update
+            sudo apt-get install -y juju
+
+      - run:
+          name: "Clone slurm-charm-bundles"
+          command: |
+             git clone https://github.com/omnivector-solutions/slurm-charm-bundles .
+
+      - restore_cache:
+          name: "Restore the artifacts"
+          key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
+
+      - run:
+          name: "Add model and nat space"
+          command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+            juju add-model circleci-$CIRCLE_SHA1-focal
+            juju add-space -m circleci-$CIRCLE_SHA1-focal nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+
+      - run:
+          name: "Deploy charms on focal"
+          command: |
+            make deploy-focal-bundle-on-aws
+
+      - slack/status:
+          fail_only: false
+
+  deploy-centos7:
+    docker:
+      - image: cimg/python:3.8.5 
+
+    environment:
+      JUJU_DATA: /home/circleci/project/.local/share/juju
+
+    steps:
+      - run:
+          name: "Install juju"
+          command: |
+            sudo apt install software-properties-common -y
+            sudo add-apt-repository -yu ppa:juju/stable
+            sudo apt-get update
+            sudo apt-get install -y juju
+
+      - run:
+          name: "Clone slurm-charm-bundles"
+          command: |
+             git clone https://github.com/omnivector-solutions/slurm-charm-bundles .
+
+      - restore_cache:
+          name: "Restore the artifacts"
+          key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
+
+      - run:
+          name: "Add model and nat space"
+          command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+            juju add-model circleci-$CIRCLE_SHA1-centos7
+            juju add-space -m circleci-$CIRCLE_SHA1-centos7 nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+
+      - run:
+          name: "Deploy charms on centos7"
+          command: |
+            make deploy-centos7-bundle-on-aws
+
+      - slack/status:
+          fail_only: false
+
+  deploy-centos8:
+    docker:
+      - image: cimg/python:3.8.5 
+
+    environment:
+      JUJU_DATA: /home/circleci/project/.local/share/juju
+
+    steps:
+      - run:
+          name: "Install juju"
+          command: |
+            sudo apt install software-properties-common -y
+            sudo add-apt-repository -yu ppa:juju/stable
+            sudo apt-get update
+            sudo apt-get install -y juju
+
+      - run:
+          name: "Clone slurm-charm-bundles"
+          command: |
+             git clone https://github.com/omnivector-solutions/slurm-charm-bundles .
+
+      - restore_cache:
+          name: "Restore the artifacts"
+          key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
+
+      - run:
+          name: "Add model and nat space"
+          command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+            juju add-model circleci-$CIRCLE_SHA1-centos8
+            juju add-space -m circleci-$CIRCLE_SHA1-centos8 nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+
+      - run:
+          name: "Deploy charms on centos8"
+          command: |
+            make deploy-centos8-bundle-on-aws
+
       - slack/status:
           fail_only: false
 
@@ -179,7 +275,7 @@ jobs:
 
       - restore_cache:
           name: Restore the charms from the cache to be pushed to s3
-          key: built-slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
+          key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
 
       - run:
           name: "Push charms to s3"

@@ -1,2 +1,0 @@
-# slurm-core-bionic-aws
-

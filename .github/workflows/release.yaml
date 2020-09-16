@@ -1,0 +1,27 @@
+name: "release"
+  
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    name: "Release"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v2
+      - name: "Build & test"
+        run: |
+          sudo snap install --beta charmcraft
+          make charms
+          tar -cvf slurm_charms.tar slurmd.charm slurmctld.charm slurmdbd.charm slurmrestd.charm
+
+      - name: "Upload binaries to release"
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: slurm_charms.tar
+          asset_name: slurm_charms
+          tag: ${{ github.ref }}
+          overwrite: true
+          body: "Slurm Charms tar file"

@@ -24,6 +24,13 @@ workflows:
       - deploy-centos8:
           requires:
             - build-slurm-charms
+      - push-charms-to-s3:
+          context: aws
+          requires:
+            - deploy-bionic
+            - deploy-focal
+            - deploy-centos7
+            - deploy-centos8
 
 jobs:
   lint:
@@ -50,7 +57,7 @@ jobs:
     executor: aws-cli/default
 
     docker:
-      - image: circleci/python:3.8
+      - image: cimg/python:3.8.5
 
     steps:
       - checkout
@@ -79,6 +86,14 @@ jobs:
           command: |
               wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource
 
+      - run:
+          name: "Install venv and juju-wait"
+          command: |
+            python3 -m venv venv
+            source venv/bin/activate
+            pip install juju-wait
+
+
       - save_cache:
           name: "Cache the built charms and .local/share/juju for the next workflow."
           key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
@@ -89,6 +104,7 @@ jobs:
             - slurmctld.charm
             - slurmrestd.charm
             - .local/
+            - venv/
 
       - slack/status:
           fail_only: false
@@ -131,6 +147,18 @@ jobs:
           command: |
             make deploy-bionic-bundle-on-aws
 
+      - run:
+          name: "Juju Wait"
+          command: |
+            source venv/bin/activate
+            juju-wait
+
+      - run:
+          name: "Destroy model"
+          command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+            juju destroy-model circleci-$CIRCLE_SHA1-bionic -y
+
       - slack/status:
           fail_only: false
 
@@ -171,6 +199,18 @@ jobs:
           command: |
             make deploy-focal-bundle-on-aws
 
+      - run:
+          name: "Juju Wait"
+          command: |
+            source venv/bin/activate
+            juju-wait
+
+      - run:
+          name: "Destroy model"
+          command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+            juju destroy-model circleci-$CIRCLE_SHA1-focal -y
+
       - slack/status:
           fail_only: false
 
@@ -205,6 +245,18 @@ jobs:
             echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju add-model circleci-$CIRCLE_SHA1-centos7
             juju add-space -m circleci-$CIRCLE_SHA1-centos7 nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+
+      - run:
+          name: "Juju Wait"
+          command: |
+            source venv/bin/activate
+            juju-wait
+
+      - run:
+          name: "Destroy model"
+          command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+            juju destroy-model circleci-$CIRCLE_SHA1-centos7 -y
 
       - run:
           name: "Deploy charms on centos7"
@@ -251,5 +303,37 @@ jobs:
           command: |
             make deploy-centos8-bundle-on-aws
 
+      - run:
+          name: "Juju Wait"
+          command: |
+            source venv/bin/activate
+            juju-wait
+
+      - run:
+          name: "Destroy model"
+          command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+            juju destroy-model circleci-$CIRCLE_SHA1-centos8 -y
+
       - slack/status:
           fail_only: false
+
+  push-charms-to-s3:
+    executor: aws-cli/default
+    steps:
+      - checkout
+
+      - aws-cli/setup:
+          profile-name: default
+
+      - restore_cache:
+          name: Restore the charms from the cache to be pushed to s3
+          key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
+
+      - run:
+          name: "Push charms to s3"
+          command: |
+            make push-charms-to-edge
+
+      - slack/status:
+         fail_only: false

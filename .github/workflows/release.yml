@@ -4,34 +4,32 @@ on:
   push:
   release:
     types: [published]
-
 jobs:
   release:
     name: "Release"
     runs-on: "ubuntu-latest"
     steps:
-      - uses: actions/checkout@v1
-      - name: "Build & test"
+      - name: lint
+        uses: actions/checkout@v1
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
+      - name: Install charmcraft
         run: |
-          sudo snap install --edge charmcraft
-          ls -la
-          sudo apt-get install git
-          for charm in slurmctld slurmd slurmdbd slurmrestd; do
-              cd charm-$charm
-              ls -la
-              cat requirements.txt
-              charmcraft build --verbose
-              mv $charm.charm ../
-              cd ..
+          pip install charmcraft
+      - name: Build charms
+        run: |
+          for charm in slurmd slurmdbd slurmctld slurmrestd; do
+              charmcraft build --from charm-$charm/
           done
-          sudo cat /home/runner/snap/charmcraft/common/charmcraft-log-*
           tar -cvf slurm_charms.tar slurmd.charm slurmctld.charm slurmdbd.charm slurmrestd.charm
-          #- name: "Upload binaries to release"
-          #uses: svenstaro/upload-release-action@v2
-          #with:
-          #repo_token: ${{ secrets.GITHUB_TOKEN }}
-          #file: slurm_charms.tar
-          #asset_name: slurm_charms
-          #tag: ${{ github.ref }}
-          #overwrite: true
-          #body: "Slurm Charms tar file"
+      - name: "Upload binaries to release"
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: slurm_charms.tar
+          asset_name: slurm_charms
+          tag: ${{ github.ref }}
+          overwrite: true
+          body: "Tarball of slurmctld.charm, slurmdbd.charm, slurmd.charm, and slurmrestd.charm" 

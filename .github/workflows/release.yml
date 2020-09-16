@@ -22,13 +22,13 @@ jobs:
           for charm in slurmd slurmdbd slurmctld slurmrestd; do
               charmcraft build --from charm-$charm/
           done
-          tar -cvf slurm_charms.tar slurmd.charm slurmctld.charm slurmdbd.charm slurmrestd.charm
+          tar -czvf slurm_charms.tar.gz slurmd.charm slurmctld.charm slurmdbd.charm slurmrestd.charm
       - name: "Upload binaries to release"
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: slurm_charms.tar
-          asset_name: slurm_charms
+          file: slurm_charms.tar.gz
+          asset_name: slurm_charms.tar.gz
           tag: ${{ github.ref }}
           overwrite: true
           body: "Tarball of slurmctld.charm, slurmdbd.charm, slurmd.charm, and slurmrestd.charm" 

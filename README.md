@@ -1,9 +1,6 @@
 # Slurm Charms
 This is the home of the slurm charms.
 
-## Deployment
-The `make deploy-*` commands included in the makefile can be used to deploy the bundles contained in the `bundles/` directory. 
-
 ## Build
 To build all of the slurm charms, from the root of this project run, `make charms`.
 The successfull execution of this command will produce built `.charm` files for each charm contained in this repo, and place them in the `out/` directory.

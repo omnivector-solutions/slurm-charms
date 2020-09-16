@@ -5,9 +5,10 @@ orbs:
   slack: circleci/slack@3.4.2
 
 workflows:
-  pep8-and-build-charm:
+  lint-build-deploy:
     jobs:
       - lint
+
       - build-slurm-charms:
           context: aws
           requires:

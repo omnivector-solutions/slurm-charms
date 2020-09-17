@@ -28,7 +28,7 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: slurm_charms.tar.gz
-          asset_name: slurm-charms_${{ github.ref##*/ }}.tar.gz
+          asset_name: slurm-charms_${{ github.ref }}.tar.gz
           tag: ${{ github.ref }}
           overwrite: true
           body: "Tarball of slurmctld.charm, slurmdbd.charm, slurmd.charm, and slurmrestd.charm" 

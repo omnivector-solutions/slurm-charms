@@ -251,6 +251,11 @@ jobs:
             juju add-space -m circleci-$CIRCLE_SHA1-centos7 nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
 
       - run:
+          name: "Deploy charms on centos7"
+          command: |
+            make deploy-centos7-bundle-on-aws
+
+      - run:
           name: "Juju Wait"
           command: |
             source venv/bin/activate
@@ -262,11 +267,6 @@ jobs:
           command: |
             echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju destroy-model circleci-$CIRCLE_SHA1-centos7 -y
-
-      - run:
-          name: "Deploy charms on centos7"
-          command: |
-            make deploy-centos7-bundle-on-aws
 
       - slack/status:
           fail_only: false

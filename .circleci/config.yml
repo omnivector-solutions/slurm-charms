@@ -145,12 +145,14 @@ jobs:
       - run:
           name: "Deploy charms on bionic"
           command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             make deploy-bionic-bundle-on-aws
 
       - run:
           name: "Juju Wait"
           command: |
             source venv/bin/activate
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju-wait
 
       - run:
@@ -197,12 +199,14 @@ jobs:
       - run:
           name: "Deploy charms on focal"
           command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             make deploy-focal-bundle-on-aws
 
       - run:
           name: "Juju Wait"
           command: |
             source venv/bin/activate
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju-wait
 
       - run:
@@ -250,6 +254,7 @@ jobs:
           name: "Juju Wait"
           command: |
             source venv/bin/activate
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju-wait
 
       - run:
@@ -301,12 +306,14 @@ jobs:
       - run:
           name: "Deploy charms on centos8"
           command: |
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             make deploy-centos8-bundle-on-aws
 
       - run:
           name: "Juju Wait"
           command: |
             source venv/bin/activate
+            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju-wait
 
       - run:

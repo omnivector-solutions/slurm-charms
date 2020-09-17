@@ -140,7 +140,7 @@ jobs:
           command: |
             echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju add-model circleci-$CIRCLE_SHA1-bionic
-            juju add-space -m circleci-$CIRCLE_SHA1-bionic nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+            juju add-space -m circleci-$CIRCLE_SHA1-bionic nat 172.31.80.0/24 172.31.81.0/24 172.31.82.0/24 172.31.83.0/24
 
       - run:
           name: "Deploy charms on bionic"
@@ -194,7 +194,7 @@ jobs:
           command: |
             echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju add-model circleci-$CIRCLE_SHA1-focal
-            juju add-space -m circleci-$CIRCLE_SHA1-focal nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+            juju add-space -m circleci-$CIRCLE_SHA1-focal nat 172.31.80.0/24 172.31.81.0/24 172.31.82.0/24 172.31.83.0/24
 
       - run:
           name: "Deploy charms on focal"
@@ -248,7 +248,7 @@ jobs:
           command: |
             echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju add-model circleci-$CIRCLE_SHA1-centos7
-            juju add-space -m circleci-$CIRCLE_SHA1-centos7 nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+            juju add-space -m circleci-$CIRCLE_SHA1-centos7 nat 172.31.80.0/24 172.31.81.0/24 172.31.82.0/24 172.31.83.0/24
 
       - run:
           name: "Deploy charms on centos7"

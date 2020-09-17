@@ -30,7 +30,7 @@ workflows:
             - deploy-bionic
             - deploy-focal
             - deploy-centos7
-            - deploy-centos8
+#            - deploy-centos8
 
 jobs:
   lint:

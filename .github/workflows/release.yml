@@ -23,6 +23,15 @@ jobs:
               charmcraft build --from charm-$charm/
           done
           tar -czvf slurm_charms.tar.gz slurmd.charm slurmctld.charm slurmdbd.charm slurmrestd.charm
+      - name: "Upload binaries to release"
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: slurm_charms.tar.gz
+          asset_name: slurm_charms.tar.gz
+          tag: ${{ github.ref }}
+          overwrite: true
+          body: "Tarball of slurmctld.charm, slurmdbd.charm, slurmd.charm, and slurmrestd.charm"
       - uses: actions/checkout@v1
       - name: Set output
         id: vars
@@ -33,12 +42,3 @@ jobs:
         run: |
           echo $RELEASE_VERSION
           echo ${{ steps.vars.outputs.tag }}
-      - name: "Upload binaries to release"
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: slurm_charms.tar.gz
-          asset_name: slurm-charms_$RELEASE_VERSION.tar.gz
-          tag: ${{ github.ref }}
-          overwrite: true
-          body: "Tarball of slurmctld.charm, slurmdbd.charm, slurmd.charm, and slurmrestd.charm" 

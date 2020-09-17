@@ -13,6 +13,7 @@ series:
   - focal
   - bionic
   - centos7
+  - centos8
 
 provides:
   slurmdbd:

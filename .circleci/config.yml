@@ -21,9 +21,9 @@ workflows:
       - deploy-centos7:
           requires:
             - build-slurm-charms
-      - deploy-centos8:
-          requires:
-            - build-slurm-charms
+#      - deploy-centos8:
+#          requires:
+#            - build-slurm-charms
       - push-charms-to-s3:
           context: aws
           requires:
@@ -271,59 +271,59 @@ jobs:
       - slack/status:
           fail_only: false
 
-  deploy-centos8:
-    docker:
-      - image: cimg/python:3.8.5 
-
-    environment:
-      JUJU_DATA: /home/circleci/project/.local/share/juju
-
-    steps:
-      - run:
-          name: "Install juju"
-          command: |
-            sudo apt install software-properties-common -y
-            sudo add-apt-repository -yu ppa:juju/stable
-            sudo apt-get update
-            sudo apt-get install -y juju
-
-      - run:
-          name: "Clone slurm-charm-bundles"
-          command: |
-             git clone https://github.com/omnivector-solutions/slurm-charm-bundles .
-
-      - restore_cache:
-          name: "Restore the artifacts"
-          key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
-
-      - run:
-          name: "Add model and nat space"
-          command: |
-            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
-            juju add-model circleci-$CIRCLE_SHA1-centos8
-            juju add-space -m circleci-$CIRCLE_SHA1-centos8 nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
-
-      - run:
-          name: "Deploy charms on centos8"
-          command: |
-            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
-            make deploy-centos8-bundle-on-aws
-
-      - run:
-          name: "Juju Wait"
-          command: |
-            source venv/bin/activate
-            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
-            juju-wait
-
-      - run:
-          name: "Destroy model"
-          command: |
-            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
-            juju destroy-model circleci-$CIRCLE_SHA1-centos8 -y
-
-      - slack/status:
-          fail_only: false
+#  deploy-centos8:
+#    docker:
+#      - image: cimg/python:3.8.5 
+#
+#    environment:
+#      JUJU_DATA: /home/circleci/project/.local/share/juju
+#
+#    steps:
+#      - run:
+#          name: "Install juju"
+#          command: |
+#            sudo apt install software-properties-common -y
+#            sudo add-apt-repository -yu ppa:juju/stable
+#            sudo apt-get update
+#            sudo apt-get install -y juju
+#
+#      - run:
+#          name: "Clone slurm-charm-bundles"
+#          command: |
+#             git clone https://github.com/omnivector-solutions/slurm-charm-bundles .
+#
+#      - restore_cache:
+#          name: "Restore the artifacts"
+#          key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
+#
+#      - run:
+#          name: "Add model and nat space"
+#          command: |
+#            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+#            juju add-model circleci-$CIRCLE_SHA1-centos8
+#            juju add-space -m circleci-$CIRCLE_SHA1-centos8 nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+#
+#      - run:
+#          name: "Deploy charms on centos8"
+#          command: |
+#            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+#            make deploy-centos8-bundle-on-aws
+#
+#      - run:
+#          name: "Juju Wait"
+#          command: |
+#            source venv/bin/activate
+#            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+#            juju-wait
+#
+#      - run:
+#          name: "Destroy model"
+#          command: |
+#            echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
+#            juju destroy-model circleci-$CIRCLE_SHA1-centos8 -y
+#
+#      - slack/status:
+#          fail_only: false
 
   push-charms-to-s3:
     executor: aws-cli/default

@@ -86,6 +86,7 @@ jobs:
           name: "Pull classic slurm snap from github"
           command: |
             make pull-classic-snap
+            make charms
       - run:
           name: "pull credentials from s3 and add model and deploy bundle"
           no_output_timeout: 20m
@@ -115,7 +116,7 @@ jobs:
       - run:
           name: "add 50 units"
           command: |
-            juju add-unit slurmd -n 50
+            juju add-unit slurmd -n 5
       - run:
           name: "Wait for deployment status"
           no_output_timeout: 20m

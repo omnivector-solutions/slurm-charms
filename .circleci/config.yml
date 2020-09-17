@@ -82,11 +82,6 @@ jobs:
             tar -xzvf juju-local.tar.gz
 
       - run:
-          name: "Pull down the latest slurm snap release from github"
-          command: |
-              wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource
-
-      - run:
           name: "Install venv and juju-wait"
           command: |
             python3 -m venv venv
@@ -98,7 +93,6 @@ jobs:
           name: "Cache the built charms and .local/share/juju for the next workflow."
           key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - slurm.resource
             - slurmd.charm
             - slurmdbd.charm
             - slurmctld.charm

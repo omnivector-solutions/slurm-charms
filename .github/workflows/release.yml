@@ -32,13 +32,13 @@ jobs:
           for charm in slurmd slurmdbd slurmctld slurmrestd; do
               charmcraft build --from charm-$charm/
           done
-          tar -czvf slurm-charms_$RELEASE_VERSION.tar.gz slurmd.charm slurmctld.charm slurmdbd.charm slurmrestd.charm
+          tar -czvf slurm-charms.tar.gz slurmd.charm slurmctld.charm slurmdbd.charm slurmrestd.charm
           ls -la
       - name: "Upload binaries to release"
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: slurm-charms_$RELEASE_VERSION.tar.gz
+          file: slurm-charms.tar.gz
           asset_name: slurm-charms_$RELEASE_VERSION.tar.gz
           tag: ${{ github.ref }}
           overwrite: true

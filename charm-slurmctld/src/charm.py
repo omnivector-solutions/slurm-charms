@@ -19,6 +19,8 @@ from slurmrestd_provides import SlurmrestdProvides
 
 logger = logging.getLogger()
 
+VERSION = '1.0.1'
+
 
 class SlurmctldCharm(CharmBase):
     """Operator charm responsible for lifecycle operations for slurmctld."""
@@ -28,6 +30,8 @@ class SlurmctldCharm(CharmBase):
     def __init__(self, *args):
         """Initialize charm and configure states and events to observe."""
         super().__init__(*args)
+
+        self.unit.set_workload_version(VERSION)
 
         self._stored.set_default(
             munge_key=str(),
@@ -93,9 +97,12 @@ class SlurmctldCharm(CharmBase):
         self.unit.status = ActiveStatus("Slurm Installed")
 
     def _on_upgrade(self, event):
-        self._slurm_manager.upgrade()
+        logger.debug('_on_upgrade(): entering')
+        slurm_config = self._assemble_slurm_config()
+        self._slurm_manager.upgrade(slurm_config)
 
     def _on_check_status_and_write_config(self, event):
+        logger.debug('_on_check_status_and_write_config(): entering')
         if not self._check_status():
             event.defer()
             return

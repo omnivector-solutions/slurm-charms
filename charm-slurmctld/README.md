@@ -9,6 +9,19 @@
 juju deploy slurmctld
 ```
 
+## Process tracker
+The default process tracker is now using cgroup (seems to better prevent orphan processes).
+
+Change using:
+
+```bash
+# default
+juju config slurmctld proctrack_type='proctrack/cgroup'
+
+# not rcommended
+juju config slurmctld proctrack_type='proctrack/linuxproc'
+```
+
 ## Development
 ```bash
 git clone git@github.com:omnivector-solutions/charm-slurmctld && cd charm-slurmctld

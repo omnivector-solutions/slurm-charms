@@ -19,8 +19,6 @@ from slurmrestd_provides import SlurmrestdProvides
 
 logger = logging.getLogger()
 
-VERSION = '1.0.1'
-
 
 class SlurmctldCharm(CharmBase):
     """Operator charm responsible for lifecycle operations for slurmctld."""
@@ -30,8 +28,6 @@ class SlurmctldCharm(CharmBase):
     def __init__(self, *args):
         """Initialize charm and configure states and events to observe."""
         super().__init__(*args)
-
-        self.unit.set_workload_version(VERSION)
 
         self._stored.set_default(
             munge_key=str(),

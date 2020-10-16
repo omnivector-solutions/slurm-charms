@@ -261,7 +261,7 @@ class SlurmConfiguratorCharm(CharmBase):
             elif not slurm_installed:
                 self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
             else:
-                self.unit.status = BlockedStatus("DEFAULT PARTITION NOT AVAILABLE")
+                self.unit.status = BlockedStatus("PARTITION NAME UNAVAILABLE")
             return False
         else:
             self.unit.status = ActiveStatus("")

@@ -43,7 +43,6 @@ class Slurmd(Object):
 
     def _on_relation_created(self, event):
         """Set partition name to slurm-configurator."""
-
         partition_name = self._charm.get_partition_name()
         if self.framework.model.unit.is_leader():
             if not partition_name:
@@ -59,11 +58,13 @@ class Slurmd(Object):
         if not event_app_data:
             event.defer()
             return
+
         # Get the munge_key from slurm-configurator
         munge_key = event_app_data.get('munge_key')
         if not munge_key:
             event.defer()
             return
+
         # Store the munge_key in the charm's state
         self._charm.set_munge_key(munge_key)
         self.on.slurm_config_available.emit()

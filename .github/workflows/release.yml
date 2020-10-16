@@ -32,7 +32,7 @@ jobs:
           for charm in slurmd slurmdbd slurmctld slurmrestd; do
               charmcraft build --from charm-$charm/
           done
-          tar -czvf slurm-charms.tar.gz slurmd.charm slurmctld.charm slurmdbd.charm slurmrestd.charm
+          tar -czvf slurm-charms.tar.gz slurmd.charm slurmctld.charm slurmdbd.charm slurm-configurator.charm
           ls -la
       - name: "Upload binaries to release"
         uses: svenstaro/upload-release-action@v2

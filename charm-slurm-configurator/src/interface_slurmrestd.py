@@ -22,17 +22,17 @@ class SlurmrestdUnAvailableEvent(EventBase):
     """Emmited when the slurmrestd relation is broken."""
 
 
-class SlurmrestdProvidesEvents(ObjectEvents):
-    """SlurmrestdProvidesEvents."""
+class SlurmrestdEvents(ObjectEvents):
+    """SlurmrestdEvents."""
 
     slurmrestd_available = EventSource(SlurmrestdAvailableEvent)
     slurmrestd_unavailable = EventSource(SlurmrestdUnAvailableEvent)
 
 
-class SlurmrestdProvides(Object):
-    """Slurmrestd Provides Relation."""
+class Slurmrestd(Object):
+    """Slurmrestd interface."""
 
-    on = SlurmrestdProvidesEvents()
+    on = SlurmrestdEvents()
 
     def __init__(self, charm, relation_name):
         """Set the initial data."""

@@ -1,5 +1,6 @@
 #!/usr/bin/python3
-"""SlurmdbdRequiresRelation."""
+"""Slurmdbd."""
+import json
 import logging
 
 
@@ -29,8 +30,8 @@ class SlurmdbdAvailableEvents(ObjectEvents):
     slurmdbd_unavailable = EventSource(SlurmdbdUnAvailableEvent)
 
 
-class SlurmdbdRequiresRelation(Object):
-    """SlurmdbdRequiresRelation."""
+class Slurmdbd(Object):
+    """Facilitate slurmdbd lifecycle events."""
 
     on = SlurmdbdAvailableEvents()
 
@@ -52,6 +53,11 @@ class SlurmdbdRequiresRelation(Object):
         )
 
         self.framework.observe(
+            self._charm.on[self._relation_name].relation_departed,
+            self._on_relation_departed
+        )
+
+        self.framework.observe(
             self._charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
@@ -68,21 +74,38 @@ class SlurmdbdRequiresRelation(Object):
         event.relation.data[self.model.app]['munge_key'] = munge_key
 
     def _on_relation_changed(self, event):
-        # Retrieve the hostname, port and ingress-address from the event,
-        # add them to the interface _state object.
-        # Set slurmdbd_acquired = True and emit slurmdbd_available to be
-        # observed by the main charm.
-        event_unit_data = event.relation.data.get(event.unit)
-        if event_unit_data.get('slurmdbd_available', None) == "true":
-            self._charm.set_slurmdbd_info({
-                'ingress_address': event_unit_data['ingress-address'],
-                'hostname': event_unit_data['hostname'],
-                'port': event_unit_data['port'],
-            })
-            self.on.slurmdbd_available.emit()
+        event_app_data = event.relation.data.get(event.app)
+        if event_app_data:
+            slurmdbd_info = event_app_data.get('slurmdbd_info')
+            if slurmdbd_info:
+                self._charm.set_slurmdbd_available(True)
+                self.on.slurmdbd_available.emit()
         else:
             event.defer()
             return
 
-    def _on_relation_broken(self, event):
+    def _on_relation_departed(self, event):
         self.on.slurmdbd_unavailable.emit()
+
+    def _on_relation_broken(self, event):
+        if self.framework.model.unit.is_leader():
+            event.relation.data[self.model.app]['munge_key'] = ""
+        self._charm.set_slurmdbd_available(False)
+        self.on.slurmdbd_unavailable.emit()
+
+    @property
+    def _relation(self):
+        return self.framework.model.get_relation(self._relation_name)
+
+    def get_slurmdbd_info(self):
+        """Return the slurmdbd_info."""
+        relation = self._relation
+        if relation:
+            app = relation.app
+            if app:
+                app_data = relation.data.get(app)
+                if app_data:
+                    slurmdbd_info = app_data.get('slurmdbd_info')
+                    if slurmdbd_info:
+                        return json.loads(slurmdbd_info)
+        return None

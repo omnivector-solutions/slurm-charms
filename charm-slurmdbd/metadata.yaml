@@ -13,14 +13,22 @@ series:
   - focal
   - bionic
   - centos7
+  - centos8
 
 provides:
   slurmdbd:
     interface: slurmdbd
+  nrpe-external-master:
+    interface: nrpe-external-master
+    scope: container
 
 requires:
   db:
     interface: mysql
+
+peers:
+  slurmdbd-peer:
+    interface: slurmdbd-peer
 
 resources:
   slurm:

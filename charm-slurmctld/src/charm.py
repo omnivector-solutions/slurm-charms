@@ -2,8 +2,9 @@
 """SlurmctldCharm."""
 import logging
 
-from elasticsearch_requires import ElasticsearchRequires
-from nhc_requires import NhcRequires
+from interface_slurmctld import Slurmctld
+from interface_slurmctld_peer import SlurmctldPeer
+from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -12,225 +13,122 @@ from ops.model import (
     BlockedStatus,
 )
 from slurm_ops_manager import SlurmManager
-from slurmd_requires import SlurmdRequires
-from slurmdbd_requires import SlurmdbdRequiresRelation
-from slurmrestd_provides import SlurmrestdProvides
 
 
 logger = logging.getLogger()
 
 
 class SlurmctldCharm(CharmBase):
-    """Operator charm responsible for lifecycle operations for slurmctld."""
+    """Slurmctld lifecycle events."""
 
     _stored = StoredState()
 
     def __init__(self, *args):
-        """Initialize charm and configure states and events to observe."""
+        """Init _stored attributes and interfaces, observe events."""
         super().__init__(*args)
 
         self._stored.set_default(
             munge_key=str(),
-            nhc_info=dict(),
-            elasticsearch_ingress=None,
-            slurmdbd_info=dict(),
-            slurm_installed=False,
-            slurmd_available=False,
-            slurmrestd_available=False,
-
+            slurmctld_controller_type=str(),
         )
-        self._elasticsearch = ElasticsearchRequires(self, "elasticsearch")
-        self._nhc_requires = NhcRequires(self, "nhc")
+
+        self._nrpe = Nrpe(self, "nrpe-external-master")
 
         self._slurm_manager = SlurmManager(self, "slurmctld")
 
-        self._slurmdbd = SlurmdbdRequiresRelation(self, "slurmdbd")
-        self._slurmd = SlurmdRequires(self, "slurmd")
-        self._slurmrestd_provides = SlurmrestdProvides(self, "slurmrestd")
+        self._slurmctld = Slurmctld(self, "slurmctld")
+        self._slurmctld_peer = SlurmctldPeer(self, "slurmctld-peer")
 
         event_handler_bindings = {
             self.on.install: self._on_install,
 
-            self.on.start:
+            self._slurmctld.on.slurm_config_available:
             self._on_check_status_and_write_config,
 
-            self.on.config_changed:
-            self._on_check_status_and_write_config,
-
-            self.on.upgrade_charm: self._on_upgrade,
-
-            self._slurmdbd.on.slurmdbd_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmdbd.on.slurmdbd_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._slurmd.on.slurmd_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmd.on.slurmd_departed:
-            self._on_check_status_and_write_config,
-
-            self._slurmd.on.slurmd_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._slurmrestd_provides.on.slurmrestd_available:
-            self._on_provide_slurmrestd,
-
-            self._elasticsearch.on.elasticsearch_available:
-            self._on_check_status_and_write_config,
-
-            self._nhc_requires.on.nhc_bin_available:
-            self._on_check_status_and_write_config,
+            self._slurmctld_peer.on.slurmctld_peer_available:
+            self._on_slurmctld_peer_available,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
         self._slurm_manager.install()
-        self._stored.munge_key = self._slurm_manager.get_munge_key()
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("Slurm Installed")
 
     def _on_upgrade(self, event):
-        logger.debug('_on_upgrade(): entering')
-        slurm_config = self._assemble_slurm_config()
-        self._slurm_manager.upgrade(slurm_config)
+        self._slurm_manager.upgrade()
+
+    def _on_slurmctld_peer_available(self, event):
+        if self.framework.model.unit.is_leader():
+            if self._slurmctld.is_joined:
+                slurmctld_info = self._slurmctld_peer.get_slurmctld_info()
+                if slurmctld_info:
+                    self._slurmctld.set_slurmctld_info_on_app_relation_data(
+                        slurmctld_info
+                    )
+                    return
+            event.defer()
+            return
 
     def _on_check_status_and_write_config(self, event):
-        logger.debug('_on_check_status_and_write_config(): entering')
         if not self._check_status():
             event.defer()
             return
 
-        slurm_config = self._assemble_slurm_config()
+        slurm_config = self._slurmctld.get_slurm_config_from_relation()
         if not slurm_config:
             event.defer()
             return
 
-        self._slurm_manager.render_config_and_restart(slurm_config)
+        munge_key = self._stored.munge_key
+        if not munge_key:
+            event.defer()
+            return
 
-        self._slurmd.set_slurm_config_on_app_relation_data(
-            'slurmd',
-            slurm_config,
+        self._slurm_manager.render_config_and_restart(
+            {
+                **slurm_config,
+                'munge_key': munge_key
+            }
         )
-        if self._stored.slurmrestd_available:
-            self._slurmd.set_slurm_config_on_app_relation_data(
-                'slurmrestd',
-                slurm_config,
-            )
         self.unit.status = ActiveStatus("Slurmctld Available")
 
-    def _on_provide_slurmrestd(self, event):
-        if not self._check_status():
-            event.defer()
-            return
-
-        slurm_config = self._assemble_slurm_config()
-        if not slurm_config:
-            event.defer()
-            return
-
-        self._slurmd.set_slurm_config_on_app_relation_data(
-            'slurmrestd',
-            slurm_config,
-        )
-
-    def _assemble_slurm_config(self):
-        slurm_config = self._slurmd.get_slurm_config()
-        if not slurm_config:
-            return None
-
-        elasticsearch_endpoint = self._stored.elasticsearch_ingress
-        nhc_info = self._stored.nhc_info
-
-        ctxt = {
-            'nhc': {},
-            'elasticsearch_address': "",
-        }
-        if nhc_info:
-            ctxt['nhc']['nhc_bin'] = nhc_info['nhc_bin']
-            ctxt['nhc']['health_check_interval'] = \
-                nhc_info['health_check_interval']
-            ctxt['nhc']['health_check_node_state'] = \
-                nhc_info['health_check_node_state']
-
-        if elasticsearch_endpoint:
-            ctxt['elasticsearch_address'] = elasticsearch_endpoint
-
-        return {**slurm_config, **ctxt}
-
     def _check_status(self):
-        slurmdbd_info = self._stored.slurmdbd_info
-        slurmd_acquired = self._stored.slurmd_available
+        munge_key = self._stored.munge_key
         slurm_installed = self._stored.slurm_installed
+        slurm_config = self._slurmctld.get_slurm_config_from_relation()
 
-        if not (slurmdbd_info and slurmd_acquired and slurm_installed):
-            if not slurmd_acquired:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURMD")
-            elif not slurmdbd_info:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURMDBD")
+        if not (munge_key and slurm_installed and slurm_config):
+            if not munge_key:
+                self.unit.status = BlockedStatus(
+                    "NEED RELATION TO SLURM CONFIGURATOR"
+                )
+            elif not slurm_config:
+                self.unit.status = BlockedStatus(
+                    "WAITING ON SLURM CONFIG"
+                )
             else:
                 self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
             return False
         else:
             return True
 
-    def is_slurmd_available(self):
-        """Set stored state slurmd_available."""
-        return self._stored.slurmd_available
+    def set_munge_key(self, munge_key):
+        """Set the munge_key in _stored state."""
+        self._stored.munge_key = munge_key
 
-    def is_slurmdbd_available(self):
-        """Set stored state slurmdbd_available."""
-        return self._stored.slurmdbd_available
+    def get_slurm_component(self):
+        """Return the slurm component."""
+        return self._slurm_manager.slurm_component
 
-    def is_slurm_installed(self):
-        """Return true/false based on whether or not slurm is installed."""
-        return self._stored.slurm_installed
+    def get_hostname(self):
+        """Return the hostname."""
+        return self._slurm_manager.hostname
 
-    def is_slurm_login_available(self):
-        """Return slurm_login_acquired from local stored state."""
-        return self._stored.slurm_login_available
-
-    def is_slurmrestd_available(self):
-        """Return slurmrestd_acquired from local stored state."""
-        return self._stored.slurmrestd_available
-
-    def get_munge_key(self):
-        """Get the slurmdbd_info from stored state."""
-        return self._stored.munge_key
-
-    def get_slurm_config(self):
-        """Return slurm_config from local stored state."""
-        return self._stored.slurm_config
-
-    def get_slurmdbd_info(self):
-        """Get the slurmdbd_info from stored state."""
-        return self._stored.slurmdbd_info
-
-    def set_slurmdbd_info(self, slurmdbd_info):
-        """Set the slurmdbd_info in local stored state."""
-        self._stored.slurmdbd_info = slurmdbd_info
-
-    def set_slurm_config(self, slurm_config):
-        """Set the slurm_config in local stored state."""
-        self._stored.slurm_config = slurm_config
-
-    def set_slurmdbd_available(self, slurmdbd_available):
-        """Set stored state slurmdbd_available."""
-        self._stored.slurmdbd_available = slurmdbd_available
-
-    def set_slurmd_available(self, slurmd_available):
-        """Set stored state slurmd_available."""
-        self._stored.slurmd_available = slurmd_available
-
-    def set_slurmrestd_available(self, slurmrestd_available):
-        """Set stored state slurmrestd_available."""
-        self._stored.slurmrestd_available = slurmrestd_available
-
-    def set_nhc_info(self, nhc_info):
-        """Set the nhc_info in local stored state."""
-        self._stored.nhc_info = nhc_info
+    def get_port(self):
+        """Return the port."""
+        return self._slurm_manager.port
 
 
 if __name__ == "__main__":

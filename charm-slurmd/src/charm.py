@@ -126,7 +126,7 @@ class SlurmdCharm(CharmBase):
         munge_key = self._stored.munge_key
         slurm_installed = self._stored.slurm_installed
         slurm_config_available = self._slurmd.get_slurm_config()
-        
+
         if not (munge_key and slurm_installed and slurm_config_available):
             if not munge_key:
                 self.unit.status = BlockedStatus(

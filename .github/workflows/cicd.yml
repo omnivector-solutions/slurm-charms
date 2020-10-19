@@ -89,6 +89,9 @@ jobs:
           juju relate slurmd slurm-configurator
           juju relate slurmdbd slurm-configurator
           juju relate slurmctld slurm-configurator
+      - name: add-units
+        run: |
+          juju add-unit slurmd -n 5
       - name: wait
         run: |
           sleep 10m

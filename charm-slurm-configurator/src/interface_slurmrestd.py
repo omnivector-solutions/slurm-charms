@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """SlurmrestdProvides."""
-import logging
 import json
+import logging
 
 from ops.framework import (
     EventBase,

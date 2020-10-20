@@ -78,7 +78,6 @@ class Slurmctld(Object):
         if event_app_data:
             slurmctld_info = event_app_data.get('slurmctld_info')
             if slurmctld_info:
-                logger.debug("################ RELATION CHANGED SLURMCTLD ###################")
                 self._charm.set_slurmctld_available(True)
                 self.on.slurmctld_available.emit()
         else:

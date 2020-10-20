@@ -173,7 +173,6 @@ class SlurmConfiguratorCharm(CharmBase):
         self._slurmctld.set_slurm_config_on_app_relation_data(
             slurm_config,
         )
-        logger.debug("######### SET SLURMCTLD ON RELATION DATA ################")
         self._slurmd.set_slurm_config_on_app_relation_data(
             slurm_config,
         )
@@ -315,8 +314,8 @@ class SlurmConfiguratorCharm(CharmBase):
         self._stored.slurmd_available = slurmd_available
 
     def set_slurmrestd_available(self, slurmrestd_available):
+        """Set slurmrestd_available."""
         self._stored.slurmrestd_available = slurmrestd_available
-
 
 
 if __name__ == "__main__":

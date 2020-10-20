@@ -1,0 +1,49 @@
+#!/bin/bash
+# This hook installs the centos dependencies needed to run the charm,
+# creates the dispatch executable, regenerates the symlinks for start and
+# upgrade-charm, and kicks off the operator framework.
+
+set -e
+
+# Source the os-release information into the env.
+. /etc/os-release
+
+if ! [[ -f '.installed' ]]; then
+    # Determine if we are running in centos or ubuntu, if centos
+    # provision the needed prereqs.
+    if [[ $ID == 'ubuntu' ]]; then
+        echo "Running ubuntu, prereqs installed."
+        apt install chrony -y
+    elif [[ $ID == 'centos' ]]; then 
+	# Determine the centos version and install prereqs accordingly
+	major=$(cat /etc/centos-release | tr -dc '0-9.'|cut -d \. -f1)
+        echo "Running centos$major, installing prereqs."
+	if [[ $major == "7" ]]; then
+	    yum -y install epel-release
+            yum -y install python3 chrony
+	    yum -y --enablerepo=epel-testing install snapd
+	elif [[ $major == "8" ]]; then
+	    dnf -y install epel-release
+	    dnf -y install python3 chrony
+            dnf -y upgrade
+	    dnf -y install snapd
+        else
+	    echo "Running unsuppored version of centos: $major"
+	    exit -1
+	fi
+
+        systemctl enable --now snapd.socket
+
+        if ! [ -e '/snap' ]; then
+          ln -s /var/lib/snapd/snap /snap
+        fi
+
+    else
+        echo "Running unsuppored os: $ID"
+        exit -1
+    fi
+    touch .installed
+fi
+
+
+JUJU_DISPATCH_PATH="${JUJU_DISPATCH_PATH:-$0}" PYTHONPATH=lib:venv ./src/charm.py

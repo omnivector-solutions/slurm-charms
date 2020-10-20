@@ -13,6 +13,7 @@ charms: ## Build all charms
 	@charmcraft build --from charm-slurmd
 	@charmcraft build --from charm-slurmctld
 	@charmcraft build --from charm-slurmdbd
+	@charmcraft build --from charm-slurmrestd
 	@charmcraft build --from charm-slurm-configurator
 
 pull-classic-snap: ## Pull the classic slurm snap from github

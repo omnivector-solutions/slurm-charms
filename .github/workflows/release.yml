@@ -29,7 +29,7 @@ jobs:
           pip install charmcraft
       - name: Build charms
         run: |
-          for charm in slurmd slurmdbd slurmctld slurmrestd; do
+          for charm in slurmd slurmdbd slurmctld slurm-configurator; do
               charmcraft build --from charm-$charm/
           done
           tar -czvf slurm-charms.tar.gz slurmd.charm slurmctld.charm slurmdbd.charm slurm-configurator.charm

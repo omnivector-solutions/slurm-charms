@@ -29,6 +29,7 @@ jobs:
           name: slurm-charms
           path: |
             slurmctld.charm
+            slurmrestd.charm
             slurmdbd.charm
             slurmd.charm
             slurm-configurator.charm
@@ -81,7 +82,7 @@ jobs:
       - name: Deploy slurm
         shell: bash
         run: |
-          for charm in slurmctld slurmd slurm-configurator slurmdbd; do
+          for charm in slurmctld slurmd slurmrestd slurm-configurator slurmdbd; do
             juju deploy ./$charm.charm --resource slurm=./slurm.resource --series focal --bind nat
           done
           juju deploy percona-cluster
@@ -89,6 +90,7 @@ jobs:
           juju relate slurmd slurm-configurator
           juju relate slurmdbd slurm-configurator
           juju relate slurmctld slurm-configurator
+          juju relate slurmrestd slurm-configurator
       - name: add-units
         run: |
           juju add-unit slurmd -n 5
@@ -107,6 +109,7 @@ jobs:
           juju remove-application slurmctld
           juju remove-application slurmdbd
           juju remove-application slurmd
+          juju remove-application slurmrestd
           juju remove-application slurm-configurator
           juju remove-application percona-cluster
       - name: check status
@@ -116,6 +119,10 @@ jobs:
         if: ${{ always() }}
         run: |
           juju debug-log --replay --include slurmd > slurmd-focal.txt
+      - name: slurmrestd-logs
+        if: ${{ always() }}
+        run: |
+          juju debug-log --replay --include slurmrestd > slurmrestd-focal.txt
       - name: slurmdbd-logs
         if: ${{ always() }}
         run: |
@@ -141,4 +148,5 @@ jobs:
             slurmctld-focal.txt
             slurmdbd-focal.txt
             slurmd-focal.txt
+            slurmrestd-focal.txt
             slurm-configurator-focal.txt

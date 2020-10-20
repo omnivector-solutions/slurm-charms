@@ -1,0 +1,24 @@
+name: slurmrestd
+summary: Interface to Slurm via REST API.
+maintainers:
+    - OmniVector Solutions <admin@omnivector.solutions>
+description: |
+    slurmrestd is REST API interface for Slurm.
+
+tags:
+    - hpc
+    - slurm
+
+series:
+    - focal
+    - bionic
+    - centos7
+provides:
+  slurmrestd:
+    interface: slurmrestd
+
+resources:
+  slurm:
+    type: file
+    filename: slurm.resource
+    description: slurm resource

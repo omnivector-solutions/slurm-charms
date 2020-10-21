@@ -1,13 +1,7 @@
-options:
-  partition-default:
-    type: boolean
-    default: true
-    description: >-
-      'If this is True, jobs submitted without a partition specification
-      will utilize this partition.'
+options:  
   partition-name:
     type: string
-    default: partition1
+    default:
     description: >-
       'Name by which the partition may be referenced (e.g. "Interactive"). This
       name can be specified by users when submitting jobs. If the PartitionName
@@ -21,7 +15,28 @@ options:
     default: ""
     description: >-
       'Extra partition configuration specified as a space separated key=value single line.'
+  partition-state:
+    type: string
+    default: "UP"
+    description: >-
+      'State of partition or availability for use. Possible values are "UP", "DOWN", "DRAIN" and "INACTIVE". The default value is "UP". See also the related "Alternate" keyword.'
   snap-store-channel:
     type: string
     description: snap store channel to install slurm snap from
     default: "stable"
+  nagios_context:
+    default: "juju"
+    type: string
+    description: |
+      Used by the nrpe subordinate charms.
+      A string that will be prepended to instance name to set the host name
+      in nagios. So for instance the hostname would be something like:
+          juju-myservice-0
+      If you're running multiple environments with the same services in them
+      this allows you to differentiate between them.
+  nagios_servicegroups:
+    default: ""
+    type: string
+    description: |
+      A comma-separated list of nagios servicegroups.
+      If left empty, the nagios_context will be used as the servicegroup

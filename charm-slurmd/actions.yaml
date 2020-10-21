@@ -1,0 +1,13 @@
+set-node-state:
+  description: >-
+    'Set specific node:states mappings for nodes in this partition.
+     Acceptable node state values are; DOWN, DRAIN, FAIL, or FAILING.
+     Ex. n-c100=DOWN,n-c101=DOWN'
+  params:
+    node-state:
+      type: string
+      description: An optional realm name.
+  required:
+    - node-state
+  title: Set node(s) state
+  type: object

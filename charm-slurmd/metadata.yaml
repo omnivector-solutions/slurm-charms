@@ -1,11 +1,12 @@
 name: slurmd
-summary: Slurmd compute node of The Slurm Workload Scheduler
+summary: Describe your charm here
 maintainers:
-    - Omnivector Solutions <Admin@omnivector.solutions>
+    - OmniVector Solutions <admin@omnivector.solutions>
 description: |
     A nice long description of what the product does and any
     high level information about how the charm provides the product,
     on which platform, etc.
+
 tags:
     - slurm
 
@@ -13,10 +14,18 @@ series:
     - focal
     - bionic
     - centos7
+    - centos8
 
 provides:
   slurmd:
     interface: slurmd
+  nrpe-external-master:
+    interface: nrpe-external-master
+    scope: container
+
+peers:
+  slurmd-peer:
+    interface: slurmd-peer
 
 resources:
   slurm:

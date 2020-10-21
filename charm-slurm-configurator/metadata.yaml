@@ -1,4 +1,4 @@
-name: slurmctld
+name: slurm-configurator
 summary: Describe your charm here
 maintainers:
     - OmniVector Solutions <admin@omnivector.solutions>
@@ -16,16 +16,26 @@ series:
     - centos7
     - centos8
 
-provides:
+requires:
   slurmctld:
     interface: slurmctld
-  nrpe-external-master:
-    interface: nrpe-external-master
-    scope: container
+  slurmdbd:
+    interface: slurmdbd
+  slurmd:
+    interface: slurmd
+  slurmrestd:
+    interface: slurmrestd
+  elasticsearch:
+    interface: elasticsearch
+  nhc:
+    interface: nhc
+  influxdb-api:
+    interface: influxdb-api
 
-peers:
-  slurmctld-peer:
-    interface: slurmctld-peer
+provides:
+  grafana-source:
+    interface: grafana-source
+    scope: global
 
 resources:
   slurm:

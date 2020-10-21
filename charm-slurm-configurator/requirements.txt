@@ -1,2 +1,3 @@
 ops
+influxdb
 git+https://github.com/omnivector-solutions/slurm-ops-manager.git@rev2

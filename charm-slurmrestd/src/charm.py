@@ -25,9 +25,8 @@ class SlurmLoginCharm(CharmBase):
         """Initialize charm and configure states and events to observe."""
         super().__init__(*args)
         self._stored.set_default(
-            slurm_config=dict(),
             slurm_installed=False,
-            slurmctld_available=False,
+            config_available=False,
         )
         self.slurm_manager = SlurmManager(self, "slurmrestd")
         self._slurmrestd = SlurmrestdRequires(self, 'slurmrestd')
@@ -36,15 +35,12 @@ class SlurmLoginCharm(CharmBase):
             self.on.install:
             self._on_install,
 
-            self.on.start:
-            self._on_check_status_and_write_config,
-
             self.on.upgrade_charm: self._on_upgrade,
 
-            self._slurmrestd.on.slurmctld_available:
+            self._slurmrestd.on.config_available:
             self._on_check_status_and_write_config,
 
-            self._slurmrestd.on.slurmctld_unavailable:
+            self._slurmrestd.on.config_unavailable:
             self._on_check_status_and_write_config,
         }
         for event, handler in event_handler_bindings.items():
@@ -61,34 +57,27 @@ class SlurmLoginCharm(CharmBase):
 
     def _on_check_status_and_write_config(self, event):
         slurm_installed = self._stored.slurm_installed
-        slurmctld_acquired = self._stored.slurmctld_available
-        slurm_config = self._stored.slurm_config
-
-        if not (slurm_installed and slurmctld_acquired and slurm_config):
-            if not slurmctld_acquired:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURMCTLD")
-            elif not slurm_config:
-                self.unit.status = BlockedStatus("NEED SLURM CONFIG")
+        slurm_config = self._stored.config_available
+        logger.debug("##### inside check status and write config ######")
+        if not (slurm_installed and slurm_config):
+            if not slurm_config:
+                self.unit.status = BlockedStatus(
+                    "NEED RELATION TO SLURM-CONFIGURATOR"
+                )
             else:
                 self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
             event.defer()
             return
         else:
-            config = dict(self._stored.slurm_config)
+            logger.debug("##### STATUS CONFIRMED ######")
+            config = dict(self._slurmrestd.get_slurm_config())
+            logger.debug(config)
             self.slurm_manager.render_config_and_restart(config)
             self.unit.status = ActiveStatus("Slurmrestd Available")
 
-    def is_slurmctld_available(self):
-        """Return self._stored.slurmctld_available."""
-        return self._stored.slurmctld_available
-
-    def set_slurm_config(self, slurm_config):
-        """Set self._stored.slurm_config."""
-        self._stored.slurm_config = slurm_config
-
-    def set_slurmctld_available(self, slurmctld_available):
+    def set_config_available(self, boolean):
         """Set self._stored.slurmctld_available."""
-        self._stored.slurmctld_available = slurmctld_available
+        self._stored.config_available = boolean
 
 
 if __name__ == "__main__":

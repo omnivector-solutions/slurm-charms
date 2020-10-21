@@ -13,8 +13,7 @@ series:
     - focal
     - bionic
     - centos7
-
-requires:
+provides:
   slurmrestd:
     interface: slurmrestd
 

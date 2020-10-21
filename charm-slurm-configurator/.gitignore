@@ -1,0 +1,10 @@
+build/
+.tox/
+venv/
+*.charm
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*/*/*/__pycache__/
+tmp/
+out/

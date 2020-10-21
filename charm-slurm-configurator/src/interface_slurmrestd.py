@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """SlurmrestdProvides."""
+import json
 import logging
-
 
 from ops.framework import (
     EventBase,
@@ -22,17 +22,17 @@ class SlurmrestdUnAvailableEvent(EventBase):
     """Emmited when the slurmrestd relation is broken."""
 
 
-class SlurmrestdProvidesEvents(ObjectEvents):
-    """SlurmrestdProvidesEvents."""
+class SlurmrestdEvents(ObjectEvents):
+    """SlurmrestdEvents."""
 
     slurmrestd_available = EventSource(SlurmrestdAvailableEvent)
     slurmrestd_unavailable = EventSource(SlurmrestdUnAvailableEvent)
 
 
-class SlurmrestdProvides(Object):
-    """Slurmrestd Provides Relation."""
+class Slurmrestd(Object):
+    """Slurmrestd interface."""
 
-    on = SlurmrestdProvidesEvents()
+    on = SlurmrestdEvents()
 
     def __init__(self, charm, relation_name):
         """Set the initial data."""
@@ -55,3 +55,18 @@ class SlurmrestdProvides(Object):
     def _on_relation_broken(self, event):
         self.charm.set_slurmrestd_available(False)
         self.on.slurmrestd_unavailable.emit()
+
+    def set_slurm_config_on_app_relation_data(
+        self,
+        slurm_config,
+    ):
+        """Set the slurm_conifg to the app data on the relation.
+
+        Setting data on the relation forces the units of related applications
+        to observe the relation-changed event so they can acquire and
+        render the updated slurm_config.
+        """
+        relations = self.charm.framework.model.relations['slurmrestd']
+        for relation in relations:
+            app_relation_data = relation.data[self.model.app]
+            app_relation_data['slurm_config'] = json.dumps(slurm_config)

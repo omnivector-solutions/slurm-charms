@@ -15,30 +15,33 @@ from ops.framework import (
 logger = logging.getLogger()
 
 
-class SlurmctldAvailableEvent(EventBase):
+class SlurmrestdAvailableEvent(EventBase):
     """SlurmctldAvailableEvent."""
 
 
-class SlurmctldUnavailableEvent(EventBase):
+class SlurmrestdUnavailableEvent(EventBase):
     """SlurmctldUnavailableEvent."""
 
 
-class SlurmLoginEvents(ObjectEvents):
+class SlurmrestdEvents(ObjectEvents):
     """SlurmLoginEvents."""
 
-    slurmctld_available = EventSource(SlurmctldAvailableEvent)
-    slurmctld_unavailable = EventSource(SlurmctldUnavailableEvent)
+    config_available = EventSource(SlurmrestdAvailableEvent)
+    config_unavailable = EventSource(SlurmrestdUnavailableEvent)
 
 
 class SlurmrestdRequires(Object):
     """SlurmrestdRequires."""
 
-    on = SlurmLoginEvents()
+    on = SlurmrestdEvents()
 
     def __init__(self, charm, relation_name):
         """Set the provides initial data."""
         super().__init__(charm, relation_name)
         self.charm = charm
+
+        self._relation_name = relation_name
+
 
         self.framework.observe(
             charm.on[relation_name].relation_changed,
@@ -50,19 +53,42 @@ class SlurmrestdRequires(Object):
         )
 
     def _on_relation_changed(self, event):
-        slurmctld_acquired = self.charm.is_slurmctld_available()
-        # this happens when data changes on the relation
-        if not event.relation.data.get(event.app):
+        """Check for the munge_key in the relation data."""
+        event_app_data = event.relation.data.get(event.app)
+        if not event_app_data:
             event.defer()
             return
 
-        slurm_config = event.relation.data[event.app].get("slurm_config", None)
-        if slurm_config:
-            if not slurmctld_acquired:
-                self.charm.set_slurmctld_available(True)
-            self.charm.set_slurm_config(json.loads(slurm_config))
-            self.on.slurmctld_available.emit()
+        slurm_config = event_app_data.get('slurm_config')
+        if not slurm_config:
+            event.defer()
+            return
+
+        self.charm.set_config_available(True)
+        self.on.config_available.emit()
 
     def _on_relation_broken(self, event):
-        self.charm.set_slurmctld_available(False)
-        self.on.slurmctld_unavailable.emit()
+        self.charm.set_config_available(False)
+        self.on.config_available.emit()
+
+    def get_slurm_config(self):
+        """Return slurm_config."""
+        relation = self._relation
+        if relation:
+            app = relation.app
+            if app:
+                app_data = self._relation.data.get(app)
+                if app_data:
+                    slurm_config = app_data.get('slurm_config')
+                    if slurm_config:
+                        return json.loads(slurm_config)
+        return None
+
+    @property
+    def _relation(self):
+        return self.framework.model.get_relation(self._relation_name)
+
+    @property
+    def is_joined(self):
+        """Return True if relation is joined."""
+        return self._relation is not None

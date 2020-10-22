@@ -10,11 +10,19 @@ The successfull execution of this command will produce built `.charm` files for 
 ```bash
 $ make charms
 ```
+## Slurm Configuration
+
+To deploy slurm with multiple partions you need to set the partition config value for the slurmd node on deployment.
+
 ```bash
-$ ls -lah *.charm
--rw-rw-r-- 1 bdx bdx 581K Aug  3 15:22 slurmctld.charm
--rw-rw-r-- 1 bdx bdx 584K Aug  3 15:22 slurmdbd.charm
--rw-rw-r-- 1 bdx bdx 580K Aug  3 15:22 slurmd.charm
+juju deploy ./slurmd.charm p1 --config partion-name="partition1"
+juju deploy ./slurmd.charm p2 --config partion-name="partiotion2"
+```
+This will deploy 2 units, p1 and p2, both of which are in a seperate partition.
+
+To specify cluster name:
+```bash
+juju deploy ./slurm-configurator.charm --config cluster_name="mycluster"
 ```
 
 #### Copyright

@@ -25,5 +25,15 @@ To specify cluster name:
 juju deploy ./slurm-configurator.charm --config cluster_name="mycluster"
 ```
 
+### Custom Configurations
+Our goal is to give the user as much freedom as possible in the configuartion of your cluster. To add your own config options to slurm.conf, supply a string of the values you want to be populated in slurm.conf
+
+config values can be found at https://slurm.schedmd.com/slurm.conf.html
+
+```bash
+juju deploy ./slurm-configurator --config custom_config="your=keyvalue/pairs"
+```
+
+
 #### Copyright
 * OmniVector Solutions <admin@omnivector.solutions>

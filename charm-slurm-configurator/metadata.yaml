@@ -31,6 +31,8 @@ requires:
     interface: nhc
   influxdb-api:
     interface: influxdb-api
+  slurm-license:
+    interface: slurm-license
 
 provides:
   grafana-source:

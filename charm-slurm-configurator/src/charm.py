@@ -7,6 +7,7 @@ from interface_elasticsearch import Elasticsearch
 from interface_grafana_source import GrafanaSource
 from interface_influxdb import InfluxDB
 from interface_nhc import Nhc
+from interface_slurm_license import SlurmLicense
 from interface_slurmctld import Slurmctld
 from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
@@ -41,7 +42,9 @@ class SlurmConfiguratorCharm(CharmBase):
             slurmdbd_available=False,
             slurmd_available=False,
             slurmrestd_available=False,
-
+            slurm_license_available=False,
+            epilog_path=None,
+            prolog_path=None,
         )
 
         self._elasticsearch = Elasticsearch(self, "elasticsearch")
@@ -53,6 +56,7 @@ class SlurmConfiguratorCharm(CharmBase):
         self._slurmctld = Slurmctld(self, "slurmctld")
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
         self._slurmd = Slurmd(self, "slurmd")
+        self._slurm_license = SlurmLicense(self, "slurm-license")
 
         # #### Charm lifecycle events #### #
         event_handler_bindings = {
@@ -109,6 +113,9 @@ class SlurmConfiguratorCharm(CharmBase):
             self._on_check_status_and_write_config,
 
             self._slurmrestd.on.slurmrestd_unavailable:
+            self._on_check_status_and_write_config,
+            
+            self._slurm_license.on.slurm_license_available:
             self._on_check_status_and_write_config,
         }
         for event, handler in event_handler_bindings.items():
@@ -198,7 +205,7 @@ class SlurmConfiguratorCharm(CharmBase):
         logger.debug(slurmctld_info)
         logger.debug(slurmdbd_info)
 
-        return {
+        config = {
             'munge_key': self._stored.munge_key,
             'partitions': partitions_info,
             **slurmctld_info,
@@ -206,6 +213,7 @@ class SlurmConfiguratorCharm(CharmBase):
             **addons_info,
             **self.model.config,
         }
+        return config
 
     def _assemble_partitions(self, slurmd_info):
         """Make any needed modifications to partition data."""
@@ -225,8 +233,17 @@ class SlurmConfiguratorCharm(CharmBase):
         acct_gather = self._get_influxdb_info()
         elasticsearch_ingress = self._elasticsearch.get_elasticsearch_ingress()
         nhc_info = self._nhc.get_nhc_info()
+        logger.debug("************ inside assemble addons 1 ******************")
+        logger.debug(self._stored.slurm_license_available)
 
         ctxt = dict()
+        if self._stored.slurm_license_available:
+            ctxt['prolog_epilog'] = {
+                'slurmctld_epilog_path': self._get_epilog_path(),
+                'slurmctld_prolog_path': self._get_prolog_path()
+            }
+            logger.debug("************ inside assemble addons 2 ******************")
+            logger.debug(ctxt)
 
         if acct_gather:
             ctxt['acct_gather'] = acct_gather
@@ -277,6 +294,21 @@ class SlurmConfiguratorCharm(CharmBase):
         else:
             self.unit.status = ActiveStatus("")
             return True
+    
+    def set_slurm_license_available(self, boolean):
+        self._stored.slurm_license_available = boolean
+
+    def _get_prolog_path(self):
+        return self._stored.prolog_path
+
+    def set_prolog_path(self, path):
+        self._stored.prolog_path = path
+
+    def _get_epilog_path(self):
+        return self._stored.epilog_path
+
+    def set_epilog_path(self, path):
+        self._stored.epilog_path = path
 
     def _get_influxdb_info(self):
         """Return influxdb info."""

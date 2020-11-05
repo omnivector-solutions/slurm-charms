@@ -213,6 +213,9 @@ class SlurmConfiguratorCharm(CharmBase):
             **addons_info,
             **self.model.config,
         }
+        nhc_info = self._nhc.get_nhc_info()
+        logger.debug("************ inside assemble config 3 ******************")
+        logger.debug(config)
         return config
 
     def _assemble_partitions(self, slurmd_info):

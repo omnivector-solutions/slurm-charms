@@ -7,7 +7,7 @@ from interface_elasticsearch import Elasticsearch
 from interface_grafana_source import GrafanaSource
 from interface_influxdb import InfluxDB
 from interface_nhc import Nhc
-from interface_slurm_license import SlurmLicense
+from interface_prolog_epilog import PrologEpilog
 from interface_slurmctld import Slurmctld
 from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
@@ -56,7 +56,7 @@ class SlurmConfiguratorCharm(CharmBase):
         self._slurmctld = Slurmctld(self, "slurmctld")
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
         self._slurmd = Slurmd(self, "slurmd")
-        self._slurm_license = SlurmLicense(self, "slurm-license")
+        self._prolog_epilog = PrologEpilog(self, "prolog-epilog")
 
         # #### Charm lifecycle events #### #
         event_handler_bindings = {
@@ -115,7 +115,7 @@ class SlurmConfiguratorCharm(CharmBase):
             self._slurmrestd.on.slurmrestd_unavailable:
             self._on_check_status_and_write_config,
             
-            self._slurm_license.on.slurm_license_available:
+            self._prolog_epilog.on.prolog_epilog_available:
             self._on_check_status_and_write_config,
         }
         for event, handler in event_handler_bindings.items():
@@ -213,9 +213,6 @@ class SlurmConfiguratorCharm(CharmBase):
             **addons_info,
             **self.model.config,
         }
-        nhc_info = self._nhc.get_nhc_info()
-        logger.debug("************ inside assemble config 3 ******************")
-        logger.debug(config)
         return config
 
     def _assemble_partitions(self, slurmd_info):
@@ -236,17 +233,15 @@ class SlurmConfiguratorCharm(CharmBase):
         acct_gather = self._get_influxdb_info()
         elasticsearch_ingress = self._elasticsearch.get_elasticsearch_ingress()
         nhc_info = self._nhc.get_nhc_info()
-        logger.debug("************ inside assemble addons 1 ******************")
-        logger.debug(self._stored.slurm_license_available)
+        prolog_epilog = self._prolog_epilog.get_prolog_epilog()
 
         ctxt = dict()
-        if self._stored.slurm_license_available:
+        if prolog_epilog:
             ctxt['prolog_epilog'] = {
+                prolog_epilog
                 'slurmctld_epilog_path': self._get_epilog_path(),
                 'slurmctld_prolog_path': self._get_prolog_path()
             }
-            logger.debug("************ inside assemble addons 2 ******************")
-            logger.debug(ctxt)
 
         if acct_gather:
             ctxt['acct_gather'] = acct_gather

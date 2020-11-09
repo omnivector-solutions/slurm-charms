@@ -43,8 +43,6 @@ class SlurmConfiguratorCharm(CharmBase):
             slurmd_available=False,
             slurmrestd_available=False,
             slurm_license_available=False,
-            epilog_path=None,
-            prolog_path=None,
         )
 
         self._elasticsearch = Elasticsearch(self, "elasticsearch")
@@ -237,11 +235,7 @@ class SlurmConfiguratorCharm(CharmBase):
 
         ctxt = dict()
         if prolog_epilog:
-            ctxt['prolog_epilog'] = {
-                prolog_epilog
-                'slurmctld_epilog_path': self._get_epilog_path(),
-                'slurmctld_prolog_path': self._get_prolog_path()
-            }
+            ctxt['prolog_epilog'] = prolog_epilog
 
         if acct_gather:
             ctxt['acct_gather'] = acct_gather

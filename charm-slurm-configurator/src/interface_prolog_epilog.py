@@ -62,18 +62,25 @@ class PrologEpilog(Object):
         if not epilog:
             event.defer()
             return
-        self._stored.prolog_epilog = {
+
+        self._stored.prolog_epilog = json.dumps({
             'slurmctld_epilog_path': epilog,
             'slurmctld_prolog_path': prolog
-        }
+        })
 
         # Store the license path in the charm's state
         self.charm.set_prolog_path(prolog)
         self.charm.set_epilog_path(epilog)
 
         self.charm.set_slurm_license_available(True)
-        self.on.slurm_license_available.emit()
+        self.on.prolog_epilog_available.emit()
 
     def _on_relation_broken(self, event):
         self.charm.set_slurm_license_available(False)
-        self.on.slurm_license_unavailable.emit()
+    
+    def get_prolog_epilog(self):
+        info = self._stored.prolog_epilog
+        if info:
+            return json.loads(info)
+        else:
+            return None

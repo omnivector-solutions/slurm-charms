@@ -31,8 +31,8 @@ requires:
     interface: nhc
   influxdb-api:
     interface: influxdb-api
-  slurm-license:
-    interface: slurm-license
+  prolog-epilog:
+    interface: prolog-epilog
 
 provides:
   grafana-source:

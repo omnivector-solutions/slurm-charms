@@ -287,20 +287,9 @@ class SlurmConfiguratorCharm(CharmBase):
             self.unit.status = ActiveStatus("")
             return True
     
+    
     def set_slurm_license_available(self, boolean):
         self._stored.slurm_license_available = boolean
-
-    def _get_prolog_path(self):
-        return self._stored.prolog_path
-
-    def set_prolog_path(self, path):
-        self._stored.prolog_path = path
-
-    def _get_epilog_path(self):
-        return self._stored.epilog_path
-
-    def set_epilog_path(self, path):
-        self._stored.epilog_path = path
 
     def _get_influxdb_info(self):
         """Return influxdb info."""

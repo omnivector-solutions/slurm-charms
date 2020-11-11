@@ -38,16 +38,16 @@ class PrologEpilog(Object):
         """Set the initial data."""
         super().__init__(charm, relation_name)
 
-        self.charm = charm
+        self._charm = charm
         self._stored.set_default(
             prolog_epilog=dict(),
         )
         self.framework.observe(
-            charm.on[relation_name].relation_changed,
+            self._charm.on[relation_name].relation_changed,
             self._on_relation_changed
         )
         self.framework.observe(
-            charm.on[relation_name].relation_broken,
+            self._charm.on[relation_name].relation_broken,
             self._on_relation_broken
         )
 
@@ -69,14 +69,11 @@ class PrologEpilog(Object):
         })
 
         # Store the license path in the charm's state
-        self.charm.set_prolog_path(prolog)
-        self.charm.set_epilog_path(epilog)
-
-        self.charm.set_slurm_license_available(True)
+        self._charm.set_slurm_license_available(True)
         self.on.prolog_epilog_available.emit()
 
     def _on_relation_broken(self, event):
-        self.charm.set_slurm_license_available(False)
+        self._charm.set_slurm_license_available(False)
     
     def get_prolog_epilog(self):
         info = self._stored.prolog_epilog

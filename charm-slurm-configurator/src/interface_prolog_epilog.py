@@ -18,8 +18,10 @@ logger = logging.getLogger()
 class SlurmLicenseAvailableEvent(EventBase):
     """Emmited when slurmlicense is available."""
 
+
 class SlurmLicenseUnavailableEvent(EventBase):
     """Emmited when slurmlicense is available."""
+
 
 class SlurmLicenseEvents(ObjectEvents):
     """SlurmlicenseEvents."""
@@ -54,7 +56,7 @@ class PrologEpilog(Object):
     def _on_relation_changed(self, event):
         prolog = event.relation.data[event.unit].get('prolog', None)
         epilog = event.relation.data[event.unit].get('epilog', None)
-        
+
         if not prolog:
             event.defer()
             return
@@ -74,8 +76,9 @@ class PrologEpilog(Object):
 
     def _on_relation_broken(self, event):
         self._charm.set_slurm_license_available(False)
-    
+
     def get_prolog_epilog(self):
+        """Get path of epilog/prolog."""
         info = self._stored.prolog_epilog
         if info:
             return json.loads(info)

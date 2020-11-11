@@ -112,7 +112,7 @@ class SlurmConfiguratorCharm(CharmBase):
 
             self._slurmrestd.on.slurmrestd_unavailable:
             self._on_check_status_and_write_config,
-            
+
             self._prolog_epilog.on.prolog_epilog_available:
             self._on_check_status_and_write_config,
         }
@@ -286,9 +286,9 @@ class SlurmConfiguratorCharm(CharmBase):
         else:
             self.unit.status = ActiveStatus("")
             return True
-    
-    
+
     def set_slurm_license_available(self, boolean):
+        """Set slurm license availability."""
         self._stored.slurm_license_available = boolean
 
     def _get_influxdb_info(self):

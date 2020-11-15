@@ -83,11 +83,19 @@ jobs:
       - name: "Restore cached juju tar"
         uses: actions/cache@v2
         with:
+          path: |
+            .local/share/juju
           key: juju-tar
 
       - name: "Restore built charms"
         uses: actions/cache@v2
         with:
+          path: |
+            slurmd.charm
+            slurmdbd.charm
+            slurmctld.charm
+            slurmrestd.charm
+            slurm-configurator.charm
           key: slurm-charms
 
       - name: "Set JUJU_DATA to GITHUB_ENV"

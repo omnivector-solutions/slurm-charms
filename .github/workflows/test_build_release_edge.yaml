@@ -32,6 +32,7 @@ jobs:
           make charms
 
       - name: Cache built charms
+        if: ${{ success() }}
         id: slurm-charms
         uses: actions/cache@v2
         with:
@@ -61,6 +62,7 @@ jobs:
           tar -xzvf juju-local.tar.gz
 
       - name: "Cache juju tar"
+        if: ${{ success() }}
         id: juju-tar
         uses: actions/cache@v2
         with:
@@ -111,12 +113,14 @@ jobs:
           echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju login --user circleci
 
       - name: "Add model to house charms for testing"
+        if: ${{ success() }}
         run: |
           juju add-model ${{ steps.vars.outputs.sha_short }}-focal
           juju add-space -m ${{ steps.vars.outputs.sha_short }}-focal nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
           juju model-config logging-config="<root>=DEBUG;<unit>=DEBUG"
 
       - name: "Deploy charms"
+        if: ${{ success() }}
         shell: bash
         run: |
           for charm in slurmctld slurmd slurmrestd slurm-configurator slurmdbd; do
@@ -131,11 +135,13 @@ jobs:
           juju relate slurmrestd slurm-configurator
 
       - name: "Wait for deployment to settle"
+        if: ${{ success() }}
         run: |
           sudo snap install juju-wait --classic
           juju-wait
 
       - name: "Test sinfo works"
+        if: ${{ success() }}
         run: |
           juju run "sinfo" --unit slurmd/0
 

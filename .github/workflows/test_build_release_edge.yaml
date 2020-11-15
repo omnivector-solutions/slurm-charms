@@ -7,6 +7,11 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v1
+      - name: "Store commit sha for later use"
+        id: vars
+        shell: bash
+        run: |
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
       - uses: actions/setup-python@v1
         with:
           python-version: '3.x'
@@ -22,14 +27,15 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v1
-      - uses: actions/setup-python@v1
+      - name: "Install charmcraft and build the charms"
+        uses: actions/setup-python@v1
         with:
           python-version: '3.x'
           architecture: 'x64'
-      - name: Install charmcraft and build the charms
         run: |
           pip install charmcraft
           make charms
+
       - name: "Upload charm artifacts"
         uses: actions/upload-artifact@v2
         with:
@@ -45,7 +51,7 @@ jobs:
     name: "Cache juju tar for future jobs"
     runs-on: "ubuntu-latest"
     steps:
-      - name: Configure AWS Credentials
+      - name: "Configure AWS Credentials"
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -91,12 +97,6 @@ jobs:
       - name: "Login to juju controller as cicd user"
         run: |
           echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju login --user circleci
-
-      - name: "Store commit sha for later use"
-        id: vars
-        shell: bash
-        run: |
-          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
 
       - name: "Add model to house charms for testing"
         run: |

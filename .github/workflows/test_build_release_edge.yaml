@@ -97,6 +97,7 @@ jobs:
             slurmctld.charm
             slurmrestd.charm
             slurm-configurator.charm
+          key: slurm-charms
 
       - name: "Unpack juju creds"
         run: |

@@ -67,6 +67,7 @@ jobs:
   deploy-slurm-focal-on-aws:
     name: "Deploy focal on aws"
     runs-on: "ubuntu-latest"
+    needs: [cache-juju-tar, build-charms]
     steps:
       - name: "Pull charm artifacts"
         uses: actions/download-artifact@v2

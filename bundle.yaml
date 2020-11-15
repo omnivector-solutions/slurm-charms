@@ -1,0 +1,46 @@
+applications:
+  slurm-configurator:
+    charm: ./slurm-configurator.charm
+    constraints: spaces=nat root-disk=20G instance-type=t3a.medium
+    series: focal
+    num_units: 1
+    bindings:
+      "": nat
+  slurmctld:
+    charm: ./slurmctld.charm
+    constraints: spaces=nat root-disk=20G instance-type=t3a.medium
+    series: focal
+    num_units: 1
+    bindings:
+      "": nat
+  slurmd:
+    charm: ./slurmd.charm
+    constranits: spaces=nat root-disk=20G instance-type=t3a.medium
+    series: focal
+    num_units: 1
+    bindings:
+      "": nat
+  slurmdbd:
+    charm: ./slurmdbd.charm
+    constraints: spaces=nat root-disk=20G instance-type=t3a.medium
+    series: focal
+    num_units: 1
+    bindings:
+      "": nat
+  percona-cluster:
+    charm: cs:percona-cluster
+    constraints: spaces=nat root-disk=20G instance-type=t3a.medium
+    series: bionic
+    num_units: 1
+    bindings:
+      "": nat
+
+relations:
+  - - slurmctld:slurmctld
+    - slurm-configurator:slurmctld
+  - - slurmd:slurmd
+    - slurm-configurator:slurmd
+  - - slurmdbd:slurmdbd
+    - slurm-configurator:slurmdbd
+  - - slurmdbd:db
+    - percona-cluster:db

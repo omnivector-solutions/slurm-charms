@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 """Slurmdbd Operator Charm."""
+import uuid
+
 from interface_mysql import MySQLClient
 from interface_slurmdbd import Slurmdbd
 from interface_slurmdbd_peer import SlurmdbdPeer
@@ -10,6 +12,7 @@ from ops.main import main
 from ops.model import (
     ActiveStatus,
     BlockedStatus,
+    WaitingStatus,
 )
 from slurm_ops_manager import SlurmManager
 
@@ -99,6 +102,9 @@ class SlurmdbdCharm(CharmBase):
 
     def _write_config_and_restart_slurmdbd(self, event):
         """Check for prereqs before writing config/restart of slurmdbd."""
+
+        # Ensure all pre-conditions are met with _check_statu(), if not
+        # defer the event.
         if not self._check_status():
             event.defer()
             return
@@ -115,9 +121,49 @@ class SlurmdbdCharm(CharmBase):
 
         self._slurm_manager.render_config_and_restart(slurmdbd_config)
 
+        # Only the leader can set relation data on the application.
+        # Enforce that no one other then the leader trys to set
+        # application relation data.
         if self.model.unit.is_leader():
             self._slurmdbd.set_slurmdbd_info_on_app_relation_data(
-                slurmdbd_info
+                {
+                    # Juju, and subsequently the operator framework do not
+                    # emit relation-changed events if data hasn't actually
+                    # changed on the other side of the relation. Even if we set
+                    # the data multiple times, it doesn't mean anything unless
+                    # the data being set is different then what already exists
+                    # in the relation data.
+                    #
+                    # We use 'slurmdbd_info_id' to ensure the slurmdbd_info
+                    # is unique each time it is set on the application relation
+                    # data. This is needed so that that related applications
+                    # (namely slurm-configurator) will observe a
+                    # relation-changed event.
+                    #
+                    # This event (_write_config_and_restart_slurmdbd) may be
+                    # invoked multiple times once _check_status() returns True
+                    # (aka pre-conditions are met that account for the deffered
+                    # invocations.)
+                    # This means that the same slurmdbd_info data may be set on
+                    # application data multiple times and slurmdbd may be
+                    # reconfigured and restarted while slurmctld and the rest
+                    # of the stack are trying to come up and create the cluster.
+                    #
+                    # We need slurm-configurator to emit the relation-changed
+                    # event for the slurmdbd relation every time data is set,
+                    # not just when data has changed.
+                    # slurm-configurator need to re-emit its chain
+                    # of observed events to ensure all services end up getting
+                    # reconfigured *and* restarted *after* slurmdbd, for each
+                    # time that slurmdbd gets reconfigured and restarted.
+                    #
+                    # For this reason, 'slurmdbd_info_id' only
+                    # matters in the context of making sure the application
+                    # relation data actually changes so that relation-changed
+                    # event is observed on the other side.
+                    'slurmdbd_info_id': str(uuid.uuid4()),
+                    **slurmdbd_info
+                }
             )
         self.unit.status = ActiveStatus("Slurmdbd Available")
 

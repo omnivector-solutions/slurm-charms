@@ -188,7 +188,7 @@ class SlurmConfiguratorCharm(CharmBase):
         slurmd_info = self._slurmd.get_slurmd_info()
 
         if not (slurmd_info and slurmctld_info and slurmdbd_info):
-            return None
+            return {}
 
         addons_info = self._assemble_addons()
         partitions_info = self._assemble_partitions(slurmd_info)
@@ -282,6 +282,9 @@ class SlurmConfiguratorCharm(CharmBase):
         """Return influxdb info."""
         return self._influxdb.get_influxdb_info()
 
+    def _is_leader(self):
+        return self.model.unit.is_leader()
+
     def get_munge_key(self):
         """Return the slurmdbd_info from stored state."""
         return self._stored.munge_key
@@ -289,9 +292,6 @@ class SlurmConfiguratorCharm(CharmBase):
     def get_default_partition(self):
         """Return self._stored.default_partition."""
         return self._stored.default_partition
-
-    def _is_leader(self):
-        return self.model.unit.is_leader()
 
     def is_slurm_installed(self):
         """Return true/false based on whether or not slurm is installed."""

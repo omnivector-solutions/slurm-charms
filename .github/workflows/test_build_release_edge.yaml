@@ -79,6 +79,25 @@ jobs:
         run: |
           echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
 
+      - name: "Restore cached juju tar"
+        id: juju-tar
+        uses: actions/cache@v2
+        with:
+          path: |
+            "juju-local.tar.gz"
+          key: juju-tar
+
+      - name: Restore built charms
+        id: slurm-charms
+        uses: actions/cache@v2
+        with:
+          path: |
+            slurmd.charm
+            slurmdbd.charm
+            slurmctld.charm
+            slurmrestd.charm
+            slurm-configurator.charm
+
       - name: "Unpack juju creds"
         run: |
           tar -xzvf juju-local.tar.gz

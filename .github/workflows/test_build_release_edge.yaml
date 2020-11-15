@@ -31,16 +31,17 @@ jobs:
           pip install charmcraft
           make charms
 
-      - name: "Upload charm artifacts"
-        uses: actions/upload-artifact@v2
+      - name: Cache built charms
+        id: slurm-charms
+        uses: actions/cache@v2
         with:
-          name: slurm-charms
           path: |
+            slurmd.charm
+            slurmdbd.charm
             slurmctld.charm
             slurmrestd.charm
-            slurmdbd.charm
-            slurmd.charm
             slurm-configurator.charm
+          key: slurm-charms
   
   cache-juju-tar:
     name: "Cache juju tar for future jobs"
@@ -54,16 +55,17 @@ jobs:
           aws-region: us-west-2
 
       - name: "Pull juju creds from s3"
+        if: steps.juju-tar.outputs.cache-hit != 'true'
         run: |
           aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
 
-      - name: "Create juju-tar artifact"
-        uses: actions/upload-artifact@v2
+      - name: "Cache juju tar"
+        id: juju-tar
+        uses: actions/cache@v2
         with:
-          name: juju-tar
           path: |
-            juju-local.tar.gz
-
+            "juju-local.tar.gz"
+          key: juju-tar
 
   deploy-slurm-focal-on-aws:
     name: "Deploy focal on aws"
@@ -76,16 +78,6 @@ jobs:
         shell: bash
         run: |
           echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
-
-      - name: "Pull charm artifacts"
-        uses: actions/download-artifact@v2
-        with:
-          name: slurm-charms
-
-      - name: "Pull juju-tar artifact"
-        uses: actions/download-artifact@v2
-        with:
-          name: juju-tar
 
       - name: "Unpack juju creds"
         run: |

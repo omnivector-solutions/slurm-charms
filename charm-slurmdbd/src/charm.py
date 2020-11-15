@@ -12,7 +12,6 @@ from ops.main import main
 from ops.model import (
     ActiveStatus,
     BlockedStatus,
-    WaitingStatus,
 )
 from slurm_ops_manager import SlurmManager
 
@@ -102,7 +101,6 @@ class SlurmdbdCharm(CharmBase):
 
     def _write_config_and_restart_slurmdbd(self, event):
         """Check for prereqs before writing config/restart of slurmdbd."""
-
         # Ensure all pre-conditions are met with _check_statu(), if not
         # defer the event.
         if not self._check_status():
@@ -147,7 +145,7 @@ class SlurmdbdCharm(CharmBase):
                     # This means that the same slurmdbd_info data may be set on
                     # application data multiple times and slurmdbd may be
                     # reconfigured and restarted while slurmctld and the rest
-                    # of the stack are trying to come up and create the cluster.
+                    # of the stack are trying to come up and create the clustr.
                     #
                     # We need slurm-configurator to emit the relation-changed
                     # event for the slurmdbd relation every time data is set,

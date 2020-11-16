@@ -1,0 +1,225 @@
+name: TestBuildDeployEdge
+  
+on: pull_request
+jobs:
+  lint-charms:
+    name: "Lint the charms"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
+      - name: "Install tox, run 'make lint'"
+        run: | 
+          pip install tox
+          make lint
+
+  build-charms:
+    name: "Build the charms"
+    needs: lint-charms
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
+      - name: "Install charmcraft and build charms"
+        run: |
+          pip install charmcraft
+          make charms
+
+      - name: Cache built charms
+        if: ${{ success() }}
+        id: slurm-charms
+        uses: actions/cache@v2
+        with:
+          path: |
+            slurmd.charm
+            slurmdbd.charm
+            slurmctld.charm
+            slurmrestd.charm
+            slurm-configurator.charm
+          key: slurm-charms
+  
+  cache-juju-tar:
+    name: "Cache juju tar for future jobs"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Configure AWS Credentials"
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: "Pull juju creds from s3"
+        if: steps.juju-tar.outputs.cache-hit != 'true'
+        run: |
+          aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
+          tar -xzvf juju-local.tar.gz
+
+      - name: "Cache juju tar"
+        if: ${{ success() }}
+        id: juju-tar
+        uses: actions/cache@v2
+        with:
+          path: |
+            .local/share/juju
+          key: juju-tar
+
+  deploy-slurm-focal-on-aws:
+    name: "Deploy focal on aws"
+    runs-on: "ubuntu-latest"
+    needs: [cache-juju-tar, build-charms]
+    steps:
+      - uses: actions/checkout@v2
+      - name: "Store commit sha for later use"
+        id: vars
+        shell: bash
+        run: |
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+
+      - name: "Restore cached juju tar"
+        uses: actions/cache@v2
+        with:
+          path: |
+            .local/share/juju
+          key: juju-tar
+
+      - name: "Restore built charms"
+        uses: actions/cache@v2
+        with:
+          path: |
+            slurmd.charm
+            slurmdbd.charm
+            slurmctld.charm
+            slurmrestd.charm
+            slurm-configurator.charm
+          key: slurm-charms
+
+      - name: "Set JUJU_DATA to GITHUB_ENV"
+        run: |
+          echo "JUJU_DATA=/home/runner/work/slurm-charms/slurm-charms/.local/share/juju" >> $GITHUB_ENV
+
+      - name: "Install juju"
+        run: | 
+          sudo snap install juju --classic
+
+      - name: "Login to juju controller as cicd user"
+        run: |
+          echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju login --user circleci
+
+      - name: "Add model to house charms for testing"
+        if: ${{ success() }}
+        run: |
+          juju add-model ${{ steps.vars.outputs.sha_short }}-focal
+          juju add-space -m ${{ steps.vars.outputs.sha_short }}-focal nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+          juju model-config logging-config="<root>=DEBUG;<unit>=DEBUG"
+
+      - name: "Deploy charms"
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          for charm in slurmctld slurmd slurmrestd slurm-configurator slurmdbd; do
+            juju deploy ./$charm.charm --series focal --bind nat
+          done
+          juju deploy percona-cluster --bind nat
+
+          juju relate slurmdbd percona-cluster
+          juju relate slurmd slurm-configurator
+          juju relate slurmdbd slurm-configurator
+          juju relate slurmctld slurm-configurator
+          juju relate slurmrestd slurm-configurator
+
+      - name: "Wait for deployment to settle"
+        if: ${{ success() }}
+        run: |
+          sudo snap install juju-wait --classic
+          juju-wait
+
+      - name: "Test sinfo works"
+        if: ${{ success() }}
+        run: |
+          juju run "sinfo" --unit slurmd/0
+
+      - name: "Remove applications from juju model"
+        if: ${{ always() }}
+        run: |
+          juju remove-application slurmctld
+          juju remove-application slurmdbd
+          juju remove-application slurmd
+          juju remove-application slurmrestd
+          juju remove-application slurm-configurator
+          juju remove-application percona-cluster
+
+      - name: "Grab the slurm logs"
+        if: ${{ always() }}
+        run: |
+          juju debug-log --replay --include slurmd > slurmd-focal.txt
+          juju debug-log --replay --include slurmrestd > slurmrestd-focal.txt
+          juju debug-log --replay --include slurmdbd > slurmdbd-focal.txt
+          juju debug-log --replay --include slurmctld > slurmctld-focal.txt
+          juju debug-log --replay --include slurm-configurator > slurm-configurator-focal.txt
+
+      - name: "Upload slurm charm logs"
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: slurm-charm-logs
+          path: |
+            slurmctld-focal.txt
+            slurmdbd-focal.txt
+            slurmd-focal.txt
+            slurmrestd-focal.txt
+            slurm-configurator-focal.txt
+
+      - name: "Destroy the model"
+        if: ${{ always() }}
+        run: |
+          juju destroy-model -y ${{ steps.vars.outputs.sha_short }}-focal
+
+  release-slurm-charms-to-edge:
+    name: "Push slurm charms to s3"
+    runs-on: "ubuntu-latest"
+    needs: [deploy-slurm-focal-on-aws]
+    steps:
+      - name: "Configure AWS Credentials"
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: "Restore built charms"
+        uses: actions/cache@v2
+        with:
+          path: |
+            slurmd.charm
+            slurmdbd.charm
+            slurmctld.charm
+            slurmrestd.charm
+            slurm-configurator.charm
+          key: slurm-charms
+
+      - name: "Push charms to s3"
+        shell: bash
+        run: |
+          for charm in slurmctld slurmdbd slurmd slurm-configurator slurmrestd; do
+              aws s3 cp $charm.charm s3://omnivector-public-assets/charms/$charm/edge/
+          done
+
+  notify:
+    name: notify
+    runs-on: ubuntu-latest
+    needs: [release-slurm-charms-to-edge]
+    steps:
+      - uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
+        if: always() # Pick up events even if the job fails or is canceled.

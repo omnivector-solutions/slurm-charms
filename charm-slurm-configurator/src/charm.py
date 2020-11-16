@@ -188,7 +188,7 @@ class SlurmConfiguratorCharm(CharmBase):
         slurmd_info = self._slurmd.get_slurmd_info()
 
         if not (slurmd_info and slurmctld_info and slurmdbd_info):
-            return None
+            return {}
 
         addons_info = self._assemble_addons()
         partitions_info = self._assemble_partitions(slurmd_info)
@@ -212,18 +212,40 @@ class SlurmConfiguratorCharm(CharmBase):
         slurmd_info_tmp = copy.deepcopy(slurmd_info)
 
         for partition in slurmd_info:
+
+            # Deep copy the partition to a tmp var so we can modify it as
+            # needed whilst not modifying the object we are iterating over.
             partition_tmp = copy.deepcopy(partition)
-            if partition['partition_name'] == self._stored.default_partition:
-                partition_tmp['partition_default'] = 'YES'
-                slurmd_info_tmp.remove(partition)
-                slurmd_info_tmp.append(partition_tmp)
+            # Extract the partition_name from the partition and from the charm
+            # config.
+            partition_name = partition['partition_name']
+            default_partition_from_config = self.model.config.get(
+                'default_partition'
+            )
+
+            # Check that the default_partition isn't defined in the charm
+            # config.
+            # If the user hasn't provided a default partition, then we infer
+            # the partition_default by defaulting to the first related slurmd
+            # application.
+            if not default_partition_from_config:
+                if partition['partition_name'] ==\
+                   self._stored.default_partition:
+                    partition_tmp['partition_default'] = 'YES'
+            else:
+                if default_partition_from_config == partition_name:
+                    partition_tmp['partition_default'] = 'YES'
+
+            slurmd_info_tmp.remove(partition)
+            slurmd_info_tmp.append(partition_tmp)
 
         return slurmd_info_tmp
 
     def _assemble_addons(self):
         """Assemble any addon components."""
         acct_gather = self._get_influxdb_info()
-        elasticsearch_ingress = self._elasticsearch.get_elasticsearch_ingress()
+        elasticsearch_ingress = \
+            self._elasticsearch.get_elasticsearch_ingress()
         nhc_info = self._nhc.get_nhc_info()
 
         ctxt = dict()
@@ -282,6 +304,9 @@ class SlurmConfiguratorCharm(CharmBase):
         """Return influxdb info."""
         return self._influxdb.get_influxdb_info()
 
+    def _is_leader(self):
+        return self.model.unit.is_leader()
+
     def get_munge_key(self):
         """Return the slurmdbd_info from stored state."""
         return self._stored.munge_key
@@ -289,9 +314,6 @@ class SlurmConfiguratorCharm(CharmBase):
     def get_default_partition(self):
         """Return self._stored.default_partition."""
         return self._stored.default_partition
-
-    def _is_leader(self):
-        return self.model.unit.is_leader()
 
     def is_slurm_installed(self):
         """Return true/false based on whether or not slurm is installed."""

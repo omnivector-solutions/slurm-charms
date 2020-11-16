@@ -6,6 +6,11 @@ options:
       'Name to be recorded in database for jobs from this cluster.  This is
       important if a single database is used to record information  from
       multiple Slurm-managed clusters.'
+  default_partition:
+    type: string
+    default: ""
+    description: >-
+      'Default partition. This is only used if defined, and must match an existing partition.'
   acct_gather_custom:
     type: string
     default: ""

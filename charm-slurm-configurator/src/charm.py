@@ -219,16 +219,20 @@ class SlurmConfiguratorCharm(CharmBase):
             # Extract the partition_name from the partition and from the charm
             # config.
             partition_name = partition['partition_name']
-            default_partition_rom_config = self.model.config.get('default_partition')
+            default_partition_from_config = self.model.config.get(
+                'default_partition'
+            )
 
-            # Check that the default_partition isn't defined in the charm config.
+            # Check that the default_partition isn't defined in the charm
+            # config.
             # If the user hasn't provided a default partition, then we infer
             # the partition_default by defaulting to the first related slurmd
             # application.
             if not default_partition_from_config:
-                if partition['partition_name'] == self._stored.default_partition:
+                if partition['partition_name'] ==\
+                   self._stored.default_partition:
                     partition_tmp['partition_default'] = 'YES'
-            else
+            else:
                 if default_partition_from_config == partition_name:
                     partition_tmp['partition_default'] = 'YES'
 
@@ -240,7 +244,8 @@ class SlurmConfiguratorCharm(CharmBase):
     def _assemble_addons(self):
         """Assemble any addon components."""
         acct_gather = self._get_influxdb_info()
-        elasticsearch_ingress = self._elasticsearch.get_elasticsearch_ingress()
+        elasticsearch_ingress = \
+            self._elasticsearch.get_elasticsearch_ingress()
         nhc_info = self._nhc.get_nhc_info()
 
         ctxt = dict()

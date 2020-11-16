@@ -212,11 +212,28 @@ class SlurmConfiguratorCharm(CharmBase):
         slurmd_info_tmp = copy.deepcopy(slurmd_info)
 
         for partition in slurmd_info:
+
+            # Deep copy the partition to a tmp var so we can modify it as
+            # needed whilst not modifying the object we are iterating over.
             partition_tmp = copy.deepcopy(partition)
-            if partition['partition_name'] == self._stored.default_partition:
-                partition_tmp['partition_default'] = 'YES'
-                slurmd_info_tmp.remove(partition)
-                slurmd_info_tmp.append(partition_tmp)
+            # Extract the partition_name from the partition and from the charm
+            # config.
+            partition_name = partition['partition_name']
+            default_partition_rom_config = self.model.config.get('default_partition')
+
+            # Check that the default_partition isn't defined in the charm config.
+            # If the user hasn't provided a default partition, then we infer
+            # the partition_default by defaulting to the first related slurmd
+            # application.
+            if not default_partition_from_config:
+                if partition['partition_name'] == self._stored.default_partition:
+                    partition_tmp['partition_default'] = 'YES'
+            else
+                if default_partition_from_config == partition_name:
+                    partition_tmp['partition_default'] = 'YES'
+
+            slurmd_info_tmp.remove(partition)
+            slurmd_info_tmp.append(partition_tmp)
 
         return slurmd_info_tmp
 

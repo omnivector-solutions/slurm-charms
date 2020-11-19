@@ -2,15 +2,15 @@
 """Slurmd."""
 import json
 import logging
-
+import socket
 
 from ops.framework import (
     EventBase,
     EventSource,
     Object,
     ObjectEvents,
-    StoredState,
 )
+from utils import get_inventory
 
 
 logger = logging.getLogger()
@@ -40,14 +40,12 @@ class Slurmd(Object):
     """Slurmd."""
 
     on = SlurmdRequiresEvents()
-    _state = StoredState()
 
     def __init__(self, charm, relation_name):
         """Set self._relation_name and self.charm."""
         super().__init__(charm, relation_name)
         self._charm = charm
         self._relation_name = relation_name
-
         self.framework.observe(
             self._charm.on[self._relation_name].relation_created,
             self._on_relation_created
@@ -68,6 +66,8 @@ class Slurmd(Object):
     def _on_relation_created(self, event):
         # Check that slurm has been installed so that we know the munge key is
         # available. Defer if slurm has not been installed yet.
+        self._charm.node_name =  socket.gethostname()
+        self._charm.node_addr = event.relation.data[self.model.unit]['ingress-address']
         if not self._charm.is_slurm_installed():
             event.defer()
             return
@@ -114,7 +114,19 @@ class Slurmd(Object):
                 if app_data:
                     slurmd_info = app_data.get('slurmd_info')
                     if slurmd_info:
+                        logger.debug("$$$$$$$$ SINGLE NODE $$$$$$$$$$$")
+                        logger.debug(slurmd_info)
                         nodes_info.append(json.loads(slurmd_info))
+        slurm-configurator = {
+            'inventory': get_inventory(
+                self._charm._stored.node_name,
+                self._charm._stored.node_addr),
+            'partition_name': 'configurator',
+            'partition_state': 'DRAIN',
+            'partition_config': ''
+        }
+        nodes_info.append(slurm-configurator)
+        logger.debug(nodes_info)
         return nodes_info
 
     def set_slurm_config_on_app_relation_data(

@@ -43,6 +43,8 @@ class SlurmConfiguratorCharm(CharmBase):
             slurmd_available=False,
             slurmrestd_available=False,
             slurm_license_available=False,
+            node_name=None,
+            node_addr=None,
         )
 
         self._elasticsearch = Elasticsearch(self, "elasticsearch")

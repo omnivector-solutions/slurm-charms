@@ -56,7 +56,6 @@ class SlurmConfiguratorCharm(CharmBase):
         self._slurmd = Slurmd(self, "slurmd")
         self._prolog_epilog = PrologEpilog(self, "prolog-epilog")
 
-
         # #### Charm lifecycle events #### #
         event_handler_bindings = {
             # #### Juju lifecycle events #### #
@@ -259,7 +258,7 @@ class SlurmConfiguratorCharm(CharmBase):
         prolog_epilog = self._prolog_epilog.get_prolog_epilog()
 
         ctxt = dict()
-      
+
         if prolog_epilog:
             ctxt['prolog_epilog'] = prolog_epilog
 

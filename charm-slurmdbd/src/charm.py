@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Slurmdbd Operator Charm."""
+import logging
 import uuid
 
 from interface_mysql import MySQLClient
@@ -14,6 +15,8 @@ from ops.model import (
     BlockedStatus,
 )
 from slurm_ops_manager import SlurmManager
+
+logger = logging.getLogger()
 
 
 class SlurmdbdCharm(CharmBase):
@@ -118,7 +121,7 @@ class SlurmdbdCharm(CharmBase):
         }
 
         self._slurm_manager.render_config_and_restart(slurmdbd_config)
-
+        logger.debug("rendering config and restarting")
         # Only the leader can set relation data on the application.
         # Enforce that no one other then the leader trys to set
         # application relation data.

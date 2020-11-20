@@ -2,7 +2,7 @@
 """Slurmd."""
 import json
 import logging
-
+import socket
 
 from ops.framework import (
     EventBase,
@@ -11,7 +11,7 @@ from ops.framework import (
     ObjectEvents,
     StoredState,
 )
-
+from utils import get_inventory
 
 logger = logging.getLogger()
 
@@ -115,6 +115,15 @@ class Slurmd(Object):
                     slurmd_info = app_data.get('slurmd_info')
                     if slurmd_info:
                         nodes_info.append(json.loads(slurmd_info))
+        slurm_configurator = {
+            'inventory': [get_inventory(
+                socket.gethostname(),
+                socket.gethostname())],
+            'partition_name': 'configurator',
+            'partition_state': 'DRAIN',
+            'partition_config': ''
+        }
+        nodes_info.append(slurm_configurator)
         return nodes_info
 
     def set_slurm_config_on_app_relation_data(

@@ -31,6 +31,8 @@ requires:
     interface: nhc
   influxdb-api:
     interface: influxdb-api
+  prolog-epilog:
+    interface: prolog-epilog
 
 provides:
   grafana-source:

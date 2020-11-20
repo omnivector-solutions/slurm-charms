@@ -117,15 +117,15 @@ class Slurmd(Object):
                         logger.debug("$$$$$$$$ SINGLE NODE $$$$$$$$$$$")
                         logger.debug(slurmd_info)
                         nodes_info.append(json.loads(slurmd_info))
-        slurm-configurator = {
-            'inventory': get_inventory(
-                self._charm._stored.node_name,
-                self._charm._stored.node_addr),
+        slurm_configurator = {
+            'inventory': [get_inventory(
+                socket.gethostname(),
+                socket.gethostname())],
             'partition_name': 'configurator',
             'partition_state': 'DRAIN',
             'partition_config': ''
         }
-        nodes_info.append(slurm-configurator)
+        nodes_info.append(slurm_configurator)
         logger.debug(nodes_info)
         return nodes_info
 

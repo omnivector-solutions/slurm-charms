@@ -73,7 +73,13 @@ class SlurmdPeer(Object):
 
         slurmd_info = [
             json.loads(relation.data[peer]['inventory'])
-            for peer in peers if peer.name in slurmd_peers
+            for peer in peers if (
+                (peer.name in slurmd_peers) and (
+                    (relation.data.get(peer)) and (
+                        relation.data[peer].get('inventory')
+                    )
+                )
+            )
         ]
 
         # Add our own inventory to the slurmd_info

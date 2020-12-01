@@ -73,7 +73,7 @@ class PrologEpilog(Object):
         self.on.prolog_epilog_available.emit()
 
     def _on_relation_broken(self, event):
-        self._stored.prolog_epilog = None
+        self._stored.prolog_epilog = {}
 
     def get_prolog_epilog(self):
         """Get path of epilog/prolog."""

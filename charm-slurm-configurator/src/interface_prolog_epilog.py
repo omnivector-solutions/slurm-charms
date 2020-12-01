@@ -15,19 +15,19 @@ from ops.framework import (
 logger = logging.getLogger()
 
 
-class SlurmLicenseAvailableEvent(EventBase):
-    """Emmited when slurmlicense is available."""
+class PrologEpilogAvailableEvent(EventBase):
+    """Emmited when the prolog and epilog are available."""
 
 
-class SlurmLicenseUnavailableEvent(EventBase):
-    """Emmited when slurmlicense is available."""
+class PrologEpilogUnavailableEvent(EventBase):
+    """Emmited when the prolog and epilog are unavailable."""
 
 
 class SlurmLicenseEvents(ObjectEvents):
     """SlurmlicenseEvents."""
 
-    prolog_epilog_available = EventSource(SlurmLicenseAvailableEvent)
-    prolog_epilog_unavailable = EventSource(SlurmLicenseUnavailableEvent)
+    prolog_epilog_available = EventSource(PrologEpilogAvailableEvent)
+    prolog_epilog_unavailable = EventSource(PrologEpilogUnavailableEvent)
 
 
 class PrologEpilog(Object):
@@ -74,6 +74,7 @@ class PrologEpilog(Object):
 
     def _on_relation_broken(self, event):
         self._stored.prolog_epilog = ""
+        self.on.prolog_epilog_unavailable.emit()
 
     def get_prolog_epilog(self):
         """Get path of epilog/prolog."""

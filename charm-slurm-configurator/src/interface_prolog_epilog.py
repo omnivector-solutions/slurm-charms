@@ -42,7 +42,7 @@ class PrologEpilog(Object):
 
         self._charm = charm
         self._stored.set_default(
-            prolog_epilog=dict(),
+            prolog_epilog=str(),
         )
         self.framework.observe(
             self._charm.on[relation_name].relation_changed,
@@ -73,7 +73,7 @@ class PrologEpilog(Object):
         self.on.prolog_epilog_available.emit()
 
     def _on_relation_broken(self, event):
-        self._stored.prolog_epilog = {}
+        self._stored.prolog_epilog = ""
 
     def get_prolog_epilog(self):
         """Get path of epilog/prolog."""

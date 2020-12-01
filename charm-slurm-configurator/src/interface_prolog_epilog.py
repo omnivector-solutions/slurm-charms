@@ -71,11 +71,10 @@ class PrologEpilog(Object):
         })
 
         # Store the license path in the charm's state
-        self._charm.set_slurm_license_available(True)
         self.on.prolog_epilog_available.emit()
 
     def _on_relation_broken(self, event):
-        self._charm.set_slurm_license_available(False)
+        self._stored.prolog_epilog = None
 
     def get_prolog_epilog(self):
         """Get path of epilog/prolog."""

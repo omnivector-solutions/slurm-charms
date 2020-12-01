@@ -42,7 +42,7 @@ class PrologEpilog(Object):
 
         self._charm = charm
         self._stored.set_default(
-            prolog_epilog=dict(),
+            prolog_epilog=str(),
         )
         self.framework.observe(
             self._charm.on[relation_name].relation_changed,
@@ -70,12 +70,10 @@ class PrologEpilog(Object):
             'slurmctld_prolog_path': prolog
         })
 
-        # Store the license path in the charm's state
-        self._charm.set_slurm_license_available(True)
         self.on.prolog_epilog_available.emit()
 
     def _on_relation_broken(self, event):
-        self._charm.set_slurm_license_available(False)
+        self._stored.prolog_epilog = ""
 
     def get_prolog_epilog(self):
         """Get path of epilog/prolog."""

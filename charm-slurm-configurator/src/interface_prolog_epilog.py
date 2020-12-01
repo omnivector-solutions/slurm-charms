@@ -70,7 +70,6 @@ class PrologEpilog(Object):
             'slurmctld_prolog_path': prolog
         })
 
-        # Store the license path in the charm's state
         self.on.prolog_epilog_available.emit()
 
     def _on_relation_broken(self, event):

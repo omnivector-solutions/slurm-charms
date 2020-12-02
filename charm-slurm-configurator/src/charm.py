@@ -115,6 +115,9 @@ class SlurmConfiguratorCharm(CharmBase):
 
             self._prolog_epilog.on.prolog_epilog_available:
             self._on_check_status_and_write_config,
+
+            self._prolog_epilog.on.prolog_epilog_unavailable:
+            self._on_check_status_and_write_config,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)

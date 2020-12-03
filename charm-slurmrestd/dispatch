@@ -12,7 +12,7 @@ if ! [[ -f '.installed' ]]; then
     # Determine if we are running in centos or ubuntu, if centos
     # provision the needed prereqs.
     if [[ $ID == 'ubuntu' ]]; then
-        echo "Running ubuntu, prereqs installed."
+        echo "Running ubuntu"
         apt install chrony -y
     elif [[ $ID == 'centos' ]]; then 
 	# Determine the centos version and install prereqs accordingly
@@ -20,11 +20,11 @@ if ! [[ -f '.installed' ]]; then
         echo "Running centos$major, installing prereqs."
 	if [[ $major == "7" ]]; then
 	    yum -y install epel-release
-            yum -y install python3 chrony
+            yum -y install python3
 	    yum -y --enablerepo=epel-testing install snapd
 	elif [[ $major == "8" ]]; then
 	    dnf -y install epel-release
-	    dnf -y install python3 chrony
+	    dnf -y install python3
             dnf -y upgrade
 	    dnf -y install snapd
         else

@@ -1,0 +1,84 @@
+
+name: 'PrepareRelease'
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release (optional)
+        required: true
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    name: "Run craft prepare"
+    steps:
+      - uses: actions/checkout@v2
+
+      - id: set-env
+        run: |
+          echo 'RELEASE_VERSION=${{ github.event.inputs.version }}' >> $GITHUB_ENV;
+          echo 'GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}' >> $GITHUB_ENV;
+      
+      - id: set-git-user
+        run: |
+          git config user.name omnivector-qa
+          git config user.email admin@omnivector.solutions
+      
+      - uses: getsentry/craft@master
+        name: "Craft Prepare"
+        with:
+          action: prepare
+          version: ${{ env.RELEASE_VERSION }}
+        env:
+          GIT_COMMITTER_NAME: omnivector-qa
+          GIT_AUTHOR_NAME: omnivector-qa
+          EMAIL: admin@omnivector.solutions
+
+  build-and-attach:
+    runs-on: ubuntu-latest
+    name: "Build and attach the charm artifact"
+    needs: [prepare]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
+      - id: set-version
+        run: |
+          echo 'RELEASE_VERSION=${{ github.event.inputs.version }}' >> $GITHUB_ENV;
+      - uses: actions/checkout@v2
+        with:
+          ref: releases/${{ env.RELEASE_VERSION }}
+
+      - id: set-git-user
+        run: |
+          git config user.name omnivector-qa
+          git config user.email admin@omnivector.solutions
+      - name: "Install charmcraft and build charms"
+        run: |
+          pip install charmcraft
+          charmcraft build
+     
+      - name: "Parse and store git_sha, charm_file and release_version"
+        if: ${{ success() }}
+        id: vars
+        shell: bash
+        run: |
+          echo "::set-output name=charm_file::$(slurmd.charm)"
+          echo "::set-output name=git_sha::$(git rev-parse HEAD)"
+      - name: Archive Artifacts
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.vars.outputs.git_sha }}
+          path: |
+            ${{ steps.vars.outputs.charm_file }}
+      - uses: Sibz/github-status-action@v1
+        if: ${{ success() }}
+        with:
+          authToken: ${{ secrets.GITHUB_TOKEN }}
+          context: 'ReleaseAction'
+          description: 'Passed'
+          state: 'success'
+          sha: ${{ steps.vars.outputs.git_sha }}

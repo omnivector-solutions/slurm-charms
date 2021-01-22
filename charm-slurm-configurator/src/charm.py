@@ -35,7 +35,6 @@ class SlurmConfiguratorCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
-            default_partition=str(),
             munge_key=str(),
             slurm_installed=False,
             slurmctld_available=False,
@@ -240,8 +239,7 @@ class SlurmConfiguratorCharm(CharmBase):
             # the partition_default by defaulting to the first related slurmd
             # application.
             if not default_partition_from_config:
-                if partition['partition_name'] ==\
-                   self._stored.default_partition:
+                if partition['partition_name'] == "configurator":
                     partition_tmp['partition_default'] = 'YES'
             else:
                 if default_partition_from_config == partition_name:
@@ -289,10 +287,8 @@ class SlurmConfiguratorCharm(CharmBase):
         slurmdbd_available = self._stored.slurmdbd_available
         slurmd_available = self._stored.slurmd_available
         slurm_installed = self._stored.slurm_installed
-        default_partition = self._stored.default_partition
 
         deps = [
-            default_partition,
             slurmctld_available,
             slurmdbd_available,
             slurmd_available,
@@ -306,10 +302,8 @@ class SlurmConfiguratorCharm(CharmBase):
                 self.unit.status = BlockedStatus("NEED RELATION TO SLURMDBD")
             elif not slurmd_available:
                 self.unit.status = BlockedStatus("NEED RELATION TO SLURMD")
-            elif not slurm_installed:
-                self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
             else:
-                self.unit.status = BlockedStatus("PARTITION NAME UNAVAILABLE")
+                self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
             return False
         else:
             self.unit.status = ActiveStatus("")
@@ -326,10 +320,6 @@ class SlurmConfiguratorCharm(CharmBase):
         """Return the slurmdbd_info from stored state."""
         return self._stored.munge_key
 
-    def get_default_partition(self):
-        """Return self._stored.default_partition."""
-        return self._stored.default_partition
-
     def is_slurm_installed(self):
         """Return true/false based on whether or not slurm is installed."""
         return self._stored.slurm_installed
@@ -341,10 +331,6 @@ class SlurmConfiguratorCharm(CharmBase):
     def set_slurmdbd_available(self, slurmdbd_available):
         """Set slurmdbd_available."""
         self._stored.slurmdbd_available = slurmdbd_available
-
-    def set_default_partition(self, partition_name):
-        """Set self._stored.default_partition."""
-        self._stored.default_partition = partition_name
 
     def set_slurmd_available(self, slurmd_available):
         """Set slurmd_available."""

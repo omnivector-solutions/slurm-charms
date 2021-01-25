@@ -53,10 +53,6 @@ class Slurmd(Object):
             self._on_relation_created
         )
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_joined,
-            self._on_relation_joined
-        )
-        self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )

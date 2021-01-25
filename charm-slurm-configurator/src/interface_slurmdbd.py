@@ -97,6 +97,11 @@ class Slurmdbd(Object):
     def _relation(self):
         return self.framework.model.get_relation(self._relation_name)
 
+    @property
+    def is_joined(self):
+        """Return True if self._relation is not None."""
+        return self._relation is not None
+
     def get_slurmdbd_info(self):
         """Return the slurmdbd_info."""
         relation = self._relation

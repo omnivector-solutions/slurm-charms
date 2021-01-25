@@ -69,7 +69,7 @@ class Slurmctld(Object):
             event.defer()
             return
         # Get the munge_key from the slurm_ops_manager and set it to the app
-        # data on the relation to be retrieved on the other side by slurmdbd.
+        # data on the relation to be retrieved on the other side by slurmctld.
         app_relation_data = event.relation.data[self.model.app]
         app_relation_data['munge_key'] = self._charm.get_munge_key()
 
@@ -97,6 +97,11 @@ class Slurmctld(Object):
     @property
     def _relation(self):
         return self.framework.model.get_relation(self._relation_name)
+
+    @property
+    def is_joined(self):
+        """Return True if self._relation is not None."""
+        return self._relation is not None
 
     def get_slurmctld_info(self):
         """Return the slurmctld_info."""

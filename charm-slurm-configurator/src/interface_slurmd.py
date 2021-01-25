@@ -16,7 +16,11 @@ from utils import get_inventory
 logger = logging.getLogger()
 
 
-class SlurmdUnAvailableEvent(EventBase):
+class SlurmdAvailableEvent(EventBase):
+    """Emmited when slurmd is available."""
+
+
+class SlurmdBrokenEvent(EventBase):
     """Emmited when the slurmd relation is broken."""
 
 
@@ -24,16 +28,12 @@ class SlurmdDepartedEvent(EventBase):
     """Emmited when a slurmd unit departs."""
 
 
-class SlurmdAvailableEvent(EventBase):
-    """Emmited when slurmd is available."""
-
-
 class SlurmdRequiresEvents(ObjectEvents):
     """SlurmClusterProviderRelationEvents."""
 
     slurmd_available = EventSource(SlurmdAvailableEvent)
     slurmd_departed = EventSource(SlurmdDepartedEvent)
-    slurmd_unavailable = EventSource(SlurmdUnAvailableEvent)
+    slurmd_unavailable = EventSource(SlurmdBrokenEvent)
 
 
 class Slurmd(Object):
@@ -88,6 +88,16 @@ class Slurmd(Object):
             event.relation.data[self.model.app]['munge_key'] = ""
             self.set_slurm_config_on_app_relation_data("")
         self._charm.set_slurmd_available(False)
+        self.on.slurmd_unavailable.emit()
+
+    @property
+    def _relation(self):
+        return self.framework.model.get_relation(self._relation_name)
+
+    @property
+    def is_joined(self):
+        """Return True if self._relation is not None."""
+        return self._relation is not None
 
     def _assemble_slurm_configurator_inventory(self):
         """Assemble the slurm-configurator partition."""

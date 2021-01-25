@@ -18,6 +18,7 @@ from ops.main import main
 from ops.model import (
     ActiveStatus,
     BlockedStatus,
+    WaitingStatus,
 )
 from slurm_ops_manager import SlurmManager
 
@@ -288,26 +289,55 @@ class SlurmConfiguratorCharm(CharmBase):
         slurmd_available = self._stored.slurmd_available
         slurm_installed = self._stored.slurm_installed
 
-        deps = [
-            slurmctld_available,
-            slurmdbd_available,
-            slurmd_available,
-            slurm_installed,
-        ]
+        slurmctld_joined = self._slurmctld.is_joined
+        slurmdbd_joined = self._slurmdbd.is_joined
+        slurmd_joined = self._slurmd.is_joined
 
-        if not all(deps):
-            if not slurmctld_available:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURMCTLD")
-            elif not slurmdbd_available:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURMDBD")
-            elif not slurmd_available:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURMD")
+        relations_needed = []
+        waiting_on = []
+
+        msg = str()
+
+        if not slurmctld_available:
+            if not slurmctld_joined:
+                relations_needed.append("slurmctld")
             else:
-                self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
-            return False
+                waiting_on.append("slurmctld")
+
+        if not slurmdbd_available:
+            if not slurmdbd_joined:
+                relations_needed.append("slurmdbd")
+            else:
+                waiting_on.append("slurmdbd")
+
+        if not slurmd_available:
+            if not slurmd_joined:
+                relations_needed.append("slurmd")
+            else:
+                waiting_on.append("slurmd")
+
+        if not slurm_installed:
+            waiting_on.append("snap install")
+
+        relations_needed_len = len(relations_needed)
+        waiting_on_len = len(waiting_on)
+
+        if relations_needed_len > 0:
+            msg += f"Needed relations: {','.join(relations_needed)} "
+
+        if waiting_on_len > 0:
+            msg += f"Waiting on: {','.join(waiting_on)}"
+
+        # Using what we have gathered about the status of each slurm component,
+        # determine the application status.
+        if relations_needed_len > 0:
+            self.unit.status = BlockedStatus(msg)
+        elif waiting_on_len > 0:
+            self.unit.status = WaitingStatus(msg)
         else:
             self.unit.status = ActiveStatus("")
             return True
+        return False
 
     def _get_influxdb_info(self):
         """Return influxdb info."""

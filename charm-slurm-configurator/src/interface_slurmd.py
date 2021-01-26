@@ -129,7 +129,7 @@ class Slurmd(Object):
         # 1) Create a temp copy of the partitions list and iterate
         # over it.
         #
-        # 2) On each pass we get create a temp copy of the partition itself.
+        # 2) On each pass create a temp copy of the partition itself.
         #
         # 3) Get the inventory from the temp partition and iterate over it to
         # ensure we have unique entries.

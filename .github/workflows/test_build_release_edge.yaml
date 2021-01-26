@@ -31,6 +31,12 @@ jobs:
           pip install charmcraft
           make charms
 
+      - name: "Store charm hash filename for later use"
+        if: ${{ success() }}
+        id: vars
+        run: |
+          echo "::set-output name=charm_hash::${{hashFiles('*.charm')}}"
+
       - name: Cache built charms
         if: ${{ success() }}
         id: slurm-charms
@@ -42,7 +48,7 @@ jobs:
             slurmctld.charm
             slurmrestd.charm
             slurm-configurator.charm
-          key: slurm-charms
+          key: slurm-charms-${{ steps.vars.outputs.charm_hash }}
   
   cache-juju-tar:
     name: "Cache juju tar for future jobs"
@@ -69,6 +75,8 @@ jobs:
           path: |
             .local/share/juju
           key: juju-tar
+    outputs:
+      charm_hash: ${{ steps.vars.outputs.charm_hash }}
 
   deploy-slurm-focal-on-aws:
     name: "Deploy focal on aws"
@@ -98,7 +106,8 @@ jobs:
             slurmctld.charm
             slurmrestd.charm
             slurm-configurator.charm
-          key: slurm-charms
+          key: slurm-charms-${{ needs.build-charms.outputs.charm_hash }}
+
 
       - name: "Set JUJU_DATA to GITHUB_ENV"
         run: |

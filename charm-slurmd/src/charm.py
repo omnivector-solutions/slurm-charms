@@ -55,8 +55,8 @@ class SlurmdCharm(CharmBase):
             self._slurmd_peer.on.slurmd_peer_available:
             self._on_send_slurmd_info,
 
-            self._slurmd.on.slurm_config_available:
-            self._on_check_status_and_write_config,
+            #self._slurmd.on.slurm_config_available:
+            #self._on_check_status_and_write_config,
 
             self.on.set_node_state_action:
             self._on_set_node_state_action,
@@ -69,9 +69,9 @@ class SlurmdCharm(CharmBase):
 
         if self.model.unit.is_leader():
             self._get_set_partition_name()
-            logger.debug("LOGGING PARTITION_NAME")
-            logger.debug(self._stored.partition_name)
-
+            logger.debug(
+                f"PARTITION_NAME: {self._stored.partition_name}"
+            )
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("Slurm Installed")
 
@@ -107,10 +107,10 @@ class SlurmdCharm(CharmBase):
             event.defer()
             return
 
-        slurm_config = self._slurmd.get_slurm_config()
-        if not slurm_config:
-            event.defer()
-            return
+        #slurm_config = self._slurmd.get_slurm_config()
+        #if not slurm_config:
+        #    event.defer()
+        #    return
 
         munge_key = self._stored.munge_key
         if not munge_key:
@@ -118,7 +118,8 @@ class SlurmdCharm(CharmBase):
             return
 
         self._slurm_manager.render_config_and_restart(
-            {**slurm_config, 'munge_key': munge_key}
+            #{**slurm_config, 'munge_key': munge_key}
+            {'munge_key': munge_key}
         )
         self.unit.status = ActiveStatus("Slurmd Available")
 

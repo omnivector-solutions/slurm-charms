@@ -326,7 +326,7 @@ class SlurmConfiguratorCharm(CharmBase):
         elif waiting_on_len > 0:
             self.unit.status = WaitingStatus(msg)
         else:
-            self.unit.status = ActiveStatus("")
+            self.unit.status = ActiveStatus("slurm-configurator available")
             return True
         return False
 

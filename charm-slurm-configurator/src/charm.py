@@ -284,40 +284,31 @@ class SlurmConfiguratorCharm(CharmBase):
 
     def _check_status(self):
         """Check that the core components we need exist."""
-        slurmctld_available = self._stored.slurmctld_available
-        slurmdbd_available = self._stored.slurmdbd_available
-        slurmd_available = self._stored.slurmd_available
-        slurm_installed = self._stored.slurm_installed
-
-        slurmctld_joined = self._slurmctld.is_joined
-        slurmdbd_joined = self._slurmdbd.is_joined
-        slurmd_joined = self._slurmd.is_joined
+        slurm_component_statuses = {
+            "slurmctld": {
+                "available": self._stored.slurmctld_available,
+                "joined": self._slurmctld.is_joined,
+            },
+            "slurmd": {
+                "available": self._stored.slurmd_available,
+                "joined": self._slurmd.is_joined,
+            },
+            "slurmdbd": {
+                "available": self._stored.slurmdbd_available,
+                "joined": self._slurmdbd.is_joined,
+            },
+        }
 
         relations_needed = []
         waiting_on = []
 
         msg = str()
 
-        if not slurmctld_available:
-            if not slurmctld_joined:
-                relations_needed.append("slurmctld")
+        for slurm_component in slurm_component_statuses.keys():
+            if not slurm_component_statuses[slurm_component]["joined"]:
+                relations_needed.append(slurm_component)
             else:
-                waiting_on.append("slurmctld")
-
-        if not slurmdbd_available:
-            if not slurmdbd_joined:
-                relations_needed.append("slurmdbd")
-            else:
-                waiting_on.append("slurmdbd")
-
-        if not slurmd_available:
-            if not slurmd_joined:
-                relations_needed.append("slurmd")
-            else:
-                waiting_on.append("slurmd")
-
-        if not slurm_installed:
-            waiting_on.append("snap install")
+                waiting_on.append(slurm_component)
 
         relations_needed_len = len(relations_needed)
         waiting_on_len = len(waiting_on)

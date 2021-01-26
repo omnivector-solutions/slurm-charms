@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Slurmd."""
+import copy
 import json
 import logging
 import socket
@@ -108,7 +109,7 @@ class Slurmd(Object):
 
     def get_slurmd_info(self):
         """Return the node info for units of applications on the relation."""
-        nodes_info = []
+        partitions = []
         relations = self.framework.model.relations["slurmd"]
 
         for relation in relations:
@@ -118,11 +119,43 @@ class Slurmd(Object):
                 if app_data:
                     slurmd_info = app_data.get("slurmd_info")
                     if slurmd_info:
-                        nodes_info.append(json.loads(slurmd_info))
+                        partitions.append(json.loads(slurmd_info))
 
         slurm_configurator = self._assemble_slurm_configurator_inventory()
-        nodes_info.append(slurm_configurator)
-        return nodes_info
+        partitions.append(slurm_configurator)
+
+        # Ensure we have partitions with unique inventory only
+        #
+        # 1) Create a temp copy of the partitions list and iterate
+        # over it.
+        #
+        # 2) On each pass we get create a temp copy of the partition itself.
+        #
+        # 3) Get the inventory from the temp partition and iterate over it to
+        # ensure we have unique entries.
+        #
+        # 4) Add the unique inventory back to the temp partition and
+        # subsequently add the temp partition back to the original partitions
+        # list.
+        #
+        # 5) Return the list of partitions with unique inventory.
+
+        partitions_tmp = copy.deepcopy(partitions)
+        for partition in partitions_tmp:
+
+            partition_tmp = copy.deepcopy(partition)
+            partitions.remove(partition)
+
+            inventory = partition_tmp["inventory"]
+
+            unique_inventory = list(
+                {node["node_name"]: node for node in inventory}.values()
+            )
+
+            partition_tmp["inventory"] = unique_inventory
+            partitions.append(partition_tmp)
+
+        return partitions
 
     def set_slurm_config_on_app_relation_data(
         self,

@@ -125,7 +125,7 @@ jobs:
         if: ${{ success() }}
         run: |
           juju add-model ${{ steps.vars.outputs.sha_short }}-focal
-          juju add-space -m ${{ steps.vars.outputs.sha_short }}-focal nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+          juju add-space -m ${{ steps.vars.outputs.sha_short }}-focal nat 172.31.80.0/24 172.31.81.0/24 172.31.82.0/24 172.31.83.0/24
           juju model-config logging-config="<root>=DEBUG;<unit>=DEBUG"
 
       - name: "Deploy charms"

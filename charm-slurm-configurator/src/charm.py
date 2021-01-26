@@ -307,7 +307,7 @@ class SlurmConfiguratorCharm(CharmBase):
         for slurm_component in slurm_component_statuses.keys():
             if not slurm_component_statuses[slurm_component]["joined"]:
                 relations_needed.append(slurm_component)
-            else:
+            elif not slurm_component_statuses[slurm_component]["available"]:
                 waiting_on.append(slurm_component)
 
         relations_needed_len = len(relations_needed)

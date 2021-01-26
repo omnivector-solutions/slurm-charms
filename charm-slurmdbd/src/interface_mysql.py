@@ -2,13 +2,7 @@
 """MySqlRequires."""
 import logging
 
-from ops.framework import (
-    EventBase,
-    EventSource,
-    Object,
-    ObjectEvents,
-)
-
+from ops.framework import EventBase, EventSource, Object, ObjectEvents
 
 logger = logging.getLogger()
 
@@ -37,7 +31,7 @@ class MySQLClient(Object):
         # self.on_relation_changed() to handle the event.
         self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
-            self._on_relation_changed
+            self._on_relation_changed,
         )
 
     def _on_relation_changed(self, event):
@@ -46,19 +40,21 @@ class MySQLClient(Object):
             event.defer()
             return
 
-        user = event_unit_data.get('user')
-        password = event_unit_data.get('password')
-        host = event_unit_data.get('host')
-        database = event_unit_data.get('database')
+        user = event_unit_data.get("user")
+        password = event_unit_data.get("password")
+        host = event_unit_data.get("host")
+        database = event_unit_data.get("database")
 
-        if (user and password and host and database):
-            self._charm.set_db_info({
-                'db_username': user,
-                'db_password': password,
-                'db_hostname': host,
-                'db_port': "3306",
-                'db_name': database,
-            })
+        if user and password and host and database:
+            self._charm.set_db_info(
+                {
+                    "db_username": user,
+                    "db_password": password,
+                    "db_hostname": host,
+                    "db_port": "3306",
+                    "db_name": database,
+                }
+            )
             self.on.database_available.emit()
         else:
             logger.info("DB INFO NOT AVAILABLE")

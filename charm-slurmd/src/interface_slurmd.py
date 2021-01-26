@@ -2,12 +2,7 @@
 """Slurmd."""
 import json
 
-from ops.framework import (
-    EventBase,
-    EventSource,
-    Object,
-    ObjectEvents,
-)
+from ops.framework import EventBase, EventSource, Object, ObjectEvents
 
 
 class SlurmConfigAvailableEvent(EventBase):
@@ -33,12 +28,12 @@ class Slurmd(Object):
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_created,
-            self._on_relation_created
+            self._on_relation_created,
         )
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
-            self._on_relation_changed
+            self._on_relation_changed,
         )
 
     def _on_relation_created(self, event):
@@ -49,8 +44,9 @@ class Slurmd(Object):
                 event.defer()
                 return
 
-            event.relation.data[self.model.app]['partition_name'] = \
-                self._charm.get_partition_name()
+            event.relation.data[self.model.app][
+                "partition_name"
+            ] = self._charm.get_partition_name()
 
     def _on_relation_changed(self, event):
         """Check for the munge_key in the relation data."""
@@ -60,7 +56,7 @@ class Slurmd(Object):
             return
 
         # Get the munge_key from slurm-configurator
-        munge_key = event_app_data.get('munge_key')
+        munge_key = event_app_data.get("munge_key")
         if not munge_key:
             event.defer()
             return
@@ -88,11 +84,9 @@ class Slurmd(Object):
         slurm-configurator application(s) to observe the relation-changed
         event so they can acquire and redistribute the updated slurm config.
         """
-        relations = self._charm.framework.model.relations['slurmd']
+        relations = self._charm.framework.model.relations["slurmd"]
         for relation in relations:
-            relation.data[self.model.app]['slurmd_info'] = json.dumps(
-                slurmd_info
-            )
+            relation.data[self.model.app]["slurmd_info"] = json.dumps(slurmd_info)
 
     def get_slurm_config(self):
         """Return slurm_config."""
@@ -102,7 +96,7 @@ class Slurmd(Object):
             if app:
                 app_data = self._relation.data.get(app)
                 if app_data:
-                    slurm_config = app_data.get('slurm_config')
+                    slurm_config = app_data.get("slurm_config")
                     if slurm_config:
                         return json.loads(slurm_config)
         return None

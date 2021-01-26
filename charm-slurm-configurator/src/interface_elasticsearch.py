@@ -2,13 +2,7 @@
 """Elasticserch interface."""
 import logging
 
-from ops.framework import (
-    EventBase,
-    EventSource,
-    Object,
-    ObjectEvents,
-    StoredState,
-)
+from ops.framework import EventBase, EventSource, Object, ObjectEvents, StoredState
 
 logger = logging.getLogger()
 
@@ -46,18 +40,18 @@ class Elasticsearch(Object):
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
-            self._on_relation_changed
+            self._on_relation_changed,
         )
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_broken,
-            self._on_relation_broken
+            self._on_relation_broken,
         )
 
     def _on_relation_changed(self, event):
         """Set elasticsearch_ingress to _stored."""
-        ingress = event.relation.data[event.unit]['ingress-address']
-        self._stored.elasticsearch_ingress = f'http://{ingress}:9200'
+        ingress = event.relation.data[event.unit]["ingress-address"]
+        self._stored.elasticsearch_ingress = f"http://{ingress}:9200"
         self.on.elasticsearch_available.emit()
 
     def _on_relation_broken(self, event):

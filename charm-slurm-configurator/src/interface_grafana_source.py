@@ -2,14 +2,7 @@
 """Grafana Source Interface."""
 import logging
 
-from ops.framework import (
-    EventBase,
-    EventSource,
-    Object,
-    ObjectEvents,
-    StoredState,
-)
-
+from ops.framework import EventBase, EventSource, Object, ObjectEvents, StoredState
 
 logger = logging.getLogger()
 
@@ -40,12 +33,12 @@ class GrafanaSource(Object):
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_joined,
-            self._on_relation_joined
+            self._on_relation_joined,
         )
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_broken,
-            self._on_relation_broken
+            self._on_relation_broken,
         )
 
     def _on_relation_joined(self, event):
@@ -55,10 +48,10 @@ class GrafanaSource(Object):
     def _on_relation_broken(self, event):
         if self.framework.model.unit.is_leader():
             app_relation_data = self._relation.data[self.model.app]
-            app_relation_data['url'] = ""
-            app_relation_data['username'] = ""
-            app_relation_data['password'] = ""
-            app_relation_data['database'] = ""
+            app_relation_data["url"] = ""
+            app_relation_data["username"] = ""
+            app_relation_data["password"] = ""
+            app_relation_data["database"] = ""
             self._stored.grafana_source_created = False
 
     @property
@@ -74,10 +67,9 @@ class GrafanaSource(Object):
         """Set grafana source info on relation."""
         if self.framework.model.unit.is_leader():
             app_relation_data = self._relation.data[self.model.app]
-            app_relation_data['type'] = 'influxdb'
-            app_relation_data['url'] = \
-                f"{influxdb['ingress']}:{influxdb['port']}"
-            app_relation_data['username'] = influxdb['user']
-            app_relation_data['password'] = influxdb['password']
-            app_relation_data['database'] = influxdb['database']
+            app_relation_data["type"] = "influxdb"
+            app_relation_data["url"] = f"{influxdb['ingress']}:{influxdb['port']}"
+            app_relation_data["username"] = influxdb["user"]
+            app_relation_data["password"] = influxdb["password"]
+            app_relation_data["database"] = influxdb["database"]
             self._stored.grafana_source_created = True

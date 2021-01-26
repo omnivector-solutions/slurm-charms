@@ -28,6 +28,10 @@ push-charms-to-edge: ## Push charms to edge s3
 pull-charms-from-edge: clean ## pull charms from edge s3
 	@./scripts/pull_charms.sh edge
 
+format: # reformat source python files
+	isort charm-slurmd charm-slurmdbd charm-slurmctld charm-slurm-configurator --skip-glob '*/[0-9][0-9][0-9][0-9]*.py'
+	black charm-slurmd charm-slurmdbd charm-slurmctld charm-slurm-configurator --exclude '\d{4}.*\.py'
+
 # Display target comments in 'make help'
 help: 
 	grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'

@@ -9,19 +9,15 @@ from interface_influxdb import InfluxDB
 from interface_nhc import Nhc
 from interface_prolog_epilog import PrologEpilog
 from interface_slurmctld import Slurmctld
-from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
 from interface_slurmrestd import Slurmrestd
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
-from ops.model import (
-    ActiveStatus,
-    BlockedStatus,
-    WaitingStatus,
-)
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 from slurm_ops_manager import SlurmManager
 
+from interface_slurmd import Slurmd
 
 logger = logging.getLogger()
 
@@ -42,7 +38,6 @@ class SlurmConfiguratorCharm(CharmBase):
             slurmdbd_available=False,
             slurmd_available=False,
             slurmrestd_available=False,
-
         )
 
         self._elasticsearch = Elasticsearch(self, "elasticsearch")
@@ -60,64 +55,28 @@ class SlurmConfiguratorCharm(CharmBase):
         event_handler_bindings = {
             # #### Juju lifecycle events #### #
             self.on.install: self._on_install,
-
             # self.on.start:
             # self._on_check_status_and_write_config,
-
-            self.on.config_changed:
-            self._on_check_status_and_write_config,
-
+            self.on.config_changed: self._on_check_status_and_write_config,
             self.on.upgrade_charm: self._on_upgrade,
-
             # ######## Addons lifecycle events ######## #
-            self._elasticsearch.on.elasticsearch_available:
-            self._on_check_status_and_write_config,
-
-            self._elasticsearch.on.elasticsearch_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._grafana.on.grafana_available:
-            self._on_grafana_available,
-
-            self._influxdb.on.influxdb_available:
-            self._on_influxdb_available,
-
-            self._influxdb.on.influxdb_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._nhc.on.nhc_bin_available:
-            self._on_check_status_and_write_config,
-
+            self._elasticsearch.on.elasticsearch_available: self._on_check_status_and_write_config,
+            self._elasticsearch.on.elasticsearch_unavailable: self._on_check_status_and_write_config,
+            self._grafana.on.grafana_available: self._on_grafana_available,
+            self._influxdb.on.influxdb_available: self._on_influxdb_available,
+            self._influxdb.on.influxdb_unavailable: self._on_check_status_and_write_config,
+            self._nhc.on.nhc_bin_available: self._on_check_status_and_write_config,
             # ######## Slurm component lifecycle events ######## #
-            self._slurmctld.on.slurmctld_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmctld.on.slurmctld_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._slurmdbd.on.slurmdbd_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmdbd.on.slurmdbd_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._slurmd.on.slurmd_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmd.on.slurmd_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._slurmrestd.on.slurmrestd_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmrestd.on.slurmrestd_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._prolog_epilog.on.prolog_epilog_available:
-            self._on_check_status_and_write_config,
-
-            self._prolog_epilog.on.prolog_epilog_unavailable:
-            self._on_check_status_and_write_config,
+            self._slurmctld.on.slurmctld_available: self._on_check_status_and_write_config,
+            self._slurmctld.on.slurmctld_unavailable: self._on_check_status_and_write_config,
+            self._slurmdbd.on.slurmdbd_available: self._on_check_status_and_write_config,
+            self._slurmdbd.on.slurmdbd_unavailable: self._on_check_status_and_write_config,
+            self._slurmd.on.slurmd_available: self._on_check_status_and_write_config,
+            self._slurmd.on.slurmd_unavailable: self._on_check_status_and_write_config,
+            self._slurmrestd.on.slurmrestd_available: self._on_check_status_and_write_config,
+            self._slurmrestd.on.slurmrestd_unavailable: self._on_check_status_and_write_config,
+            self._prolog_epilog.on.prolog_epilog_available: self._on_check_status_and_write_config,
+            self._prolog_epilog.on.prolog_epilog_unavailable: self._on_check_status_and_write_config,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -189,7 +148,7 @@ class SlurmConfiguratorCharm(CharmBase):
                 slurm_config,
             )
         self._slurm_manager.render_config_and_restart(
-            {**slurm_config, 'munge_key': self.get_munge_key()}
+            {**slurm_config, "munge_key": self.get_munge_key()}
         )
 
     def _assemble_slurm_config(self):
@@ -210,8 +169,8 @@ class SlurmConfiguratorCharm(CharmBase):
         logger.debug(slurmdbd_info)
 
         return {
-            'munge_key': self._stored.munge_key,
-            'partitions': partitions_info,
+            "munge_key": self._stored.munge_key,
+            "partitions": partitions_info,
             **slurmctld_info,
             **slurmdbd_info,
             **addons_info,
@@ -229,10 +188,8 @@ class SlurmConfiguratorCharm(CharmBase):
             partition_tmp = copy.deepcopy(partition)
             # Extract the partition_name from the partition and from the charm
             # config.
-            partition_name = partition['partition_name']
-            default_partition_from_config = self.model.config.get(
-                'default_partition'
-            )
+            partition_name = partition["partition_name"]
+            default_partition_from_config = self.model.config.get("default_partition")
 
             # Check that the default_partition isn't defined in the charm
             # config.
@@ -240,11 +197,11 @@ class SlurmConfiguratorCharm(CharmBase):
             # the partition_default by defaulting to the first related slurmd
             # application.
             if not default_partition_from_config:
-                if partition['partition_name'] == "configurator":
-                    partition_tmp['partition_default'] = 'YES'
+                if partition["partition_name"] == "configurator":
+                    partition_tmp["partition_default"] = "YES"
             else:
                 if default_partition_from_config == partition_name:
-                    partition_tmp['partition_default'] = 'YES'
+                    partition_tmp["partition_default"] = "YES"
 
             slurmd_info_tmp.remove(partition)
             slurmd_info_tmp.append(partition_tmp)
@@ -254,31 +211,30 @@ class SlurmConfiguratorCharm(CharmBase):
     def _assemble_addons(self):
         """Assemble any addon components."""
         acct_gather = self._get_influxdb_info()
-        elasticsearch_ingress = \
-            self._elasticsearch.get_elasticsearch_ingress()
+        elasticsearch_ingress = self._elasticsearch.get_elasticsearch_ingress()
         nhc_info = self._nhc.get_nhc_info()
         prolog_epilog = self._prolog_epilog.get_prolog_epilog()
 
         ctxt = dict()
 
         if prolog_epilog:
-            ctxt['prolog_epilog'] = prolog_epilog
+            ctxt["prolog_epilog"] = prolog_epilog
 
         if acct_gather:
-            ctxt['acct_gather'] = acct_gather
-            acct_gather_custom = self.model.config.get('acct_gather_custom')
+            ctxt["acct_gather"] = acct_gather
+            acct_gather_custom = self.model.config.get("acct_gather_custom")
             if acct_gather_custom:
-                ctxt['acct_gather']['custom'] = acct_gather_custom
+                ctxt["acct_gather"]["custom"] = acct_gather_custom
 
         if nhc_info:
-            ctxt['nhc'] = {
-                'nhc_bin': nhc_info['nhc_bin'],
-                'health_check_interval': nhc_info['health_check_interval'],
-                'health_check_node_state': nhc_info['health_check_node_state'],
+            ctxt["nhc"] = {
+                "nhc_bin": nhc_info["nhc_bin"],
+                "health_check_interval": nhc_info["health_check_interval"],
+                "health_check_node_state": nhc_info["health_check_node_state"],
             }
 
         if elasticsearch_ingress:
-            ctxt['elasticsearch_address'] = elasticsearch_ingress
+            ctxt["elasticsearch_address"] = elasticsearch_ingress
 
         return ctxt
 

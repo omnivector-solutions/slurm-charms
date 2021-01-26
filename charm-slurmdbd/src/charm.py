@@ -10,10 +10,7 @@ from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
-from ops.model import (
-    ActiveStatus,
-    BlockedStatus,
-)
+from ops.model import ActiveStatus, BlockedStatus
 from slurm_ops_manager import SlurmManager
 
 logger = logging.getLogger()
@@ -43,20 +40,11 @@ class SlurmdbdCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
-
             self.on.config_changed: self._write_config_and_restart_slurmdbd,
-
-            self._db.on.database_available:
-            self._write_config_and_restart_slurmdbd,
-
-            self._slurmdbd_peer.on.slurmdbd_peer_available:
-            self._write_config_and_restart_slurmdbd,
-
-            self._slurmdbd.on.slurmdbd_available:
-            self._write_config_and_restart_slurmdbd,
-
-            self._slurmdbd.on.slurmdbd_unavailable:
-            self._on_slurmdbd_unavailable,
+            self._db.on.database_available: self._write_config_and_restart_slurmdbd,
+            self._slurmdbd_peer.on.slurmdbd_peer_available: self._write_config_and_restart_slurmdbd,
+            self._slurmdbd.on.slurmdbd_available: self._write_config_and_restart_slurmdbd,
+            self._slurmdbd.on.slurmdbd_unavailable: self._on_slurmdbd_unavailable,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -92,13 +80,9 @@ class SlurmdbdCharm(CharmBase):
 
         if not all(deps):
             if not db_info:
-                self.unit.status = BlockedStatus(
-                    "Need relation to MySQL."
-                )
+                self.unit.status = BlockedStatus("Need relation to MySQL.")
             elif not munge_key:
-                self.unit.status = BlockedStatus(
-                    "Need relation to slurm-configurator."
-                )
+                self.unit.status = BlockedStatus("Need relation to slurm-configurator.")
             return False
         return True
 
@@ -114,7 +98,7 @@ class SlurmdbdCharm(CharmBase):
         slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
 
         slurmdbd_config = {
-            'munge_key': self._stored.munge_key,
+            "munge_key": self._stored.munge_key,
             **self.model.config,
             **slurmdbd_info,
             **db_info,
@@ -162,8 +146,8 @@ class SlurmdbdCharm(CharmBase):
                     # matters in the context of making sure the application
                     # relation data actually changes so that relation-changed
                     # event is observed on the other side.
-                    'slurmdbd_info_id': str(uuid.uuid4()),
-                    **slurmdbd_info
+                    "slurmdbd_info_id": str(uuid.uuid4()),
+                    **slurmdbd_info,
                 }
             )
         self.unit.status = ActiveStatus("Slurmdbd Available")

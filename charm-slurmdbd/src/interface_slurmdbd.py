@@ -3,15 +3,7 @@
 import json
 import logging
 
-
-from ops.framework import (
-    EventBase,
-    EventSource,
-    Object,
-    ObjectEvents,
-    StoredState,
-)
-
+from ops.framework import EventBase, EventSource, Object, ObjectEvents, StoredState
 
 logger = logging.getLogger()
 
@@ -52,12 +44,12 @@ class Slurmdbd(Object):
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
-            self._on_relation_changed
+            self._on_relation_changed,
         )
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_broken,
-            self._on_relation_broken
+            self._on_relation_broken,
         )
 
     def _on_relation_changed(self, event):
@@ -68,7 +60,7 @@ class Slurmdbd(Object):
             event.defer()
             return
 
-        munge_key = app_relation_data.get('munge_key')
+        munge_key = app_relation_data.get("munge_key")
         # Check for the existence of the munge key in the relation data
         # defer if not exists.
         if not munge_key:
@@ -84,12 +76,12 @@ class Slurmdbd(Object):
 
     def set_slurmdbd_info_on_app_relation_data(self, slurmdbd_info):
         """Set slurmdbd_info."""
-        relations = self.framework.model.relations['slurmdbd']
+        relations = self.framework.model.relations["slurmdbd"]
         # Iterate over each of the relations setting the relation data.
         for relation in relations:
             if slurmdbd_info != "":
-                relation.data[self.model.app]['slurmdbd_info'] = json.dumps(
+                relation.data[self.model.app]["slurmdbd_info"] = json.dumps(
                     slurmdbd_info
                 )
             else:
-                relation.data[self.model.app]['slurmdbd_info'] = ""
+                relation.data[self.model.app]["slurmdbd_info"] = ""

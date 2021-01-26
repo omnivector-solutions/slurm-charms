@@ -3,19 +3,16 @@
 import copy
 import logging
 
-from interface_slurmd import Slurmd
-from interface_slurmd_peer import SlurmdPeer
 from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
-from ops.model import (
-    ActiveStatus,
-    BlockedStatus,
-)
+from ops.model import ActiveStatus, BlockedStatus
 from slurm_ops_manager import SlurmManager
-from utils import random_string
 
+from interface_slurmd import Slurmd
+from interface_slurmd_peer import SlurmdPeer
+from utils import random_string
 
 logger = logging.getLogger()
 
@@ -45,21 +42,11 @@ class SlurmdCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
             self.on.upgrade_charm: self._on_upgrade,
-
-            self.on.start:
-            self._on_check_status_and_write_config,
-
-            self.on.config_changed:
-            self._on_config_changed,
-
-            self._slurmd_peer.on.slurmd_peer_available:
-            self._on_send_slurmd_info,
-
-            self._slurmd.on.slurm_config_available:
-            self._on_check_status_and_write_config,
-
-            self.on.set_node_state_action:
-            self._on_set_node_state_action,
+            self.on.start: self._on_check_status_and_write_config,
+            self.on.config_changed: self._on_config_changed,
+            self._slurmd_peer.on.slurmd_peer_available: self._on_send_slurmd_info,
+            self._slurmd.on.slurm_config_available: self._on_check_status_and_write_config,
+            self.on.set_node_state_action: self._on_set_node_state_action,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -69,9 +56,7 @@ class SlurmdCharm(CharmBase):
 
         if self.model.unit.is_leader():
             self._get_set_partition_name()
-            logger.debug(
-                f"PARTITION_NAME: {self._stored.partition_name}"
-            )
+            logger.debug(f"PARTITION_NAME: {self._stored.partition_name}")
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("Slurm Installed")
 
@@ -95,9 +80,7 @@ class SlurmdCharm(CharmBase):
             if self._slurmd.is_joined:
                 partition = self._assemble_partition()
                 if partition:
-                    self._slurmd.set_slurmd_info_on_app_relation_data(
-                        partition
-                    )
+                    self._slurmd.set_slurmd_info_on_app_relation_data(partition)
                     return
             event.defer()
             return
@@ -118,7 +101,7 @@ class SlurmdCharm(CharmBase):
             return
 
         self._slurm_manager.render_config_and_restart(
-            {**slurm_config, 'munge_key': munge_key}
+            {**slurm_config, "munge_key": munge_key}
         )
         self.unit.status = ActiveStatus("Slurmd Available")
 
@@ -129,13 +112,9 @@ class SlurmdCharm(CharmBase):
 
         if not (munge_key and slurm_installed and slurm_config_available):
             if not munge_key:
-                self.unit.status = BlockedStatus(
-                    "NEED RELATION TO SLURM CONFIGURATOR"
-                )
+                self.unit.status = BlockedStatus("NEED RELATION TO SLURM CONFIGURATOR")
             elif not slurm_config_available:
-                self.unit.status = BlockedStatus(
-                    "WAITING ON SLURM CONFIG"
-                )
+                self.unit.status = BlockedStatus("WAITING ON SLURM CONFIG")
             else:
                 self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
             return False
@@ -145,16 +124,16 @@ class SlurmdCharm(CharmBase):
     def _assemble_partition(self):
         """Assemble the partition info."""
         partition_name = self._stored.partition_name
-        partition_config = self.model.config.get('partition-config')
-        partition_state = self.model.config.get('partition-state')
+        partition_config = self.model.config.get("partition-config")
+        partition_state = self.model.config.get("partition-state")
 
         slurmd_info = self._assemble_slurmd_info()
 
         return {
-            'inventory': slurmd_info,
-            'partition_name': partition_name,
-            'partition_state': partition_state,
-            'partition_config': partition_config,
+            "inventory": slurmd_info,
+            "partition_name": partition_name,
+            "partition_state": partition_state,
+            "partition_config": partition_config,
         }
 
     def _assemble_slurmd_info(self):
@@ -180,13 +159,12 @@ class SlurmdCharm(CharmBase):
             # for nodes that need their state modified.
             for partition in slurmd_info:
                 partition_tmp = copy.deepcopy(partition)
-                for slurmd_node in partition['inventory']:
-                    if slurmd_node['hostname'] in node_states.keys():
+                for slurmd_node in partition["inventory"]:
+                    if slurmd_node["hostname"] in node_states.keys():
                         slurmd_node_tmp = copy.deepcopy(slurmd_node)
-                        slurmd_node_tmp['state'] = \
-                            node_states[slurmd_node['hostname']]
-                        partition_tmp['inventory'].remove(slurmd_node)
-                        partition_tmp['inventory'].append(slurmd_node_tmp)
+                        slurmd_node_tmp["state"] = node_states[slurmd_node["hostname"]]
+                        partition_tmp["inventory"].remove(slurmd_node)
+                        partition_tmp["inventory"].append(slurmd_node_tmp)
                 slurmd_info_tmp.remove(partition)
                 slurmd_info_tmp.append(partition_tmp)
         else:
@@ -200,7 +178,7 @@ class SlurmdCharm(CharmBase):
         # ensure the self._stored.partition_name is consistent with the
         # supplied config.
         # If no partition name has been specified then generate one.
-        partition_name = self.model.config.get('partition-name')
+        partition_name = self.model.config.get("partition-name")
         if partition_name:
             if partition_name != self._stored.partition_name:
                 self._stored.partition_name = partition_name

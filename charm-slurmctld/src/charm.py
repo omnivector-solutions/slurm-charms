@@ -8,12 +8,8 @@ from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
-from ops.model import (
-    ActiveStatus,
-    BlockedStatus,
-)
+from ops.model import ActiveStatus, BlockedStatus
 from slurm_ops_manager import SlurmManager
-
 
 logger = logging.getLogger()
 
@@ -41,12 +37,8 @@ class SlurmctldCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
-
-            self._slurmctld.on.slurm_config_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmctld_peer.on.slurmctld_peer_available:
-            self._on_slurmctld_peer_available,
+            self._slurmctld.on.slurm_config_available: self._on_check_status_and_write_config,
+            self._slurmctld_peer.on.slurmctld_peer_available: self._on_slurmctld_peer_available,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -87,10 +79,7 @@ class SlurmctldCharm(CharmBase):
             return
 
         self._slurm_manager.render_config_and_restart(
-            {
-                **slurm_config,
-                'munge_key': munge_key
-            }
+            {**slurm_config, "munge_key": munge_key}
         )
         self.unit.status = ActiveStatus("Slurmctld Available")
 
@@ -101,13 +90,9 @@ class SlurmctldCharm(CharmBase):
 
         if not (munge_key and slurm_installed and slurm_config):
             if not munge_key:
-                self.unit.status = BlockedStatus(
-                    "NEED RELATION TO SLURM CONFIGURATOR"
-                )
+                self.unit.status = BlockedStatus("NEED RELATION TO SLURM CONFIGURATOR")
             elif not slurm_config:
-                self.unit.status = BlockedStatus(
-                    "WAITING ON SLURM CONFIG"
-                )
+                self.unit.status = BlockedStatus("WAITING ON SLURM CONFIG")
             else:
                 self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
             return False

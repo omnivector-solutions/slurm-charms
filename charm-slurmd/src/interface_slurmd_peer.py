@@ -3,15 +3,9 @@
 import json
 import logging
 
+from ops.framework import EventBase, EventSource, Object, ObjectEvents
 
-from ops.framework import (
-    EventBase,
-    EventSource,
-    Object,
-    ObjectEvents,
-)
 from utils import get_active_units, get_inventory
-
 
 logger = logging.getLogger()
 
@@ -39,20 +33,20 @@ class SlurmdPeer(Object):
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_created,
-            self._on_relation_created
+            self._on_relation_created,
         )
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
-            self._on_relation_changed
+            self._on_relation_changed,
         )
 
     def _on_relation_created(self, event):
         """Set our inventory on unit data."""
         node_name = self._charm.get_hostname()
-        node_addr = event.relation.data[self.model.unit]['ingress-address']
+        node_addr = event.relation.data[self.model.unit]["ingress-address"]
 
-        event.relation.data[self.model.unit]['inventory'] = json.dumps(
+        event.relation.data[self.model.unit]["inventory"] = json.dumps(
             get_inventory(node_name, node_addr)
         )
         if self.framework.model.unit.is_leader():
@@ -72,19 +66,17 @@ class SlurmdPeer(Object):
         peers = relation.units
 
         slurmd_info = [
-            json.loads(relation.data[peer]['inventory'])
-            for peer in peers if (
-                (peer.name in slurmd_peers) and (
-                    (relation.data.get(peer)) and (
-                        relation.data[peer].get('inventory')
-                    )
+            json.loads(relation.data[peer]["inventory"])
+            for peer in peers
+            if (
+                (peer.name in slurmd_peers)
+                and (
+                    (relation.data.get(peer)) and (relation.data[peer].get("inventory"))
                 )
             )
         ]
 
         # Add our own inventory to the slurmd_info
-        slurmd_info.append(
-            json.loads(relation.data[self.model.unit]['inventory'])
-        )
+        slurmd_info.append(json.loads(relation.data[self.model.unit]["inventory"]))
 
         return slurmd_info

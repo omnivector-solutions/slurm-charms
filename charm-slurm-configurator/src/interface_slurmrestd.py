@@ -3,13 +3,7 @@
 import json
 import logging
 
-from ops.framework import (
-    EventBase,
-    EventSource,
-    Object,
-    ObjectEvents,
-)
-
+from ops.framework import EventBase, EventSource, Object, ObjectEvents
 
 logger = logging.getLogger()
 
@@ -40,12 +34,10 @@ class Slurmrestd(Object):
 
         self.charm = charm
         self.framework.observe(
-            charm.on[relation_name].relation_created,
-            self._on_relation_created
+            charm.on[relation_name].relation_created, self._on_relation_created
         )
         self.framework.observe(
-            charm.on[relation_name].relation_broken,
-            self._on_relation_broken
+            charm.on[relation_name].relation_broken, self._on_relation_broken
         )
 
     def _on_relation_created(self, event):
@@ -66,7 +58,7 @@ class Slurmrestd(Object):
         to observe the relation-changed event so they can acquire and
         render the updated slurm_config.
         """
-        relations = self.charm.framework.model.relations['slurmrestd']
+        relations = self.charm.framework.model.relations["slurmrestd"]
         for relation in relations:
             app_relation_data = relation.data[self.model.app]
-            app_relation_data['slurm_config'] = json.dumps(slurm_config)
+            app_relation_data["slurm_config"] = json.dumps(slurm_config)

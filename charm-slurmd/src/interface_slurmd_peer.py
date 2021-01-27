@@ -33,7 +33,12 @@ class SlurmdPeer(Object):
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_created,
-            self._on_relation_created,
+            self._set_inventory_on_unit_data,
+        )
+
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_joined,
+            self._set_inventory_on_unit_data,
         )
 
         self.framework.observe(
@@ -41,7 +46,7 @@ class SlurmdPeer(Object):
             self._on_relation_changed,
         )
 
-    def _on_relation_created(self, event):
+    def _set_inventory_on_unit_data(self, event):
         """Set our inventory on unit data."""
         node_name = self._charm.get_hostname()
         node_addr = event.relation.data[self.model.unit]["ingress-address"]
@@ -56,7 +61,7 @@ class SlurmdPeer(Object):
         if self.framework.model.unit.is_leader():
             self.on.slurmd_peer_available.emit()
 
-    def get_slurmd_info(self):
+    def get_slurmd_inventory(self):
         """Return slurmd inventory."""
         relation = self.framework.model.get_relation(self._relation_name)
 
@@ -65,18 +70,16 @@ class SlurmdPeer(Object):
         slurmd_peers = get_active_units(self._relation_name)
         peers = relation.units
 
-        slurmd_info = [
-            json.loads(relation.data[peer]["inventory"])
-            for peer in peers
-            if (
-                (peer.name in slurmd_peers)
-                and (
-                    (relation.data.get(peer)) and (relation.data[peer].get("inventory"))
-                )
-            )
-        ]
+        inventory = []
 
-        # Add our own inventory to the slurmd_info
-        slurmd_info.append(json.loads(relation.data[self.model.unit]["inventory"]))
+        for peer in peers:
+            if peer.name in slurmd_peers:
+                if relation.data.get(peer):
+                    if relation.data[peer].get('inventory'):
+                        inventory.append(json.loads(relation.data[peer]['inventory']))
 
-        return slurmd_info
+        # Add our own inventory in with the other nodes
+        inventory.append(
+            json.loads(relation.data[self.model.unit]["inventory"])
+        )
+        return inventory

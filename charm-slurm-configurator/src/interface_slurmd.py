@@ -71,7 +71,7 @@ class Slurmd(Object):
     def _on_relation_changed(self, event):
         event_app_data = event.relation.data.get(event.app)
         if event_app_data:
-            slurmd_info = event_app_data.get("slurmd_info")
+            slurmd_info = event_app_data.get("partition_info")
             if slurmd_info:
                 self._charm.set_slurmd_available(True)
                 self.on.slurmd_available.emit()
@@ -117,9 +117,9 @@ class Slurmd(Object):
             if app:
                 app_data = relation.data.get(app)
                 if app_data:
-                    slurmd_info = app_data.get("slurmd_info")
-                    if slurmd_info:
-                        partitions.append(json.loads(slurmd_info))
+                    partition_info = app_data.get("partition_info")
+                    if partition_info:
+                        partitions.append(json.loads(partition_info))
 
         slurm_configurator = self._assemble_slurm_configurator_inventory()
         partitions.append(slurm_configurator)

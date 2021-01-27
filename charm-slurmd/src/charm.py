@@ -7,7 +7,7 @@ from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 from slurm_ops_manager import SlurmManager
 
 from interface_slurmd import Slurmd
@@ -28,6 +28,7 @@ class SlurmdCharm(CharmBase):
 
         self._stored.set_default(
             munge_key=str(),
+            munge_key_available=False,
             user_node_state=str(),
             partition_name=str(),
         )
@@ -44,8 +45,11 @@ class SlurmdCharm(CharmBase):
             self.on.upgrade_charm: self._on_upgrade,
             self.on.start: self._on_check_status_and_write_config,
             self.on.config_changed: self._on_config_changed,
-            self._slurmd_peer.on.slurmd_peer_available: self._on_send_slurmd_info,
-            self._slurmd.on.slurm_config_available: self._on_check_status_and_write_config,
+            self._slurmd_peer.on.slurmd_peer_available:
+            self._on_set_partition_info_on_app_relation_data,
+            self._slurmd.on.slurm_config_available:
+            self._on_check_status_and_write_config,
+            self._slurmd.on.munge_key_available: self._on_write_munge_key,
             self.on.set_node_state_action: self._on_set_node_state_action,
         }
         for event, handler in event_handler_bindings.items():
@@ -58,68 +62,82 @@ class SlurmdCharm(CharmBase):
             self._get_set_partition_name()
             logger.debug(f"PARTITION_NAME: {self._stored.partition_name}")
         self._stored.slurm_installed = True
-        self.unit.status = ActiveStatus("Slurm Installed")
+        self.unit.status = ActiveStatus("Slurm installed")
 
     def _on_upgrade(self, event):
-        slurmd_info = self._assemble_slurmd_info()
-        self._slurm_manager.upgrade(slurmd_info)
+        partition = self._assemble_partition()
+        self._slurm_manager.upgrade(partition)
 
     def _on_config_changed(self, event):
         if self.model.unit.is_leader():
             self._get_set_partition_name()
             if self._check_status():
-                self._on_send_slurmd_info(event)
+                self._on_set_partition_info_on_app_relation_data(
+                    event
+                )
 
-    def _on_set_node_state_action(self, event):
-        """Set the node state."""
-        self._stored.user_node_state = event.params["node-state"]
-        self._on_send_slurm_info(event)
-
-    def _on_send_slurmd_info(self, event):
-        if self.framework.model.unit.is_leader():
-            if self._slurmd.is_joined:
-                partition = self._assemble_partition()
-                if partition:
-                    self._slurmd.set_slurmd_info_on_app_relation_data(partition)
-                    return
+    def _on_write_munge_key(self, event):
+        if not self._stored.slurm_installed:
             event.defer()
             return
+        munge_key = self._stored.munge_key
+        self._slurm_manager.configure_munge_key(munge_key)
+        self._stored.munge_key_available = True
 
     def _on_check_status_and_write_config(self, event):
-        if not self._check_status():
-            event.defer()
-            return
-
-        slurm_config = self._slurmd.get_slurm_config()
+        slurm_config = self._check_status()
         if not slurm_config:
             event.defer()
             return
 
-        munge_key = self._stored.munge_key
-        if not munge_key:
-            event.defer()
-            return
-
-        self._slurm_manager.render_config_and_restart(
-            {**slurm_config, "munge_key": munge_key}
-        )
-        self.unit.status = ActiveStatus("Slurmd Available")
+        if slurm_config['configless']:
+            slurmctld_hostname = slurm_config['active_controller_hostname']
+            self._slurm_manager.configure_slurmctld_hostname(
+                slurmctld_hostname
+            )
+            self._slurm_manager.restart_slurm_component()
+        else:
+            self._slurm_manager.render_config_and_restart(
+                slurm_config
+            )
+        self.unit.status = ActiveStatus("slurmd available")
 
     def _check_status(self):
-        munge_key = self._stored.munge_key
+        munge_key_available = self._stored.munge_key_available
         slurm_installed = self._stored.slurm_installed
-        slurm_config_available = self._slurmd.get_slurm_config()
+        slurm_config = self._slurmd.get_slurm_config()
 
-        if not (munge_key and slurm_installed and slurm_config_available):
-            if not munge_key:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURM CONFIGURATOR")
-            elif not slurm_config_available:
-                self.unit.status = BlockedStatus("WAITING ON SLURM CONFIG")
-            else:
-                self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
-            return False
-        else:
-            return True
+        slurmd_joined = self._slurmd.is_joined
+
+        if not slurmd_joined:
+            self.unit.status = BlockedStatus(
+                "Need relation to slurm-configurator"
+            )
+            return None
+
+        if not (munge_key_available and slurm_config and slurm_installed):
+            self.unit.status = WaitingStatus(
+                "Waiting on configuration to complete"
+            )
+            return None
+        return slurm_config
+
+    def _on_set_node_state_action(self, event):
+        """Set the node state."""
+        self._stored.user_node_state = event.params["node-state"]
+        self._on_set_partition_info_on_app_relation_data(event)
+
+    def _on_set_partition_info_on_app_relation_data(self, event):
+        if self.framework.model.unit.is_leader():
+            if self._slurmd.is_joined:
+                partition = self._assemble_partition()
+                if partition:
+                    self._slurmd.set_partition_info_on_app_relation_data(
+                        partition
+                    )
+                    return
+            event.defer()
+            return
 
     def _assemble_partition(self):
         """Assemble the partition info."""
@@ -127,19 +145,19 @@ class SlurmdCharm(CharmBase):
         partition_config = self.model.config.get("partition-config")
         partition_state = self.model.config.get("partition-state")
 
-        slurmd_info = self._assemble_slurmd_info()
+        slurmd_inventory = self._assemble_slurmd_inventory()
 
         return {
-            "inventory": slurmd_info,
+            "inventory": slurmd_inventory,
             "partition_name": partition_name,
             "partition_state": partition_state,
             "partition_config": partition_config,
         }
 
-    def _assemble_slurmd_info(self):
+    def _assemble_slurmd_inventory(self):
         """Apply mutations to nodes in the partition, return slurmd nodes."""
-        slurmd_info = self._slurmd_peer.get_slurmd_info()
-        if not slurmd_info:
+        slurmd_inventory = self._slurmd_peer.get_slurmd_inventory()
+        if not slurmd_inventory:
             return None
 
         # If the user has set custom state for nodes
@@ -151,26 +169,27 @@ class SlurmdCharm(CharmBase):
                 for item in user_node_state.split(",")
             }
 
-            # Copy the slurmd_info returned from the the slurmd-peer relation
-            # to a temporary variable to which we will make modifications.
-            slurmd_info_tmp = copy.deepcopy(slurmd_info)
+            # Copy the slurmd_inventory returned from the the slurmd-peer
+            # relation to a temporary variable that we will use to
+            # iterate over while we conditionally make modifications to the
+            # original inventory.
+            slurmd_inventory_tmp = copy.deepcopy(slurmd_inventory)
 
             # Iterate over the slurmd nodes in the partition and check
             # for nodes that need their state modified.
-            for partition in slurmd_info:
+            for partition in slurmd_inventory_tmp:
                 partition_tmp = copy.deepcopy(partition)
                 for slurmd_node in partition["inventory"]:
                     if slurmd_node["hostname"] in node_states.keys():
                         slurmd_node_tmp = copy.deepcopy(slurmd_node)
-                        slurmd_node_tmp["state"] = node_states[slurmd_node["hostname"]]
+                        slurmd_node_tmp["state"] = \
+                            node_states[slurmd_node["hostname"]]
                         partition_tmp["inventory"].remove(slurmd_node)
                         partition_tmp["inventory"].append(slurmd_node_tmp)
-                slurmd_info_tmp.remove(partition)
-                slurmd_info_tmp.append(partition_tmp)
-        else:
-            slurmd_info_tmp = slurmd_info
+                slurmd_inventory.remove(partition)
+                slurmd_inventory.append(partition_tmp)
 
-        return slurmd_info_tmp
+        return slurmd_inventory
 
     def _get_set_partition_name(self):
         """Set the partition name."""

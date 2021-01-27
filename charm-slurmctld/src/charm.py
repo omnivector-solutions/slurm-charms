@@ -25,6 +25,7 @@ class SlurmctldCharm(CharmBase):
 
         self._stored.set_default(
             munge_key=str(),
+            munge_key_available=False,
             slurmctld_controller_type=str(),
         )
 
@@ -38,6 +39,7 @@ class SlurmctldCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
             self._slurmctld.on.slurm_config_available: self._on_check_status_and_write_config,
+            self._slurmctld.on.munge_key_available: self._on_write_munge_key,
             self._slurmctld_peer.on.slurmctld_peer_available: self._on_slurmctld_peer_available,
         }
         for event, handler in event_handler_bindings.items():
@@ -46,10 +48,18 @@ class SlurmctldCharm(CharmBase):
     def _on_install(self, event):
         self._slurm_manager.install()
         self._stored.slurm_installed = True
-        self.unit.status = ActiveStatus("Slurm Installed")
+        self.unit.status = ActiveStatus("Slurm installed")
 
     def _on_upgrade(self, event):
         self._slurm_manager.upgrade()
+
+    def _on_write_munge_key(self, event):
+        if not self._stored.slurm_installed:
+            event.defer()
+            return
+        munge_key = self._stored.munge_key
+        self._slurm_manager.configure_munge_key(munge_key)
+        self._stored.munge_key_available = True
 
     def _on_slurmctld_peer_available(self, event):
         if self.framework.model.unit.is_leader():
@@ -64,40 +74,33 @@ class SlurmctldCharm(CharmBase):
             return
 
     def _on_check_status_and_write_config(self, event):
-        if not self._check_status():
-            event.defer()
-            return
-
-        slurm_config = self._slurmctld.get_slurm_config_from_relation()
+        slurm_config = self._check_status()
         if not slurm_config:
             event.defer()
             return
 
-        munge_key = self._stored.munge_key
-        if not munge_key:
-            event.defer()
-            return
-
         self._slurm_manager.render_config_and_restart(
-            {**slurm_config, "munge_key": munge_key}
+            slurm_config
         )
-        self.unit.status = ActiveStatus("Slurmctld Available")
+        self.unit.status = ActiveStatus("slurmctld available")
 
     def _check_status(self):
-        munge_key = self._stored.munge_key
+        munge_key_available = self._stored.munge_key_available
         slurm_installed = self._stored.slurm_installed
         slurm_config = self._slurmctld.get_slurm_config_from_relation()
 
-        if not (munge_key and slurm_installed and slurm_config):
-            if not munge_key:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURM CONFIGURATOR")
+        if not (munge_key_available and slurm_installed and slurm_config):
+            if not munge_key_available:
+                self.unit.status = BlockedStatus(
+                    "NEED RELATION TO SLURM CONFIGURATOR"
+                )
             elif not slurm_config:
                 self.unit.status = BlockedStatus("WAITING ON SLURM CONFIG")
             else:
                 self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
-            return False
+            return None
         else:
-            return True
+            return slurm_config
 
     def set_munge_key(self, munge_key):
         """Set the munge_key in _stored state."""

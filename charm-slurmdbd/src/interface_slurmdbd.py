@@ -43,8 +43,8 @@ class Slurmdbd(Object):
         self._relation_name = relation_name
 
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_changed,
-            self._on_relation_changed,
+            self._charm.on[self._relation_name].relation_joined,
+            self._on_relation_joined,
         )
 
         self.framework.observe(
@@ -52,23 +52,31 @@ class Slurmdbd(Object):
             self._on_relation_broken,
         )
 
-    def _on_relation_changed(self, event):
-        app_relation_data = event.relation.data.get(event.app)
-        # Check for the existence of the app in the relation data
-        # defer if not exists.
-        if not app_relation_data:
+    def _on_relation_joined(self, event):
+        """Handle the relation-joined event.
+
+        Get the munge_key from slurm-configurator and save it to the
+        charm stored state.
+        """
+        # Since we are in relation-joined (with the app on the other side)
+        # we can almost guarantee that the app object will exist in
+        # the event, but check for it just in case.
+        event_app_data = event.relation.data.get(event.app)
+        if not event_app_data:
             event.defer()
             return
 
-        munge_key = app_relation_data.get("munge_key")
-        # Check for the existence of the munge key in the relation data
-        # defer if not exists.
+        # slurm-configurator sets the munge_key on the relation-created event
+        # which happens before relation-joined. We can almost guarantee that
+        # the munge key will exist at this point, but check for it just incase.
+        munge_key = event_app_data.get("munge_key")
         if not munge_key:
             event.defer()
             return
 
+        # Store the munge_key in the charm's state
         self._charm.set_munge_key(munge_key)
-        self.on.slurmdbd_available.emit()
+        self.on.munge_key_available.emit()
 
     def _on_relation_broken(self, event):
         self.set_slurmdbd_info_on_app_relation_data("")

@@ -25,9 +25,12 @@ class SlurmdbdCharm(CharmBase):
         """Set the default class attributes."""
         super().__init__(*args)
 
-        self._stored.set_default(munge_key=str())
-        self._stored.set_default(db_info=dict())
-        self._stored.set_default(slurm_installed=False)
+        self._stored.set_default(
+            munge_key=str(),
+            munge_key_available=False,
+            db_info=dict(),
+            slurm_installed=False,
+        )
 
         self._nrpe = Nrpe(self, "nrpe-external-master")
 
@@ -45,6 +48,7 @@ class SlurmdbdCharm(CharmBase):
             self._slurmdbd_peer.on.slurmdbd_peer_available: self._write_config_and_restart_slurmdbd,
             self._slurmdbd.on.slurmdbd_available: self._write_config_and_restart_slurmdbd,
             self._slurmdbd.on.slurmdbd_unavailable: self._on_slurmdbd_unavailable,
+            self._slurmdbd.on.munge_key_available: self._on_munge_key_available,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -61,13 +65,21 @@ class SlurmdbdCharm(CharmBase):
     def _on_leader_elected(self, event):
         self._slurmdbd_peer._on_relation_changed(event)
 
+    def _on_munge_key_available(self, event):
+        if not self._stored.slurm_installed:
+            event.defer()
+            return
+        munge_key = self._stored.munge_key
+        self._slurm_manager.configure_munge_key(munge_key)
+        self._stored.munge_key_available = True
+
     def _on_slurmdbd_unavailable(self, event):
         self._check_status()
 
     def _check_status(self) -> bool:
         """Check that we have the things we need."""
         db_info = self._stored.db_info
-        munge_key = self._stored.munge_key
+        munge_key_available = self._stored.munge_key_available
         slurm_installed = self._stored.slurm_installed
         slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
 
@@ -75,14 +87,16 @@ class SlurmdbdCharm(CharmBase):
             slurmdbd_info,
             db_info,
             slurm_installed,
-            munge_key,
+            munge_key_available,
         ]
 
         if not all(deps):
             if not db_info:
                 self.unit.status = BlockedStatus("Need relation to MySQL.")
-            elif not munge_key:
-                self.unit.status = BlockedStatus("Need relation to slurm-configurator.")
+            elif not munge_key_available:
+                self.unit.status = BlockedStatus(
+                    "Need relation to slurm-configurator."
+                )
             return False
         return True
 
@@ -98,7 +112,6 @@ class SlurmdbdCharm(CharmBase):
         slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
 
         slurmdbd_config = {
-            "munge_key": self._stored.munge_key,
             **self.model.config,
             **slurmdbd_info,
             **db_info,
@@ -150,7 +163,7 @@ class SlurmdbdCharm(CharmBase):
                     **slurmdbd_info,
                 }
             )
-        self.unit.status = ActiveStatus("Slurmdbd Available")
+        self.unit.status = ActiveStatus("slurmdbd available")
 
     def get_port(self):
         """Return the port from slurm-ops-manager."""

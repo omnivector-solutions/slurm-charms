@@ -147,9 +147,7 @@ class SlurmConfiguratorCharm(CharmBase):
             self._slurmrestd.set_slurm_config_on_app_relation_data(
                 slurm_config,
             )
-        self._slurm_manager.render_config_and_restart(
-            {**slurm_config, "munge_key": self.get_munge_key()}
-        )
+        self._slurm_manager.render_config_and_restart(slurm_config)
 
     def _assemble_slurm_config(self):
         """Assemble and return the slurm config."""
@@ -169,7 +167,6 @@ class SlurmConfiguratorCharm(CharmBase):
         logger.debug(slurmdbd_info)
 
         return {
-            "munge_key": self._stored.munge_key,
             "partitions": partitions_info,
             **slurmctld_info,
             **slurmdbd_info,

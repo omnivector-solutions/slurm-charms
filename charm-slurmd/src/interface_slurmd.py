@@ -9,10 +9,15 @@ class SlurmConfigAvailableEvent(EventBase):
     """Emitted when slurm config is available."""
 
 
+class MungeKeyAvailableEvent(EventBase):
+    """Emit when the munge key has been acquired and set to the charm state."""
+
+
 class SlurmdProvidesEvents(ObjectEvents):
     """SlurmctldProvidesEvents."""
 
     slurm_config_available = EventSource(SlurmConfigAvailableEvent)
+    munge_key_available = EventSource(MungeKeyAvailableEvent)
 
 
 class Slurmd(Object):
@@ -32,12 +37,20 @@ class Slurmd(Object):
         )
 
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_changed,
-            self._on_relation_changed,
+            self._charm.on[self._relation_name].relation_joined,
+            self._on_relation_joined,
+        )
+
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_broken,
+            self._on_relation_broken,
         )
 
     def _on_relation_created(self, event):
-        """Set partition name to slurm-configurator."""
+        """Handle the relation-created event.
+
+        Set the partition_name on the application relation data.
+        """
         partition_name = self._charm.get_partition_name()
         if self.framework.model.unit.is_leader():
             if not partition_name:
@@ -48,14 +61,23 @@ class Slurmd(Object):
                 "partition_name"
             ] = self._charm.get_partition_name()
 
-    def _on_relation_changed(self, event):
-        """Check for the munge_key in the relation data."""
+    def _on_relation_joined(self, event):
+        """Handle the relation-joined event.
+
+        Get the munge_key from slurm-configurator and save it to the
+        charm stored state.
+        """
+        # Since we are in relation-joined (with the app on the other side)
+        # we can almost guarantee that the app object will exist in
+        # the event, but check for it just in case.
         event_app_data = event.relation.data.get(event.app)
         if not event_app_data:
             event.defer()
             return
 
-        # Get the munge_key from slurm-configurator
+        # slurm-configurator sets the munge_key on the relation-created event
+        # which happens before relation-joined. We can almost guarantee that
+        # the munge key will exist at this point, but check for it just incase.
         munge_key = event_app_data.get("munge_key")
         if not munge_key:
             event.defer()
@@ -63,7 +85,7 @@ class Slurmd(Object):
 
         # Store the munge_key in the charm's state
         self._charm.set_munge_key(munge_key)
-        self.on.slurm_config_available.emit()
+        self.on.munge_key_available.emit()
 
     def _on_relation_broken(self, event):
         self.on.slurm_config_available.emit()
@@ -77,8 +99,8 @@ class Slurmd(Object):
         """Return True if relation is joined."""
         return self._relation is not None
 
-    def set_slurmd_info_on_app_relation_data(self, slurmd_info):
-        """Set the slurmd_info on the app relation data.
+    def set_partition_info_on_app_relation_data(self, partition_info):
+        """Set the slurmd partition on the app relation data.
 
         Setting data on the application relation forces the units of related
         slurm-configurator application(s) to observe the relation-changed
@@ -86,7 +108,9 @@ class Slurmd(Object):
         """
         relations = self._charm.framework.model.relations["slurmd"]
         for relation in relations:
-            relation.data[self.model.app]["slurmd_info"] = json.dumps(slurmd_info)
+            relation.data[self.model.app]["partition_info"] = json.dumps(
+                partition_info
+            )
 
     def get_slurm_config(self):
         """Return slurm_config."""

@@ -143,11 +143,18 @@ class SlurmConfiguratorCharm(CharmBase):
         self._slurmd.set_slurm_config_on_app_relation_data(
             slurm_config,
         )
-        if self._stored.slurmrestd_available:
-            self._slurmrestd.set_slurm_config_on_app_relation_data(
-                slurm_config,
-            )
-        self._slurm_manager.render_config_and_restart(slurm_config)
+
+        self._slurmctld.restart_slurmctld()
+        self._slurmd.restart_slurmd()
+
+        # if self._stored.slurmrestd_available:
+        #    self._slurmrestd.set_slurm_config_on_app_relation_data(
+        #        slurm_config,
+        #    )
+        #    self._slurmrestd.restart_slurmrestd()
+
+        self._slurm_manager.render_slurm_configs(slurm_config)
+        self._slurm_manager.restart_slurm_component()
 
     def _assemble_slurm_config(self):
         """Assemble and return the slurm config."""
@@ -177,22 +184,20 @@ class SlurmConfiguratorCharm(CharmBase):
     def _assemble_partitions(self, slurmd_info):
         """Make any needed modifications to partition data."""
         slurmd_info_tmp = copy.deepcopy(slurmd_info)
+        default_partition_from_config = self.model.config.get("default_partition")
 
         for partition in slurmd_info:
-
             # Deep copy the partition to a tmp var so we can modify it as
             # needed whilst not modifying the object we are iterating over.
             partition_tmp = copy.deepcopy(partition)
-            # Extract the partition_name from the partition and from the charm
-            # config.
+            # Extract the partition_name from the partition.
             partition_name = partition["partition_name"]
-            default_partition_from_config = self.model.config.get("default_partition")
 
             # Check that the default_partition isn't defined in the charm
             # config.
             # If the user hasn't provided a default partition, then we infer
-            # the partition_default by defaulting to the first related slurmd
-            # application.
+            # the partition_default by defaulting to the "configurator"
+            # partition.
             if not default_partition_from_config:
                 if partition["partition_name"] == "configurator":
                     partition_tmp["partition_default"] = "YES"

@@ -26,20 +26,16 @@ class SlurmdbdCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
-            munge_key=str(),
             munge_key_available=False,
             db_info=dict(),
             slurm_installed=False,
         )
 
+        self._db = MySQLClient(self, "db")
         self._nrpe = Nrpe(self, "nrpe-external-master")
-
         self._slurm_manager = SlurmManager(self, "slurmdbd")
-
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
         self._slurmdbd_peer = SlurmdbdPeer(self, "slurmdbd-peer")
-
-        self._db = MySQLClient(self, "db")
 
         event_handler_bindings = {
             self.on.install: self._on_install,
@@ -69,7 +65,7 @@ class SlurmdbdCharm(CharmBase):
         if not self._stored.slurm_installed:
             event.defer()
             return
-        munge_key = self._stored.munge_key
+        munge_key = self._slurmdbd.get_munge_key()
         self._slurm_manager.configure_munge_key(munge_key)
         self._stored.munge_key_available = True
 
@@ -97,27 +93,29 @@ class SlurmdbdCharm(CharmBase):
                 self.unit.status = BlockedStatus(
                     "Need relation to slurm-configurator."
                 )
-            return False
-        return True
+            elif not slurmdbd_info:
+                self.unit.status = BlockedStatus(
+                    "Need slurmdbd_info."
+                )
+            return None
+        return {**db_info, **slurmdbd_info}
 
     def _write_config_and_restart_slurmdbd(self, event):
         """Check for prereqs before writing config/restart of slurmdbd."""
-        # Ensure all pre-conditions are met with _check_statu(), if not
+        # Ensure all pre-conditions are met with _check_status(), if not
         # defer the event.
-        if not self._check_status():
+        slurmdbd_config = self._check_status()
+        if not slurmdbd_config:
             event.defer()
             return
 
-        db_info = self._stored.db_info
-        slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
-
         slurmdbd_config = {
             **self.model.config,
-            **slurmdbd_info,
-            **db_info,
+            **slurmdbd_config,
         }
 
-        self._slurm_manager.render_config_and_restart(slurmdbd_config)
+        self._slurm_manager.render_slurm_configs(slurmdbd_config)
+        self._slurm_manager.restart_slurm_component()
         logger.debug("rendering config and restarting")
         # Only the leader can set relation data on the application.
         # Enforce that no one other then the leader trys to set
@@ -160,7 +158,7 @@ class SlurmdbdCharm(CharmBase):
                     # relation data actually changes so that relation-changed
                     # event is observed on the other side.
                     "slurmdbd_info_id": str(uuid.uuid4()),
-                    **slurmdbd_info,
+                    **slurmdbd_config,
                 }
             )
         self.unit.status = ActiveStatus("slurmdbd available")
@@ -172,14 +170,6 @@ class SlurmdbdCharm(CharmBase):
     def get_hostname(self):
         """Return the hostname from slurm-ops-manager."""
         return self._slurm_manager.hostname
-
-    def get_slurm_component(self):
-        """Return the slurm component."""
-        return self._slurm_manager.slurm_component
-
-    def set_munge_key(self, munge_key):
-        """Set the munge key in the stored state."""
-        self._stored.munge_key = munge_key
 
     def set_db_info(self, db_info):
         """Set the db_info in the stored state."""

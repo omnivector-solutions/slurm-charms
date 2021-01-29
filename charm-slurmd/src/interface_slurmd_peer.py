@@ -33,21 +33,14 @@ class SlurmdPeer(Object):
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_created,
-            self._set_inventory_on_unit_data,
+            self._on_relation_created,
         )
-
-        self.framework.observe(
-            self._charm.on[self._relation_name].relation_joined,
-            self._set_inventory_on_unit_data,
-        )
-
         self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed,
         )
 
-    def _set_inventory_on_unit_data(self, event):
-        """Set our inventory on unit data."""
+    def _on_relation_created(self, event):
         node_name = self._charm.get_hostname()
         node_addr = event.relation.data[self.model.unit]["ingress-address"]
 

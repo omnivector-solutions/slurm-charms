@@ -2,8 +2,12 @@
 """Slurmdbd."""
 import json
 import logging
+import uuid
 
-from ops.framework import EventBase, EventSource, Object, ObjectEvents
+from ops.framework import (
+    EventBase, EventSource, Object, ObjectEvents,
+)
+
 
 logger = logging.getLogger()
 
@@ -126,3 +130,10 @@ class Slurmctld(Object):
                 app_relation_data["slurm_config"] = json.dumps(slurm_config)
             else:
                 app_relation_data["slurm_config"] = slurm_config
+
+    def restart_slurmctld(self):
+        """Send a restart signal to related slurmctld application."""
+        relations = self._charm.framework.model.relations["slurmctld"]
+        for relation in relations:
+            app_relation_data = relation.data[self.model.app]
+            app_relation_data["restart_slurmctld_hash"] = str(uuid.uuid4())

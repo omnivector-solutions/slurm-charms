@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Slurmd."""
 import copy
+import uuid
 import json
 import logging
 import socket
@@ -71,8 +72,8 @@ class Slurmd(Object):
     def _on_relation_changed(self, event):
         event_app_data = event.relation.data.get(event.app)
         if event_app_data:
-            slurmd_info = event_app_data.get("partition_info")
-            if slurmd_info:
+            partition_info = event_app_data.get("partition_info")
+            if partition_info:
                 self._charm.set_slurmd_available(True)
                 self.on.slurmd_available.emit()
         else:
@@ -171,3 +172,10 @@ class Slurmd(Object):
         for relation in relations:
             app_relation_data = relation.data[self.model.app]
             app_relation_data["slurm_config"] = json.dumps(slurm_config)
+
+    def restart_slurmd(self):
+        """Send a restart signal to related slurmd applications."""
+        relations = self._charm.framework.model.relations["slurmd"]
+        for relation in relations:
+            app_relation_data = relation.data[self.model.app]
+            app_relation_data["restart_slurmd_hash"] = str(uuid.uuid4())

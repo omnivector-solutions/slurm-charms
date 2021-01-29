@@ -2,34 +2,53 @@
 """Slurmd."""
 import json
 
-from ops.framework import EventBase, EventSource, Object, ObjectEvents
+from ops.framework import (
+    EventBase, EventSource, Object, ObjectEvents, StoredState,
+)
 
 
 class SlurmConfigAvailableEvent(EventBase):
     """Emitted when slurm config is available."""
 
 
+class SlurmConfigUnAvailableEvent(EventBase):
+    """Emit when the relation to slurm-configurator is broken."""
+
+
 class MungeKeyAvailableEvent(EventBase):
     """Emit when the munge key has been acquired and set to the charm state."""
 
 
-class SlurmdProvidesEvents(ObjectEvents):
-    """SlurmctldProvidesEvents."""
+class RestartSlurmdEvent(EventBase):
+    """Emit when slurmd should be restarted."""
 
-    slurm_config_available = EventSource(SlurmConfigAvailableEvent)
+
+class SlurmdEvents(ObjectEvents):
+    """Slurmd emitted events."""
+
     munge_key_available = EventSource(MungeKeyAvailableEvent)
+    restart_slurmd = EventSource(RestartSlurmdEvent)
+    slurm_config_available = EventSource(SlurmConfigAvailableEvent)
+    slurm_config_unavailable = EventSource(SlurmConfigUnAvailableEvent)
 
 
 class Slurmd(Object):
     """Slurmd."""
 
-    on = SlurmdProvidesEvents()
+    _stored = StoredState()
+    on = SlurmdEvents()
 
     def __init__(self, charm, relation_name):
         """Set initial data and observe interface events."""
         super().__init__(charm, relation_name)
         self._charm = charm
         self._relation_name = relation_name
+
+        self._stored.set_default(
+            slurm_config=dict(),
+            munge_key=str(),
+            restart_slurmd_uuid=str(),
+        )
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_created,
@@ -39,6 +58,11 @@ class Slurmd(Object):
         self.framework.observe(
             self._charm.on[self._relation_name].relation_joined,
             self._on_relation_joined,
+        )
+
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_changed,
+            self._on_relation_changed,
         )
 
         self.framework.observe(
@@ -52,11 +76,11 @@ class Slurmd(Object):
         Set the partition_name on the application relation data.
         """
         partition_name = self._charm.get_partition_name()
-        if self.framework.model.unit.is_leader():
-            if not partition_name:
-                event.defer()
-                return
+        if not partition_name:
+            event.defer()
+            return
 
+        if self.framework.model.unit.is_leader():
             event.relation.data[self.model.app][
                 "partition_name"
             ] = self._charm.get_partition_name()
@@ -84,11 +108,41 @@ class Slurmd(Object):
             return
 
         # Store the munge_key in the charm's state
-        self._charm.set_munge_key(munge_key)
+        self._store_munge_key(munge_key)
         self.on.munge_key_available.emit()
 
+    def _on_relation_changed(self, event):
+        """Check for the munge_key in the relation data."""
+        event_app_data = event.relation.data.get(event.app)
+        if not event_app_data:
+            event.defer()
+            return
+
+        munge_key = event_app_data.get('munge_key')
+        restart_slurmd_uuid = event_app_data.get('restart_slurmd_uuid')
+        slurm_config = self._get_slurm_config_from_relation()
+
+        if not (munge_key and slurm_config):
+            event.defer()
+            return
+
+        # Store the munge_key in the interface StoredState if it has changed
+        if munge_key != self.get_stored_munge_key():
+            self._store_munge_key(munge_key)
+            self.on.munge_key_available.emit()
+
+        # Store the slurm_config in the interface StoredState if it has changed
+        if slurm_config != self.get_stored_slurm_config():
+            self._store_slurm_config(slurm_config)
+            self.on.slurm_config_available.emit()
+
+        if restart_slurmd_uuid:
+            if restart_slurmd_uuid != self._get_slurmd_restart_uuid():
+                self._store_slurmd_restart_uuid(restart_slurmd_uuid)
+                self.on.restart_slurmd.emit()
+
     def _on_relation_broken(self, event):
-        self.on.slurm_config_available.emit()
+        self.on.slurm_config_unavailable.emit()
 
     @property
     def _relation(self):
@@ -112,7 +166,7 @@ class Slurmd(Object):
                 partition_info
             )
 
-    def get_slurm_config(self):
+    def _get_slurm_config_from_relation(self):
         """Return slurm_config."""
         relation = self._relation
         if relation:
@@ -124,3 +178,20 @@ class Slurmd(Object):
                     if slurm_config:
                         return json.loads(slurm_config)
         return None
+
+    def _store_munge_key(self, munge_key):
+        self._stored.munge_key = munge_key
+
+    def get_stored_munge_key(self):
+        """Retrieve the munge_key from the StoredState."""
+        return self._stored.munge_key
+
+    def _store_slurm_config(self, slurm_config):
+        self._stored.slurm_config = slurm_config
+
+    def get_stored_slurm_config(self):
+        """Retrieve the slurm_config from the StoredState."""
+        return self._stored.slurm_config
+
+    def _store_slurmd_restart_uuid(self, restart_slurmd_uuid):
+        self._stored.restart_slurmd_uuid = restart_slurmd_uuid

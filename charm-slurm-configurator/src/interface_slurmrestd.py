@@ -2,6 +2,7 @@
 """SlurmrestdProvides."""
 import json
 import logging
+import uuid
 
 from ops.framework import EventBase, EventSource, Object, ObjectEvents
 
@@ -62,3 +63,10 @@ class Slurmrestd(Object):
         for relation in relations:
             app_relation_data = relation.data[self.model.app]
             app_relation_data["slurm_config"] = json.dumps(slurm_config)
+
+    def restart_slurmrestd(self):
+        """Send a restart signal to related slurmd applications."""
+        relations = self._charm.framework.model.relations["slurmrestd"]
+        for relation in relations:
+            app_relation_data = relation.data[self.model.app]
+            app_relation_data["restart_slurmrestd_hash"] = str(uuid.uuid4())

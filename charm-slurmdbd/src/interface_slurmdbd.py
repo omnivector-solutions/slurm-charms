@@ -3,7 +3,10 @@
 import json
 import logging
 
-from ops.framework import EventBase, EventSource, Object, ObjectEvents, StoredState
+from ops.framework import (
+    EventBase, EventSource, Object, ObjectEvents, StoredState,
+)
+
 
 logger = logging.getLogger()
 
@@ -31,9 +34,8 @@ class SlurmdbdEvents(ObjectEvents):
 class Slurmdbd(Object):
     """Slurmdbd."""
 
-    on = SlurmdbdEvents()
-
     _stored = StoredState()
+    on = SlurmdbdEvents()
 
     def __init__(self, charm, relation_name):
         """Observe relation lifecycle events."""
@@ -41,6 +43,10 @@ class Slurmdbd(Object):
 
         self._charm = charm
         self._relation_name = relation_name
+
+        self._stored.set_default(
+            munge_key=None,
+        )
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_joined,
@@ -74,8 +80,9 @@ class Slurmdbd(Object):
             event.defer()
             return
 
-        # Store the munge_key in the charm's state
-        self._charm.set_munge_key(munge_key)
+        # Store the munge_key in the interface's stored state object and emit
+        # munge_key_available.
+        self._store_munge_key(munge_key)
         self.on.munge_key_available.emit()
 
     def _on_relation_broken(self, event):
@@ -93,3 +100,11 @@ class Slurmdbd(Object):
                 )
             else:
                 relation.data[self.model.app]["slurmdbd_info"] = ""
+
+    def _store_munge_key(self, munge_key):
+        """Set the munge key in the stored state."""
+        self._stored.munge_key = munge_key
+
+    def get_munge_key(self):
+        """Retrieve the munge key from the stored state."""
+        return self._stored.munge_key

@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """SlurmdCharm."""
 import copy
+import json
 import logging
 
 from nrpe_external_master import Nrpe
@@ -27,7 +28,6 @@ class SlurmdCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
-            munge_key=str(),
             munge_key_available=False,
             user_node_state=str(),
             partition_name=str(),
@@ -49,6 +49,10 @@ class SlurmdCharm(CharmBase):
             self._on_set_partition_info_on_app_relation_data,
             self._slurmd.on.slurm_config_available:
             self._on_check_status_and_write_config,
+            self._slurmd.on.slurm_config_unavailable:
+            self._on_check_status_and_write_config,
+            self._slurmd.on.restart_slurmd:
+            self._on_restart_slurmd,
             self._slurmd.on.munge_key_available: self._on_write_munge_key,
             self.on.set_node_state_action: self._on_set_node_state_action,
         }
@@ -80,7 +84,7 @@ class SlurmdCharm(CharmBase):
         if not self._stored.slurm_installed:
             event.defer()
             return
-        munge_key = self._stored.munge_key
+        munge_key = self._slurmd.get_stored_munge_key()
         self._slurm_manager.configure_munge_key(munge_key)
         self._stored.munge_key_available = True
 
@@ -97,15 +101,17 @@ class SlurmdCharm(CharmBase):
             )
             self._slurm_manager.restart_slurm_component()
         else:
-            self._slurm_manager.render_config_and_restart(
-                slurm_config
-            )
-        self.unit.status = ActiveStatus("slurmd available")
+            self._slurm_manager.render_slurm_configs(dict(slurm_config))
+
+        self.unit.status = ActiveStatus("slurmd config available")
+
+    def _on_restart_slurmd(self, event):
+        self._slurm_manager.restart_slurm_component()
 
     def _check_status(self):
         munge_key_available = self._stored.munge_key_available
         slurm_installed = self._stored.slurm_installed
-        slurm_config = self._slurmd.get_slurm_config()
+        slurm_config = self._slurmd.get_stored_slurm_config()
 
         slurmd_joined = self._slurmd.is_joined
 
@@ -204,10 +210,6 @@ class SlurmdCharm(CharmBase):
         elif not self._stored.partition_name:
             self._stored.partition_name = f"juju-compute-{random_string()}"
         return
-
-    def set_munge_key(self, munge_key):
-        """Set the munge key."""
-        self._stored.munge_key = munge_key
 
     def get_partition_name(self):
         """Return the partition_name."""

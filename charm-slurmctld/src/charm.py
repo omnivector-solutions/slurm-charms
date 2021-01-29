@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """SlurmctldCharm."""
 import logging
+import json
 
 from interface_slurmctld import Slurmctld
 from interface_slurmctld_peer import SlurmctldPeer
@@ -24,7 +25,6 @@ class SlurmctldCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
-            munge_key=str(),
             munge_key_available=False,
             slurmctld_controller_type=str(),
         )
@@ -39,6 +39,7 @@ class SlurmctldCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
             self._slurmctld.on.slurm_config_available: self._on_check_status_and_write_config,
+            self._slurmctld.on.restart_slurmctld: self._on_restart_slurmctld,
             self._slurmctld.on.munge_key_available: self._on_write_munge_key,
             self._slurmctld_peer.on.slurmctld_peer_available: self._on_slurmctld_peer_available,
         }
@@ -57,7 +58,7 @@ class SlurmctldCharm(CharmBase):
         if not self._stored.slurm_installed:
             event.defer()
             return
-        munge_key = self._stored.munge_key
+        munge_key = self._slurmctld.get_stored_munge_key()
         self._slurm_manager.configure_munge_key(munge_key)
         self._stored.munge_key_available = True
 
@@ -79,15 +80,16 @@ class SlurmctldCharm(CharmBase):
             event.defer()
             return
 
-        self._slurm_manager.render_config_and_restart(
-            slurm_config
-        )
-        self.unit.status = ActiveStatus("slurmctld available")
+        self._slurm_manager.render_slurm_configs(dict(slurm_config))
+        self.unit.status = ActiveStatus("slurmctld config available")
+
+    def _on_restart_slurmctld(self, event):
+        self._slurm_manager.restart_slurm_component()
 
     def _check_status(self):
         munge_key_available = self._stored.munge_key_available
         slurm_installed = self._stored.slurm_installed
-        slurm_config = self._slurmctld.get_slurm_config_from_relation()
+        slurm_config = self._slurmctld.get_stored_slurm_config()
 
         if not (munge_key_available and slurm_installed and slurm_config):
             if not munge_key_available:
@@ -101,10 +103,6 @@ class SlurmctldCharm(CharmBase):
             return None
         else:
             return slurm_config
-
-    def set_munge_key(self, munge_key):
-        """Set the munge_key in _stored state."""
-        self._stored.munge_key = munge_key
 
     def get_slurm_component(self):
         """Return the slurm component."""

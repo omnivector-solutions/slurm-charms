@@ -148,7 +148,6 @@ class SlurmdCharm(CharmBase):
 
     def _on_set_partition_info_on_app_relation_data(self, event):
         """Set the slurm partition info on the application relation data."""
-
         # Only the leader can set data on the relation.
         if self.framework.model.unit.is_leader():
             # If the relation with slurm-configurator exists then set our

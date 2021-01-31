@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 """SlurmctldCharm."""
 import logging
-import json
 
 from interface_slurmctld import Slurmctld
 from interface_slurmctld_peer import SlurmctldPeer

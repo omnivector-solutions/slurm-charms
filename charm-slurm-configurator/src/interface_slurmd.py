@@ -21,15 +21,10 @@ class SlurmdBrokenEvent(EventBase):
     """Emmited when the slurmd relation is broken."""
 
 
-#class SlurmdDepartedEvent(EventBase):
-#    """Emmited when a slurmd unit departs."""
-
-
 class SlurmdRequiresEvents(ObjectEvents):
     """SlurmClusterProviderRelationEvents."""
 
     slurmd_available = EventSource(SlurmdAvailableEvent)
-    #slurmd_departed = EventSource(SlurmdDepartedEvent)
     slurmd_unavailable = EventSource(SlurmdBrokenEvent)
 
 
@@ -53,10 +48,6 @@ class Slurmd(Object):
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed,
         )
-        #self.framework.observe(
-        #    self._charm.on[self._relation_name].relation_departed,
-        #    self._on_relation_departed,
-        #)
         self.framework.observe(
             self._charm.on[self._relation_name].relation_broken,
             self._on_relation_broken,
@@ -83,9 +74,6 @@ class Slurmd(Object):
         else:
             event.defer()
             return
-
-    #def _on_relation_departed(self, event):
-    #    self.on.slurmd_departed.emit()
 
     def _on_relation_broken(self, event):
         if self.framework.model.unit.is_leader():

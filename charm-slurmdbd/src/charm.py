@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 """Slurmdbd Operator Charm."""
 import logging
-import uuid
 
 from interface_mysql import MySQLClient
 from interface_slurmdbd import Slurmdbd

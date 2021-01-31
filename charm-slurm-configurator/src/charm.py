@@ -57,8 +57,6 @@ class SlurmConfiguratorCharm(CharmBase):
         event_handler_bindings = {
             # #### Juju lifecycle events #### #
             self.on.install: self._on_install,
-            # self.on.start:
-            # self._on_check_status_and_write_config,
             self.on.config_changed: self._on_check_status_and_write_config,
             self.on.upgrade_charm: self._on_upgrade,
             # ######## Addons lifecycle events ######## #
@@ -75,7 +73,6 @@ class SlurmConfiguratorCharm(CharmBase):
             self._slurmdbd.on.slurmdbd_unavailable: self._on_check_status_and_write_config,
             self._slurmd.on.slurmd_available: self._on_check_status_and_write_config,
             self._slurmd.on.slurmd_unavailable: self._on_check_status_and_write_config,
-            #self._slurmd.on.slurmd_departed: self._on_check_status_and_write_config,
             self._slurmrestd.on.slurmrestd_available: self._on_check_status_and_write_config,
             self._slurmrestd.on.slurmrestd_unavailable: self._on_check_status_and_write_config,
             self._prolog_epilog.on.prolog_epilog_available: self._on_check_status_and_write_config,
@@ -104,7 +101,6 @@ class SlurmConfiguratorCharm(CharmBase):
 
     def _on_get_slurm_conf(self, event):
         """Return the slurm.conf."""
-
         # Determine if we have an override config.
         override_slurm_conf = self._stored.override_slurm_conf
         if override_slurm_conf:

@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 """SlurmdCharm."""
 import copy
-import json
 import logging
 
 from nrpe_external_master import Nrpe
@@ -29,6 +28,7 @@ class SlurmdCharm(CharmBase):
 
         self._stored.set_default(
             munge_key_available=False,
+            slurmd_restarted=False,
             user_node_state=str(),
             partition_name=str(),
         )
@@ -46,6 +46,8 @@ class SlurmdCharm(CharmBase):
             self.on.start: self._on_check_status_and_write_config,
             self.on.config_changed: self._on_config_changed,
             self._slurmd_peer.on.slurmd_peer_available:
+            self._on_set_partition_info_on_app_relation_data,
+            self._slurmd_peer.on.slurmd_peer_departed:
             self._on_set_partition_info_on_app_relation_data,
             self._slurmd.on.slurm_config_available:
             self._on_check_status_and_write_config,
@@ -86,6 +88,7 @@ class SlurmdCharm(CharmBase):
             return
         munge_key = self._slurmd.get_stored_munge_key()
         self._slurm_manager.configure_munge_key(munge_key)
+        self._slurm_manager.restart_munged()
         self._stored.munge_key_available = True
 
     def _on_check_status_and_write_config(self, event):
@@ -94,16 +97,25 @@ class SlurmdCharm(CharmBase):
             event.defer()
             return
 
-        if slurm_config['configless']:
-            slurmctld_hostname = slurm_config['active_controller_hostname']
-            self._slurm_manager.configure_slurmctld_hostname(
-                slurmctld_hostname
-            )
-            self._slurm_manager.restart_slurm_component()
-        else:
-            self._slurm_manager.render_slurm_configs(dict(slurm_config))
+        # if slurm_config['configless']:
+        #    slurmctld_hostname = slurm_config['active_controller_hostname']
+        #    self._slurm_manager.configure_slurmctld_hostname(
+        #        slurmctld_hostname
+        #    )
+        #    self._slurm_manager.restart_slurm_component()
+        # else:
 
-        self.unit.status = ActiveStatus("slurmd config available")
+        # Ensure we aren't dealing with a StoredDict before trying
+        # to render the slurm.conf.
+        slurm_config = dict(slurm_config)
+        self._slurm_manager.render_slurm_configs(slurm_config)
+
+        # Only restart slurmd the first time the node is brought up.
+        if not self._stored.slurmd_restarted:
+            self._slurm_manager.restart_slurm_component()
+            self._stored.slurmd_restarted = True
+
+        self.unit.status = ActiveStatus("slurmd available")
 
     def _on_restart_slurmd(self, event):
         self._slurm_manager.restart_slurm_component()
@@ -117,15 +129,16 @@ class SlurmdCharm(CharmBase):
 
         if not slurmd_joined:
             self.unit.status = BlockedStatus(
-                "Need relation to slurm-configurator"
+                "Needed relations: slurm-configurator"
             )
             return None
 
-        if not (munge_key_available and slurm_config and slurm_installed):
+        elif not (munge_key_available and slurm_config and slurm_installed):
             self.unit.status = WaitingStatus(
-                "Waiting on configuration to complete"
+                "Waiting on: configuration"
             )
             return None
+
         return slurm_config
 
     def _on_set_node_state_action(self, event):
@@ -134,7 +147,14 @@ class SlurmdCharm(CharmBase):
         self._on_set_partition_info_on_app_relation_data(event)
 
     def _on_set_partition_info_on_app_relation_data(self, event):
+        """Set the slurm partition info on the application relation data."""
+
+        # Only the leader can set data on the relation.
         if self.framework.model.unit.is_leader():
+            # If the relation with slurm-configurator exists then set our
+            # partition info on the application relation data.
+            # This handler shouldn't fire if the relation isn't made,
+            # but add this extra check here just incase.
             if self._slurmd.is_joined:
                 partition = self._assemble_partition()
                 if partition:
@@ -148,8 +168,8 @@ class SlurmdCharm(CharmBase):
     def _assemble_partition(self):
         """Assemble the partition info."""
         partition_name = self._stored.partition_name
-        partition_config = self.model.config.get("partition-config")
-        partition_state = self.model.config.get("partition-state")
+        partition_config = self.config.get("partition-config")
+        partition_state = self.config.get("partition-state")
 
         slurmd_inventory = self._assemble_slurmd_inventory()
 
@@ -203,7 +223,7 @@ class SlurmdCharm(CharmBase):
         # ensure the self._stored.partition_name is consistent with the
         # supplied config.
         # If no partition name has been specified then generate one.
-        partition_name = self.model.config.get("partition-name")
+        partition_name = self.config.get("partition-name")
         if partition_name:
             if partition_name != self._stored.partition_name:
                 self._stored.partition_name = partition_name

@@ -54,7 +54,7 @@ class SlurmdbdPeer(Object):
         unit_relation_data["hostname"] = self._charm.get_hostname()
         unit_relation_data["port"] = self._charm.get_port()
 
-        # Call _on_relation_changed to assemble the slurmctld_info and
+        # Call _on_relation_changed to assemble the slurmdbd_info and
         # emit the slurmdbd_peer_available event.
         self._on_relation_changed(event)
 

@@ -69,4 +69,4 @@ class Slurmrestd(Object):
         relations = self._charm.framework.model.relations["slurmrestd"]
         for relation in relations:
             app_relation_data = relation.data[self.model.app]
-            app_relation_data["restart_slurmrestd_hash"] = str(uuid.uuid4())
+            app_relation_data["restart_slurmrestd_uuid"] = str(uuid.uuid4())

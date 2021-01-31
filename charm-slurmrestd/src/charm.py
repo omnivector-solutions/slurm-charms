@@ -8,6 +8,7 @@ from ops.main import main
 from ops.model import (
     ActiveStatus,
     BlockedStatus,
+    WaitingStatus,
 )
 from slurm_ops_manager import SlurmManager
 from slurmrestd_requires import SlurmrestdRequires
@@ -58,22 +59,26 @@ class SlurmLoginCharm(CharmBase):
     def _on_check_status_and_write_config(self, event):
         slurm_installed = self._stored.slurm_installed
         slurm_config = self._stored.config_available
-        logger.debug("##### inside check status and write config ######")
-        if not (slurm_installed and slurm_config):
-            if not slurm_config:
-                self.unit.status = BlockedStatus(
-                    "NEED RELATION TO SLURM-CONFIGURATOR"
-                )
-            else:
-                self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
+
+        slurm_configurator_joined = self._slurmrestd.is_joined
+
+        # Check and see if we have what we need for operation.
+        if not slurm_configurator_joined:
+            self.unit.status = BlockedStatus(
+                "Needed relations: slurm-configurator"
+            )
             event.defer()
             return
-        else:
-            logger.debug("##### STATUS CONFIRMED ######")
-            config = dict(self._slurmrestd.get_slurm_config())
-            logger.debug(config)
-            self.slurm_manager.render_config_and_restart(config)
-            self.unit.status = ActiveStatus("Slurmrestd Available")
+        elif not (slurm_installed and slurm_config):
+            self.unit.status = WaitingStatus(
+                "Waiting on: configurator"
+            )
+            event.defer()
+            return
+
+        config = self._slurmrestd.get_slurm_config()
+        self.slurm_manager.render_config_and_restart(config)
+        self.unit.status = ActiveStatus("slurmrestd available")
 
     def set_config_available(self, boolean):
         """Set self._stored.slurmctld_available."""

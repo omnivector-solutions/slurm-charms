@@ -38,17 +38,16 @@ class SlurmrestdRequires(Object):
     def __init__(self, charm, relation_name):
         """Set the provides initial data."""
         super().__init__(charm, relation_name)
-        self.charm = charm
 
+        self._charm = charm
         self._relation_name = relation_name
 
-
         self.framework.observe(
-            charm.on[relation_name].relation_changed,
+            self._charm.on[relation_name].relation_changed,
             self._on_relation_changed
         )
         self.framework.observe(
-            charm.on[relation_name].relation_broken,
+            self._charm.on[relation_name].relation_broken,
             self._on_relation_broken
         )
 
@@ -64,11 +63,11 @@ class SlurmrestdRequires(Object):
             event.defer()
             return
 
-        self.charm.set_config_available(True)
+        self._charm.set_config_available(True)
         self.on.config_available.emit()
 
     def _on_relation_broken(self, event):
-        self.charm.set_config_available(False)
+        self._charm.set_config_available(False)
         self.on.config_available.emit()
 
     def get_slurm_config(self):

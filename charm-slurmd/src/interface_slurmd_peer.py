@@ -11,13 +11,18 @@ logger = logging.getLogger()
 
 
 class SlurmdPeerAvailableEvent(EventBase):
-    """Emmited on the relation_changed event."""
+    """Emit this when slurmd peers join the relation."""
+
+
+class SlurmdPeerDepartedEvent(EventBase):
+    """Emit this when a peer departs."""
 
 
 class PeerRelationEvents(ObjectEvents):
     """Peer Relation Events."""
 
     slurmd_peer_available = EventSource(SlurmdPeerAvailableEvent)
+    slurmd_peer_departed = EventSource(SlurmdPeerDepartedEvent)
 
 
 class SlurmdPeer(Object):
@@ -39,6 +44,10 @@ class SlurmdPeer(Object):
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed,
         )
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_departed,
+            self._on_relation_departed,
+        )
 
     def _on_relation_created(self, event):
         node_name = self._charm.get_hostname()
@@ -53,6 +62,10 @@ class SlurmdPeer(Object):
     def _on_relation_changed(self, event):
         if self.framework.model.unit.is_leader():
             self.on.slurmd_peer_available.emit()
+
+    def _on_relation_departed(self, event):
+        if self.framework.model.unit.is_leader():
+            self.on.slurmd_peer_departed.emit()
 
     def get_slurmd_inventory(self):
         """Return slurmd inventory."""

@@ -1,0 +1,23 @@
+series: focal
+applications:
+  slurm-configurator:
+    charm: ./../../slurm-configurator.charm
+    num_units: 1
+    constraints: instance-type=t3.medium spaces=nat
+    bindings:
+      "": nat
+      elasticsearch: nat
+      grafana-source: nat
+      influxdb-api: nat
+      nhc: nat
+      prolog-epilog: nat
+      slurmctld: nat
+      slurmd: nat
+      slurmdbd: nat
+      slurmrestd: nat
+    resources:
+        slurm: ./../../../snap-slurm/slurm_20.11.3_amd64.resource
+    options:
+      custom_config: |
+        SlurmctldDebug=debug5
+        SlurmdDebug=debug5

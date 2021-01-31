@@ -195,3 +195,6 @@ class Slurmd(Object):
 
     def _store_slurmd_restart_uuid(self, restart_slurmd_uuid):
         self._stored.restart_slurmd_uuid = restart_slurmd_uuid
+
+    def _get_slurmd_restart_uuid(self):
+        return self._stored.restart_slurmd_uuid

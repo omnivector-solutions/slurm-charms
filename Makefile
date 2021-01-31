@@ -9,12 +9,22 @@ clean: ## Remove .tox and build dirs
 	rm -rf venv/
 	rm -rf *.charm
 
-charms: ## Build all charms
+slurmd: ## Build slurmd
 	@charmcraft build --from charm-slurmd
+
+slurmctld: ## Build slurmctld
 	@charmcraft build --from charm-slurmctld
+
+slurmdbd: ## Build slurmdbd
 	@charmcraft build --from charm-slurmdbd
-	@charmcraft build --from charm-slurmrestd
+
+slurm-configurator: ## Build slurm-configurator
 	@charmcraft build --from charm-slurm-configurator
+
+slurmrestd: ## Build slurmrestd
+	@charmcraft build --from charm-slurmrestd
+
+charms: slurmd slurmdbd slurmctld slurmrestd slurm-configurator ## Build all charms
 
 pull-classic-snap: ## Pull the classic slurm snap from github
 	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource

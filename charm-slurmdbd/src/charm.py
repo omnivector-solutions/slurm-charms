@@ -26,8 +26,9 @@ class SlurmdbdCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
-            munge_key_available=False,
             db_info=dict(),
+            slurmdbd_config=dict(),
+            munge_key_available=False,
             slurm_installed=False,
         )
 
@@ -43,7 +44,7 @@ class SlurmdbdCharm(CharmBase):
             self._db.on.database_available: self._write_config_and_restart_slurmdbd,
             self._slurmdbd_peer.on.slurmdbd_peer_available: self._write_config_and_restart_slurmdbd,
             self._slurmdbd.on.slurmdbd_available: self._write_config_and_restart_slurmdbd,
-            self._slurmdbd.on.slurmdbd_unavailable: self._on_slurmdbd_unavailable,
+            self._slurmdbd.on.slurmdbd_unavailable: self._on_slurm_configurator_unavailable,
             self._slurmdbd.on.munge_key_available: self._on_munge_key_available,
         }
         for event, handler in event_handler_bindings.items():
@@ -52,14 +53,11 @@ class SlurmdbdCharm(CharmBase):
     def _on_install(self, event):
         self._slurm_manager.install()
         self._stored.slurm_installed = True
-        self.unit.status = ActiveStatus("Slurm Installed")
+        self.unit.status = ActiveStatus("slurm snap successfully installed")
 
     def _on_upgrade(self, event):
         """Handle upgrade charm event."""
         self._slurm_manager.upgrade()
-
-    def _on_leader_elected(self, event):
-        self._slurmdbd_peer._on_relation_changed(event)
 
     def _on_munge_key_available(self, event):
         if not self._stored.slurm_installed:
@@ -67,9 +65,11 @@ class SlurmdbdCharm(CharmBase):
             return
         munge_key = self._slurmdbd.get_munge_key()
         self._slurm_manager.configure_munge_key(munge_key)
+        self._slurm_manager.restart_munged()
         self._stored.munge_key_available = True
 
-    def _on_slurmdbd_unavailable(self, event):
+    def _on_slurm_configurator_unavailable(self, event):
+        self._stored.munge_key_available = False
         self._check_status()
 
     def _check_status(self) -> bool:
@@ -88,79 +88,46 @@ class SlurmdbdCharm(CharmBase):
 
         if not all(deps):
             if not db_info:
-                self.unit.status = BlockedStatus("Need relation to MySQL.")
+                self.unit.status = BlockedStatus(
+                    "Need relation to MySQL."
+                )
             elif not munge_key_available:
                 self.unit.status = BlockedStatus(
                     "Need relation to slurm-configurator."
                 )
-            elif not slurmdbd_info:
-                self.unit.status = BlockedStatus(
-                    "Need slurmdbd_info."
-                )
-            return None
-        return {**db_info, **slurmdbd_info}
+            return False
+        return True
 
     def _write_config_and_restart_slurmdbd(self, event):
         """Check for prereqs before writing config/restart of slurmdbd."""
         # Ensure all pre-conditions are met with _check_status(), if not
         # defer the event.
-        slurmdbd_config = self._check_status()
-        if not slurmdbd_config:
+        if not self._check_status():
             event.defer()
             return
 
+        db_info = self._stored.db_info
+        slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
+        slurmdbd_stored_config = dict(self._stored.slurmdbd_config)
+
         slurmdbd_config = {
-            **self.model.config,
-            **slurmdbd_config,
+            **self.config,
+            **slurmdbd_info,
+            **db_info,
         }
 
-        self._slurm_manager.render_slurm_configs(slurmdbd_config)
-        self._slurm_manager.restart_slurm_component()
-        logger.debug("rendering config and restarting")
-        # Only the leader can set relation data on the application.
-        # Enforce that no one other then the leader trys to set
-        # application relation data.
-        if self.model.unit.is_leader():
-            self._slurmdbd.set_slurmdbd_info_on_app_relation_data(
-                {
-                    # Juju, and subsequently the operator framework do not
-                    # emit relation-changed events if data hasn't actually
-                    # changed on the other side of the relation. Even if we set
-                    # the data multiple times, it doesn't mean anything unless
-                    # the data being set is different then what already exists
-                    # in the relation data.
-                    #
-                    # We use 'slurmdbd_info_id' to ensure the slurmdbd_info
-                    # is unique each time it is set on the application relation
-                    # data. This is needed so that that related applications
-                    # (namely slurm-configurator) will observe a
-                    # relation-changed event.
-                    #
-                    # This event (_write_config_and_restart_slurmdbd) may be
-                    # invoked multiple times once _check_status() returns True
-                    # (aka pre-conditions are met that account for the deffered
-                    # invocations.)
-                    # This means that the same slurmdbd_info data may be set on
-                    # application data multiple times and slurmdbd may be
-                    # reconfigured and restarted while slurmctld and the rest
-                    # of the stack are trying to come up and create the clustr.
-                    #
-                    # We need slurm-configurator to emit the relation-changed
-                    # event for the slurmdbd relation every time data is set,
-                    # not just when data has changed.
-                    # slurm-configurator need to re-emit its chain
-                    # of observed events to ensure all services end up getting
-                    # reconfigured *and* restarted *after* slurmdbd, for each
-                    # time that slurmdbd gets reconfigured and restarted.
-                    #
-                    # For this reason, 'slurmdbd_info_id' only
-                    # matters in the context of making sure the application
-                    # relation data actually changes so that relation-changed
-                    # event is observed on the other side.
-                    "slurmdbd_info_id": str(uuid.uuid4()),
-                    **slurmdbd_config,
-                }
-            )
+        if slurmdbd_config != slurmdbd_stored_config:
+            self._stored.slurmdbd_config = slurmdbd_config
+            self._slurm_manager.render_slurm_configs(slurmdbd_config)
+            self._slurm_manager.restart_slurm_component()
+
+            # Only the leader can set relation data on the application.
+            # Enforce that no one other then the leader trys to set
+            # application relation data.
+            if self.model.unit.is_leader():
+                self._slurmdbd.set_slurmdbd_info_on_app_relation_data(
+                    slurmdbd_config,
+                )
         self.unit.status = ActiveStatus("slurmdbd available")
 
     def get_port(self):

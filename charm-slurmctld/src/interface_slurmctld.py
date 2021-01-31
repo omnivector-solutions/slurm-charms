@@ -19,6 +19,10 @@ class RestartSlurmctldEvent(EventBase):
     """Emit this when slurmctld needs to be restarted."""
 
 
+class ScontrolReconfigureEvent(EventBase):
+    """Emit this when scontrol needs to be ran."""
+
+
 class SlurmConfiguratorAvailableEvent(EventBase):
     """Emitted when slurm-config is available."""
 
@@ -42,6 +46,9 @@ class SlurmctldEvents(ObjectEvents):
     restart_slurmctld = EventSource(
         RestartSlurmctldEvent
     )
+    scontrol_reconfigure = EventSource(
+        ScontrolReconfigureEvent
+    )
 
 
 class Slurmctld(Object):
@@ -60,6 +67,7 @@ class Slurmctld(Object):
             slurm_config=dict(),
             munge_key=str(),
             restart_slurmctld_uuid=str(),
+            scontrol_reconfigure_uuid=str(),
         )
 
         self.framework.observe(
@@ -112,7 +120,8 @@ class Slurmctld(Object):
             return
 
         munge_key = event_app_data.get("munge_key")
-        restart_slurmctld_uuid = event_app_data.get("slurmctld_restart_uuid")
+        restart_slurmctld_uuid = event_app_data.get("restart_slurmctld_uuid")
+        scontrol_reconfigure_uuid = event_app_data.get("scontrol_reconfigure_uuid")
         slurm_config = self._get_slurm_config_from_relation()
 
         if not (munge_key and slurm_config):
@@ -130,9 +139,14 @@ class Slurmctld(Object):
             self.on.slurm_config_available.emit()
 
         if restart_slurmctld_uuid:
-            if restart_slurmctld_uuid != self._get_restart_slurmd_uuid():
+            if restart_slurmctld_uuid != self._get_restart_slurmctld_uuid():
                 self._store_restart_slurmctld_uuid(restart_slurmctld_uuid)
-                self.on.restart_slurmd.emit()
+                self.on.restart_slurmctld.emit()
+
+        if scontrol_reconfigure_uuid:
+            if scontrol_reconfigure_uuid != self._get_scontrol_reconfigure_uuid():
+                self._store_scontrol_reconfigure_uuid(scontrol_reconfigure_uuid)
+                self.on.scontrol_reconfigure.emit()
 
     def _on_relation_departed(self, event):
         self.on.slurm_configurator_unavailable.emit()
@@ -190,3 +204,12 @@ class Slurmctld(Object):
 
     def _store_restart_slurmctld_uuid(self, restart_slurmctld_uuid):
         self._stored.restart_slurmctld_uuid = restart_slurmctld_uuid
+
+    def _store_scontrol_reconfigure_uuid(self, scontrol_reconfigure_uuid):
+        self._stored.scontrol_reconfigure_uuid = scontrol_reconfigure_uuid
+
+    def _get_restart_slurmctld_uuid(self):
+        return self._stored.restart_slurmctld_uuid
+
+    def _get_scontrol_reconfigure_uuid(self):
+        return self._stored.restart_slurmctld_uuid

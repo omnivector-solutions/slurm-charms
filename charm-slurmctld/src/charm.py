@@ -9,7 +9,7 @@ from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 from slurm_ops_manager import SlurmManager
 
 logger = logging.getLogger()
@@ -39,6 +39,7 @@ class SlurmctldCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
             self._slurmctld.on.slurm_config_available: self._on_check_status_and_write_config,
+            self._slurmctld.on.scontrol_reconfigure: self._on_scontrol_reconfigure,
             self._slurmctld.on.restart_slurmctld: self._on_restart_slurmctld,
             self._slurmctld.on.munge_key_available: self._on_write_munge_key,
             self._slurmctld_peer.on.slurmctld_peer_available: self._on_slurmctld_peer_available,
@@ -49,7 +50,7 @@ class SlurmctldCharm(CharmBase):
     def _on_install(self, event):
         self._slurm_manager.install()
         self._stored.slurm_installed = True
-        self.unit.status = ActiveStatus("Slurm installed")
+        self.unit.status = ActiveStatus("slurm snap successfully installed")
 
     def _on_upgrade(self, event):
         self._slurm_manager.upgrade()
@@ -60,6 +61,7 @@ class SlurmctldCharm(CharmBase):
             return
         munge_key = self._slurmctld.get_stored_munge_key()
         self._slurm_manager.configure_munge_key(munge_key)
+        self._slurm_manager.restart_munged()
         self._stored.munge_key_available = True
 
     def _on_slurmctld_peer_available(self, event):
@@ -81,28 +83,34 @@ class SlurmctldCharm(CharmBase):
             return
 
         self._slurm_manager.render_slurm_configs(dict(slurm_config))
-        self.unit.status = ActiveStatus("slurmctld config available")
+        self.unit.status = ActiveStatus("slurmctld available")
 
     def _on_restart_slurmctld(self, event):
         self._slurm_manager.restart_slurm_component()
+
+    def _on_scontrol_reconfigure(self, event):
+        self._slurm_manager.slurm_cmd("scontrol", "reconfigure")
 
     def _check_status(self):
         munge_key_available = self._stored.munge_key_available
         slurm_installed = self._stored.slurm_installed
         slurm_config = self._slurmctld.get_stored_slurm_config()
 
-        if not (munge_key_available and slurm_installed and slurm_config):
-            if not munge_key_available:
-                self.unit.status = BlockedStatus(
-                    "NEED RELATION TO SLURM CONFIGURATOR"
-                )
-            elif not slurm_config:
-                self.unit.status = BlockedStatus("WAITING ON SLURM CONFIG")
-            else:
-                self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
+        slurmctld_joined = self._slurmctld.is_joined
+
+        if not slurmctld_joined:
+            self.unit.status = BlockedStatus(
+                "Relations needed: slurm-configurator"
+            )
             return None
-        else:
-            return slurm_config
+
+        elif not (munge_key_available and slurm_installed and slurm_config):
+            self.unit.status = WaitingStatus(
+                "Waiting on: configuration"
+            )
+            return None
+
+        return slurm_config
 
     def get_slurm_component(self):
         """Return the slurm component."""

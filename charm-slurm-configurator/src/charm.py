@@ -33,7 +33,9 @@ class SlurmConfiguratorCharm(CharmBase):
 
         self._stored.set_default(
             munge_key=str(),
+            override_slurm_conf=None,
             slurm_installed=False,
+            slurmd_restarted=False,
             slurmctld_available=False,
             slurmdbd_available=False,
             slurmd_available=False,
@@ -73,24 +75,61 @@ class SlurmConfiguratorCharm(CharmBase):
             self._slurmdbd.on.slurmdbd_unavailable: self._on_check_status_and_write_config,
             self._slurmd.on.slurmd_available: self._on_check_status_and_write_config,
             self._slurmd.on.slurmd_unavailable: self._on_check_status_and_write_config,
+            #self._slurmd.on.slurmd_departed: self._on_check_status_and_write_config,
             self._slurmrestd.on.slurmrestd_available: self._on_check_status_and_write_config,
             self._slurmrestd.on.slurmrestd_unavailable: self._on_check_status_and_write_config,
             self._prolog_epilog.on.prolog_epilog_available: self._on_check_status_and_write_config,
             self._prolog_epilog.on.prolog_epilog_unavailable: self._on_check_status_and_write_config,
+            # Actions
+            self.on.restart_slurmd_action: self._on_restart_slurmd,
+            self.on.restart_slurmctld_action: self._on_restart_slurmctld,
+            self.on.scontrol_reconfigure_action: self._on_scontrol_reconfigure,
+            self.on.get_slurm_conf_action: self._on_get_slurm_conf,
+            self.on.set_slurm_conf_action: self._on_set_slurm_conf,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
 
+    def _on_restart_slurmd(self, event):
+        """Restart the slurmd."""
+        self._slurmd.restart_slurmd()
+
+    def _on_restart_slurmctld(self, event):
+        """Restart the slurmctld."""
+        self._slurmctld.restart_slurmctld()
+
+    def _on_scontrol_reconfigure(self, event):
+        """Run 'scontrol reconfigure' on slurmctld."""
+        self._slurmctld.scontrol_reconfigure()
+
+    def _on_get_slurm_conf(self, event):
+        """Return the slurm.conf."""
+
+        # Determine if we have an override config.
+        override_slurm_conf = self._stored.override_slurm_conf
+        if override_slurm_conf:
+            slurm_conf = override_slurm_conf
+        else:
+            slurm_conf = self._slurm_manager.get_slurm_conf()
+
+        # Return the slurm.conf as the result of the action.
+        event.set_results({"slurm.conf": slurm_conf})
+
+    def _on_set_slurm_conf(self, event):
+        """Set the override slurm.conf."""
+        self._stored.override_slurm_conf = event.params["slurm-conf"]
+
     def _on_install(self, event):
-        """Install the slurm snap and set the munge key."""
+        """Install the slurm snap and capture the munge key."""
         self._slurm_manager.install()
         self._stored.munge_key = self._slurm_manager.get_munge_key()
         self._stored.slurm_installed = True
-        self.unit.status = ActiveStatus("Slurm Installed")
+        self.unit.status = ActiveStatus("slurm installed")
 
     def _on_upgrade(self, event):
         """Upgrade the charm."""
-        slurm_config = self._assemble_slurm_config()
+        slurm_config = \
+            self._stored.override_slurm_conf or self._assemble_slurm_config()
 
         if not slurm_config:
             self.unit.status = BlockedStatus(
@@ -140,21 +179,25 @@ class SlurmConfiguratorCharm(CharmBase):
         self._slurmctld.set_slurm_config_on_app_relation_data(
             slurm_config,
         )
+        self._slurmctld.restart_slurmctld()
+
         self._slurmd.set_slurm_config_on_app_relation_data(
             slurm_config,
         )
 
-        self._slurmctld.restart_slurmctld()
-        self._slurmd.restart_slurmd()
-
-        # if self._stored.slurmrestd_available:
-        #    self._slurmrestd.set_slurm_config_on_app_relation_data(
-        #        slurm_config,
-        #    )
-        #    self._slurmrestd.restart_slurmrestd()
+        if self._stored.slurmrestd_available:
+            self._slurmrestd.set_slurm_config_on_app_relation_data(
+                slurm_config,
+            )
+            self._slurmrestd.restart_slurmrestd()
 
         self._slurm_manager.render_slurm_configs(slurm_config)
-        self._slurm_manager.restart_slurm_component()
+
+        if not self._stored.slurmd_restarted:
+            self._slurm_manager.restart_slurm_component()
+            self._stored.slurmd_restarted = True
+
+        self._slurmctld.scontrol_reconfigure()
 
     def _assemble_slurm_config(self):
         """Assemble and return the slurm config."""
@@ -178,13 +221,13 @@ class SlurmConfiguratorCharm(CharmBase):
             **slurmctld_info,
             **slurmdbd_info,
             **addons_info,
-            **self.model.config,
+            **self.config,
         }
 
     def _assemble_partitions(self, slurmd_info):
         """Make any needed modifications to partition data."""
         slurmd_info_tmp = copy.deepcopy(slurmd_info)
-        default_partition_from_config = self.model.config.get("default_partition")
+        default_partition_from_config = self.config.get("default_partition")
 
         for partition in slurmd_info:
             # Deep copy the partition to a tmp var so we can modify it as
@@ -224,7 +267,7 @@ class SlurmConfiguratorCharm(CharmBase):
 
         if acct_gather:
             ctxt["acct_gather"] = acct_gather
-            acct_gather_custom = self.model.config.get("acct_gather_custom")
+            acct_gather_custom = self.config.get("acct_gather_custom")
             if acct_gather_custom:
                 ctxt["acct_gather"]["custom"] = acct_gather_custom
 

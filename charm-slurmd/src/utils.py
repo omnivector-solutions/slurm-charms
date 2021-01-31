@@ -113,7 +113,7 @@ def get_active_units(relation_name):
     return active_units
 
 
-def random_string(length=10):
+def random_string(length=4):
     """Generate a random string."""
     random_str = ""
     for i in range(length):

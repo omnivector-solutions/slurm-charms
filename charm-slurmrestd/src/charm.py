@@ -71,7 +71,7 @@ class SlurmLoginCharm(CharmBase):
             return
         elif not (slurm_installed and slurm_config):
             self.unit.status = WaitingStatus(
-                "Waiting on: configurator"
+                "Waiting on: configuration"
             )
             event.defer()
             return

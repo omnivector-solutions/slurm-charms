@@ -32,10 +32,10 @@ applications:
       slurmdbd: nat
       slurmrestd: nat
     resources:
-        slurm: ./../../../snap-slurm/slurm_20.11.3_amd64.resource
-      custom_config: |
-        SlurmctldDebug=debug5
-        SlurmdDebug=debug5
+      slurm: ./../../../snap-slurm/slurm_20.11.3_amd64.resource
+    custom_config: |
+      SlurmctldDebug=debug5
+      SlurmdDebug=debug5
   slurmctld:
     charm: ./../../slurmctld.charm
     num_units: 1
@@ -46,7 +46,7 @@ applications:
       slurmctld: nat
       slurmctld-peer: nat
     resources:
-        slurm: ./../../../snap-slurm/slurm_20.11.3_amd64.resource
+      slurm: ./../../../snap-slurm/slurm_20.11.3_amd64.resource
   slurmd:
     charm: ./../../slurmd.charm
     num_units: 1
@@ -57,7 +57,7 @@ applications:
       slurmd: nat
       slurmd-peer: nat
     resources:
-        slurm: ./../../../snap-slurm/slurm_20.11.3_amd64.resource
+      slurm: ./../../../snap-slurm/slurm_20.11.3_amd64.resource
   slurmdbd:
     charm: ./../../slurmdbd.charm
     num_units: 1
@@ -69,7 +69,7 @@ applications:
       slurmdbd: nat
       slurmdbd-peer: nat
     resources:
-        slurm: ./../../../snap-slurm/slurm_20.11.3_amd64.resource
+      slurm: ./../../../snap-slurm/slurm_20.11.3_amd64.resource
 relations:
   - - slurmdbd:db
     - percona-cluster:db

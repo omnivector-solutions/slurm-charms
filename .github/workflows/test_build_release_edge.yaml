@@ -148,11 +148,12 @@ jobs:
         run: |
           sudo snap install juju-wait --classic
           juju-wait
+          sleep 5
 
       - name: "Test sinfo works"
         if: ${{ success() }}
         run: |
-          juju run "sinfo" --unit slurmd/0
+          juju run "sinfo" --unit slurm-configurator/0
 
       - name: "Remove applications from juju model"
         if: ${{ always() }}

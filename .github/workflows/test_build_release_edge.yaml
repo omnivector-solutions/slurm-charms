@@ -133,9 +133,9 @@ jobs:
         shell: bash
         run: |
           for charm in slurmctld slurmd slurmrestd slurm-configurator slurmdbd; do
-            juju deploy ./$charm.charm --series focal --bind nat --constraints "instance-type=t3.medium spaces=nat"
+            juju deploy -m ${{ steps.vars.outputs.sha_short }}-focal ./$charm.charm --series focal --bind nat --constraints "instance-type=t3.medium spaces=nat"
           done
-          juju deploy percona-cluster --bind nat --constraints "instance-type=t3.medium spaces=nat"
+          juju deploy -m ${{ steps.vars.outputs.sha_short }}-focal percona-cluster --bind nat --constraints "instance-type=t3.medium spaces=nat"
 
           juju relate slurmdbd percona-cluster
           juju relate slurmd slurm-configurator

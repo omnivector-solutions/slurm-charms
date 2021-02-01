@@ -16,6 +16,15 @@ applications:
       nrpe-external-master: nat
       shared-db: nat
       slave: nat
+  slurmrestd:
+    charm: ./../../slurmrestd.charm
+    num_units: 1
+    constraints: instance-type=t3.medium spaces=nat
+    bindings:
+      "": nat
+      slurmrestd: nat
+    options:
+      snapstore-channel: "--beta"
   slurm-configurator:
     charm: ./../../slurm-configurator.charm
     num_units: 1

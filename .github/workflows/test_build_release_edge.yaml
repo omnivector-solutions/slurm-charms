@@ -184,7 +184,7 @@ jobs:
   release-slurm-charms-to-edge:
     name: "Push slurm charms to s3"
     runs-on: "ubuntu-latest"
-    needs: [deploy-slurm-focal-on-aws]
+    needs: [deploy-slurm-focal-beta-on-aws]
     steps:
       - name: "Configure AWS Credentials"
         uses: aws-actions/configure-aws-credentials@v1

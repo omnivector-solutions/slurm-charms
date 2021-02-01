@@ -48,7 +48,7 @@ class SlurmLoginCharm(CharmBase):
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
-        self.slurm_manager.install()
+        self.slurm_manager.install(self.config["snapstore-channel"])
         self.unit.status = ActiveStatus("slurm installed")
         self._stored.slurm_installed = True
 

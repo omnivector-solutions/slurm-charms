@@ -117,7 +117,7 @@ class SlurmConfiguratorCharm(CharmBase):
 
     def _on_install(self, event):
         """Install the slurm snap and capture the munge key."""
-        self._slurm_manager.install()
+        self._slurm_manager.install(self.config["snapstore-channel"])
         self._stored.munge_key = self._slurm_manager.get_munge_key()
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("slurm installed")

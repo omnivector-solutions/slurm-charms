@@ -50,7 +50,7 @@ class SlurmdbdCharm(CharmBase):
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
-        self._slurm_manager.install()
+        self._slurm_manager.install(self.config["snapstore-channel"])
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("slurm snap successfully installed")
 

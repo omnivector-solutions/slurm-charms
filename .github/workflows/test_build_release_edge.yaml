@@ -78,7 +78,7 @@ jobs:
     outputs:
       charm_hash: ${{ steps.vars.outputs.charm_hash }}
 
-  deploy-slurm-focal-on-aws:
+  deploy-slurm-focal-beta-on-aws:
     name: "Deploy focal on aws"
     runs-on: "ubuntu-latest"
     needs: [cache-juju-tar, build-charms]
@@ -128,27 +128,17 @@ jobs:
           juju add-space -m ${{ steps.vars.outputs.sha_short }}-focal nat 172.31.80.0/24 172.31.81.0/24 172.31.82.0/24 172.31.83.0/24
           juju model-config logging-config="<root>=DEBUG;<unit>=DEBUG"
 
-      - name: "Deploy charms"
+      - name: "Deploy charms using the snap from the beta channel"
         if: ${{ success() }}
         shell: bash
         run: |
-          for charm in slurmctld slurmd slurmrestd slurm-configurator slurmdbd; do
-            juju deploy -m ${{ steps.vars.outputs.sha_short }}-focal ./$charm.charm --series focal --bind nat --constraints "instance-type=t3.medium spaces=nat"
-          done
-          juju deploy -m ${{ steps.vars.outputs.sha_short }}-focal percona-cluster --bind nat --constraints "instance-type=t3.medium spaces=nat"
-
-          juju relate slurmdbd percona-cluster
-          juju relate slurmd slurm-configurator
-          juju relate slurmdbd slurm-configurator
-          juju relate slurmctld slurm-configurator
-          juju relate slurmrestd slurm-configurator
+          juju deploy -m ${{ steps.vars.outputs.sha_short }}-focal ./bundles/slurm-core/focal-beta-bundle.yaml
 
       - name: "Wait for deployment to settle"
         if: ${{ success() }}
         run: |
           sudo snap install juju-wait --classic
           juju-wait
-          sleep 5
 
       - name: "Test sinfo works"
         if: ${{ success() }}

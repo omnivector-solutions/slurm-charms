@@ -1,18 +1,9 @@
 options:
-  configless:
-    type: boolean
-    default: false
-    description: |
-      "Configless" Slurm is a feature that allows the compute 
-      nodes — specifically the slurmd process — and user commands
-      running on login nodes to pull configuration information directly
-      from the slurmctld instead of from a pre-distributed local file.
-
-      Setting this to true (default) will add
-
-          SlurmctldParameters=enable_configless
-
-      to the slurm.conf
+  snapstore-channel:
+    type: string
+    default: "--stable"
+    description:
+      'Snap store channel to install the slurm snap from.'
   cluster_name:
     type: string
     default: cluster1

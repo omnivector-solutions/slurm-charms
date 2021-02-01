@@ -62,7 +62,7 @@ class SlurmdCharm(CharmBase):
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
-        self._slurm_manager.install()
+        self._slurm_manager.install(self.config["snapstore-channel"])
 
         if self.model.unit.is_leader():
             self._get_set_partition_name()

@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""SlurmLoginCharm."""
+"""SlurmrestdCharm."""
 import logging
 
 from ops.charm import CharmBase
@@ -17,8 +17,8 @@ from slurmrestd_requires import SlurmrestdRequires
 logger = logging.getLogger()
 
 
-class SlurmLoginCharm(CharmBase):
-    """Operator charm responsible for lifecycle operations for slurmctld."""
+class SlurmrestdCharm(CharmBase):
+    """Operator charm responsible for lifecycle operations for slurmrestd."""
 
     _stored = StoredState()
 
@@ -29,7 +29,7 @@ class SlurmLoginCharm(CharmBase):
             slurm_installed=False,
             config_available=False,
         )
-        self.slurm_manager = SlurmManager(self, "slurmrestd")
+        self._slurm_manager = SlurmManager(self, "slurmrestd")
         self._slurmrestd = SlurmrestdRequires(self, 'slurmrestd')
 
         event_handler_bindings = {
@@ -43,22 +43,50 @@ class SlurmLoginCharm(CharmBase):
 
             self._slurmrestd.on.config_unavailable:
             self._on_check_status_and_write_config,
+
+            self._slurmrestd.on.munge_key_available:
+            self._on_configure_munge_key,
+
+            self._slurmrestd.on.restart_slurmrestd:
+            self._on_restart_slurmrestd,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
-        self.slurm_manager.install(self.config["snapstore-channel"])
+        self._slurm_manager.install(self.config["snapstore-channel"])
         self.unit.status = ActiveStatus("slurm installed")
         self._stored.slurm_installed = True
 
     def _on_upgrade(self, event):
         """Upgrade charm event handler."""
-        self.slurm_manager.upgrade()
+        slurm_config = self._check_status()
+        snapstore_channel = self.config["snapstore-channel"]
+        self._slurm_manager.upgrade(slurm_config, snapstore_channel)
 
-    def _on_check_status_and_write_config(self, event):
-        slurm_installed = self._stored.slurm_installed
-        slurm_config = self._stored.config_available
+    def _on_restart_slurmrestd(self, event):
+        """Resart the slurmrestd component."""
+        self._slurm_manager.restart_slurm_component()
+
+    def _on_configure_munge_key(self, event):
+        """Configure the munge key.
+
+        1) Get the munge key from the stored state of the slurmrestd relation
+        2) Write the munge key to the munge key path and chmod
+        3) Restart munged
+        4) Set munge_key_available in charm stored state
+        """
+        if not self._stored.slurm_installed:
+            event.defer()
+            return
+        munge_key = self._slurmrestd.get_stored_munge_key()
+        self._slurm_manager.configure_munge_key(munge_key)
+        self._slurm_manager.restart_munged()
+        self._stored.munge_key_available = True
+
+    def _check_status(self):
+        slurm_config = self._slurmrestd.get_stored_slurm_config()
+        munge_key_available = self._stored.munge_key_available
 
         slurm_configurator_joined = self._slurmrestd.is_joined
 
@@ -67,23 +95,30 @@ class SlurmLoginCharm(CharmBase):
             self.unit.status = BlockedStatus(
                 "Needed relations: slurm-configurator"
             )
-            event.defer()
-            return
-        elif not (slurm_installed and slurm_config):
+            return None
+        elif not (munge_key_available and slurm_config):
             self.unit.status = WaitingStatus(
                 "Waiting on: configuration"
             )
+            return None
+
+        return dict(slurm_config)
+
+    def _on_check_status_and_write_config(self, event):
+        slurm_config = self._check_status()
+        if not slurm_config:
             event.defer()
             return
 
-        config = self._slurmrestd.get_slurm_config()
-        self.slurm_manager.render_config_and_restart(config)
-        self.unit.status = ActiveStatus("slurmrestd available")
+        self._slurm_manager.render_slurm_configs(slurm_config)
 
-    def set_config_available(self, boolean):
-        """Set self._stored.slurmctld_available."""
-        self._stored.config_available = boolean
+        # Only restart slurmrestd the first time the node is brought up.
+        if not self._stored.slurmrestd_restarted:
+            self._slurm_manager.restart_slurm_component()
+            self._stored.slurmrestd_restarted = True
+
+        self.unit.status = ActiveStatus("slurmrestd available")
 
 
 if __name__ == "__main__":
-    main(SlurmLoginCharm)
+    main(SlurmrestdCharm)

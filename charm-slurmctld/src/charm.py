@@ -52,7 +52,9 @@ class SlurmctldCharm(CharmBase):
         self.unit.status = ActiveStatus("slurm snap successfully installed")
 
     def _on_upgrade(self, event):
-        self._slurm_manager.upgrade()
+        slurm_config = dict(self._check_status())
+        snapstore_channel = self.config["snapstore-channel"]
+        self._slurm_manager.upgrade(slurm_config, snapstore_channel)
 
     def _on_write_munge_key(self, event):
         if not self._stored.slurm_installed:

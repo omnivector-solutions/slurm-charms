@@ -83,13 +83,13 @@ class Slurmd(Object):
         self.on.slurmd_unavailable.emit()
 
     @property
-    def _relation(self):
-        return self.framework.model.get_relation(self._relation_name)
+    def _num_relations(self):
+        return len(self._charm.framework.model.relations["slurmd"])
 
     @property
     def is_joined(self):
         """Return True if self._relation is not None."""
-        return self._relation is not None
+        return self._num_relations > 0
 
     def _assemble_slurm_configurator_inventory(self):
         """Assemble the slurm-configurator partition."""

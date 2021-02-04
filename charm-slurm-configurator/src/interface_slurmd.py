@@ -6,7 +6,9 @@ import json
 import logging
 import socket
 
-from ops.framework import EventBase, EventSource, Object, ObjectEvents, StoredState
+from ops.framework import (
+    EventBase, EventSource, Object, ObjectEvents, StoredState
+)
 
 from utils import get_inventory
 

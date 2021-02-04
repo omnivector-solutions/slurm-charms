@@ -134,7 +134,10 @@ class SlurmConfiguratorCharm(CharmBase):
             event.defer()
             return
 
-        self._slurm_manager.upgrade(slurm_config)
+        self._slurm_manager.upgrade(
+            slurm_config,
+            self.config["snapstore-channel"]
+        )
 
     def _on_grafana_available(self, event):
         """Create the grafana-source if we are the leader and have influxdb."""

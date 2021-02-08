@@ -97,7 +97,7 @@ class SlurmrestdRequires(Object):
 
     def _on_relation_changed(self, event):
         """Check for the munge_key in the relation data."""
-        event_app_data = event.relation.data.get(event.app)
+        Event_app_data = event.relation.data.get(event.app)
         if not event_app_data:
             event.defer()
             return

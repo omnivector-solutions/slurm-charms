@@ -16,4 +16,4 @@ set-slurm-conf:
   required: [slurm-conf]
 
 scontrol-reconfigure:
-  description: Run the scontrol reconfigur command.
+  description: Run the scontrol reconfigure command.

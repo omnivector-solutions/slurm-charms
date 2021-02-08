@@ -71,8 +71,15 @@ class SlurmdCharm(CharmBase):
         self.unit.status = ActiveStatus("Slurm installed")
 
     def _on_upgrade(self, event):
-        partition = self._assemble_partition()
-        self._slurm_manager.upgrade(partition)
+        slurm_config = self._check_status()
+        if not slurm_config:
+            event.defer()
+            return
+
+        self._slurm_manager.upgrade(
+            slurm_config,
+            self.config["snapstore-channel"]
+        )
 
     def _on_config_changed(self, event):
         if self.model.unit.is_leader():
@@ -139,7 +146,7 @@ class SlurmdCharm(CharmBase):
             )
             return None
 
-        return slurm_config
+        return dict(slurm_config)
 
     def _on_set_node_state_action(self, event):
         """Set the node state."""

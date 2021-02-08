@@ -1,4 +1,9 @@
 options:
+  snapstore-channel:
+    type: string
+    default: "--stable"
+    description:
+      'Snap store channel to install the slurm snap from.'
   slurmdbd_debug:
     type: string
     default: info

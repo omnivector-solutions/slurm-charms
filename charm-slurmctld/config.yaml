@@ -1,4 +1,9 @@
 options:
+  snapstore-channel:
+    type: string
+    default: "--stable"
+    description:
+      'Snap store channel to install the slurm snap from.'
   nagios_context:
     default: "juju"
     type: string

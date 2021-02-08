@@ -9,18 +9,15 @@ from interface_influxdb import InfluxDB
 from interface_nhc import Nhc
 from interface_prolog_epilog import PrologEpilog
 from interface_slurmctld import Slurmctld
-from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
 from interface_slurmrestd import Slurmrestd
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
-from ops.model import (
-    ActiveStatus,
-    BlockedStatus,
-)
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 from slurm_ops_manager import SlurmManager
 
+from interface_slurmd import Slurmd
 
 logger = logging.getLogger()
 
@@ -35,14 +32,14 @@ class SlurmConfiguratorCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
-            default_partition=str(),
             munge_key=str(),
+            override_slurm_conf=None,
             slurm_installed=False,
+            slurmd_restarted=False,
             slurmctld_available=False,
             slurmdbd_available=False,
             slurmd_available=False,
             slurmrestd_available=False,
-
         )
 
         self._elasticsearch = Elasticsearch(self, "elasticsearch")
@@ -60,78 +57,75 @@ class SlurmConfiguratorCharm(CharmBase):
         event_handler_bindings = {
             # #### Juju lifecycle events #### #
             self.on.install: self._on_install,
-
-            # self.on.start:
-            # self._on_check_status_and_write_config,
-
-            self.on.config_changed:
-            self._on_check_status_and_write_config,
-
+            self.on.config_changed: self._on_check_status_and_write_config,
             self.on.upgrade_charm: self._on_upgrade,
-
             # ######## Addons lifecycle events ######## #
-            self._elasticsearch.on.elasticsearch_available:
-            self._on_check_status_and_write_config,
-
-            self._elasticsearch.on.elasticsearch_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._grafana.on.grafana_available:
-            self._on_grafana_available,
-
-            self._influxdb.on.influxdb_available:
-            self._on_influxdb_available,
-
-            self._influxdb.on.influxdb_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._nhc.on.nhc_bin_available:
-            self._on_check_status_and_write_config,
-
+            self._elasticsearch.on.elasticsearch_available: self._on_check_status_and_write_config,
+            self._elasticsearch.on.elasticsearch_unavailable: self._on_check_status_and_write_config,
+            self._grafana.on.grafana_available: self._on_grafana_available,
+            self._influxdb.on.influxdb_available: self._on_influxdb_available,
+            self._influxdb.on.influxdb_unavailable: self._on_check_status_and_write_config,
+            self._nhc.on.nhc_bin_available: self._on_check_status_and_write_config,
             # ######## Slurm component lifecycle events ######## #
-            self._slurmctld.on.slurmctld_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmctld.on.slurmctld_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._slurmdbd.on.slurmdbd_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmdbd.on.slurmdbd_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._slurmd.on.slurmd_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmd.on.slurmd_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._slurmrestd.on.slurmrestd_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmrestd.on.slurmrestd_unavailable:
-            self._on_check_status_and_write_config,
-
-            self._prolog_epilog.on.prolog_epilog_available:
-            self._on_check_status_and_write_config,
-
-            self._prolog_epilog.on.prolog_epilog_unavailable:
-            self._on_check_status_and_write_config,
+            self._slurmctld.on.slurmctld_available: self._on_check_status_and_write_config,
+            self._slurmctld.on.slurmctld_unavailable: self._on_check_status_and_write_config,
+            self._slurmdbd.on.slurmdbd_available: self._on_check_status_and_write_config,
+            self._slurmdbd.on.slurmdbd_unavailable: self._on_check_status_and_write_config,
+            self._slurmd.on.slurmd_available: self._on_check_status_and_write_config,
+            self._slurmd.on.slurmd_unavailable: self._on_check_status_and_write_config,
+            self._slurmrestd.on.slurmrestd_available: self._on_check_status_and_write_config,
+            self._slurmrestd.on.slurmrestd_unavailable: self._on_check_status_and_write_config,
+            self._prolog_epilog.on.prolog_epilog_available: self._on_check_status_and_write_config,
+            self._prolog_epilog.on.prolog_epilog_unavailable: self._on_check_status_and_write_config,
+            # Actions
+            self.on.restart_slurmd_action: self._on_restart_slurmd,
+            self.on.restart_slurmctld_action: self._on_restart_slurmctld,
+            self.on.scontrol_reconfigure_action: self._on_scontrol_reconfigure,
+            self.on.get_slurm_conf_action: self._on_get_slurm_conf,
+            self.on.set_slurm_conf_action: self._on_set_slurm_conf,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
 
+    def _on_restart_slurmd(self, event):
+        """Restart the slurmd."""
+        self._slurmd.restart_slurmd()
+
+    def _on_restart_slurmctld(self, event):
+        """Restart the slurmctld."""
+        self._slurmctld.restart_slurmctld()
+
+    def _on_scontrol_reconfigure(self, event):
+        """Run 'scontrol reconfigure' on slurmctld."""
+        self._slurmctld.scontrol_reconfigure()
+
+    def _on_get_slurm_conf(self, event):
+        """Return the slurm.conf."""
+        # Determine if we have an override config.
+        override_slurm_conf = self._stored.override_slurm_conf
+        if override_slurm_conf:
+            slurm_conf = override_slurm_conf
+        else:
+            slurm_conf = self._slurm_manager.get_slurm_conf()
+
+        # Return the slurm.conf as the result of the action.
+        event.set_results({"slurm.conf": slurm_conf})
+
+    def _on_set_slurm_conf(self, event):
+        """Set the override slurm.conf."""
+        self._stored.override_slurm_conf = event.params["slurm-conf"]
+
     def _on_install(self, event):
-        """Install the slurm snap and set the munge key."""
-        self._slurm_manager.install()
+        """Install the slurm snap and capture the munge key."""
+        self._slurm_manager.install(self.config["snapstore-channel"])
         self._stored.munge_key = self._slurm_manager.get_munge_key()
         self._stored.slurm_installed = True
-        self.unit.status = ActiveStatus("Slurm Installed")
+        self.unit.status = ActiveStatus("slurm installed")
 
     def _on_upgrade(self, event):
         """Upgrade the charm."""
-        slurm_config = self._assemble_slurm_config()
+        slurm_config = \
+            self._stored.override_slurm_conf or self._assemble_slurm_config()
 
         if not slurm_config:
             self.unit.status = BlockedStatus(
@@ -140,7 +134,10 @@ class SlurmConfiguratorCharm(CharmBase):
             event.defer()
             return
 
-        self._slurm_manager.upgrade(slurm_config)
+        self._slurm_manager.upgrade(
+            slurm_config,
+            self.config["snapstore-channel"]
+        )
 
     def _on_grafana_available(self, event):
         """Create the grafana-source if we are the leader and have influxdb."""
@@ -181,16 +178,25 @@ class SlurmConfiguratorCharm(CharmBase):
         self._slurmctld.set_slurm_config_on_app_relation_data(
             slurm_config,
         )
+        self._slurmctld.restart_slurmctld()
+
         self._slurmd.set_slurm_config_on_app_relation_data(
             slurm_config,
         )
+
         if self._stored.slurmrestd_available:
             self._slurmrestd.set_slurm_config_on_app_relation_data(
                 slurm_config,
             )
-        self._slurm_manager.render_config_and_restart(
-            {**slurm_config, 'munge_key': self.get_munge_key()}
-        )
+            self._slurmrestd.restart_slurmrestd()
+
+        self._slurm_manager.render_slurm_configs(slurm_config)
+
+        if not self._stored.slurmd_restarted:
+            self._slurm_manager.restart_slurm_component()
+            self._stored.slurmd_restarted = True
+
+        self._slurmctld.scontrol_reconfigure()
 
     def _assemble_slurm_config(self):
         """Assemble and return the slurm config."""
@@ -210,42 +216,36 @@ class SlurmConfiguratorCharm(CharmBase):
         logger.debug(slurmdbd_info)
 
         return {
-            'munge_key': self._stored.munge_key,
-            'partitions': partitions_info,
+            "partitions": partitions_info,
             **slurmctld_info,
             **slurmdbd_info,
             **addons_info,
-            **self.model.config,
+            **self.config,
         }
 
     def _assemble_partitions(self, slurmd_info):
         """Make any needed modifications to partition data."""
         slurmd_info_tmp = copy.deepcopy(slurmd_info)
+        default_partition_from_config = self.config.get("default_partition")
 
         for partition in slurmd_info:
-
             # Deep copy the partition to a tmp var so we can modify it as
             # needed whilst not modifying the object we are iterating over.
             partition_tmp = copy.deepcopy(partition)
-            # Extract the partition_name from the partition and from the charm
-            # config.
-            partition_name = partition['partition_name']
-            default_partition_from_config = self.model.config.get(
-                'default_partition'
-            )
+            # Extract the partition_name from the partition.
+            partition_name = partition["partition_name"]
 
             # Check that the default_partition isn't defined in the charm
             # config.
             # If the user hasn't provided a default partition, then we infer
-            # the partition_default by defaulting to the first related slurmd
-            # application.
+            # the partition_default by defaulting to the "configurator"
+            # partition.
             if not default_partition_from_config:
-                if partition['partition_name'] ==\
-                   self._stored.default_partition:
-                    partition_tmp['partition_default'] = 'YES'
+                if partition["partition_name"] == "configurator":
+                    partition_tmp["partition_default"] = "YES"
             else:
                 if default_partition_from_config == partition_name:
-                    partition_tmp['partition_default'] = 'YES'
+                    partition_tmp["partition_default"] = "YES"
 
             slurmd_info_tmp.remove(partition)
             slurmd_info_tmp.append(partition_tmp)
@@ -255,65 +255,80 @@ class SlurmConfiguratorCharm(CharmBase):
     def _assemble_addons(self):
         """Assemble any addon components."""
         acct_gather = self._get_influxdb_info()
-        elasticsearch_ingress = \
-            self._elasticsearch.get_elasticsearch_ingress()
+        elasticsearch_ingress = self._elasticsearch.get_elasticsearch_ingress()
         nhc_info = self._nhc.get_nhc_info()
         prolog_epilog = self._prolog_epilog.get_prolog_epilog()
 
         ctxt = dict()
 
         if prolog_epilog:
-            ctxt['prolog_epilog'] = prolog_epilog
+            ctxt["prolog_epilog"] = prolog_epilog
 
         if acct_gather:
-            ctxt['acct_gather'] = acct_gather
-            acct_gather_custom = self.model.config.get('acct_gather_custom')
+            ctxt["acct_gather"] = acct_gather
+            acct_gather_custom = self.config.get("acct_gather_custom")
             if acct_gather_custom:
-                ctxt['acct_gather']['custom'] = acct_gather_custom
+                ctxt["acct_gather"]["custom"] = acct_gather_custom
 
         if nhc_info:
-            ctxt['nhc'] = {
-                'nhc_bin': nhc_info['nhc_bin'],
-                'health_check_interval': nhc_info['health_check_interval'],
-                'health_check_node_state': nhc_info['health_check_node_state'],
+            ctxt["nhc"] = {
+                "nhc_bin": nhc_info["nhc_bin"],
+                "health_check_interval": nhc_info["health_check_interval"],
+                "health_check_node_state": nhc_info["health_check_node_state"],
             }
 
         if elasticsearch_ingress:
-            ctxt['elasticsearch_address'] = elasticsearch_ingress
+            ctxt["elasticsearch_address"] = elasticsearch_ingress
 
         return ctxt
 
     def _check_status(self):
         """Check that the core components we need exist."""
-        slurmctld_available = self._stored.slurmctld_available
-        slurmdbd_available = self._stored.slurmdbd_available
-        slurmd_available = self._stored.slurmd_available
-        slurm_installed = self._stored.slurm_installed
-        default_partition = self._stored.default_partition
+        slurm_component_statuses = {
+            "slurmctld": {
+                "available": self._stored.slurmctld_available,
+                "joined": self._slurmctld.is_joined,
+            },
+            "slurmd": {
+                "available": self._stored.slurmd_available,
+                "joined": self._slurmd.is_joined,
+            },
+            "slurmdbd": {
+                "available": self._stored.slurmdbd_available,
+                "joined": self._slurmdbd.is_joined,
+            },
+        }
 
-        deps = [
-            default_partition,
-            slurmctld_available,
-            slurmdbd_available,
-            slurmd_available,
-            slurm_installed,
-        ]
+        relations_needed = []
+        waiting_on = []
 
-        if not all(deps):
-            if not slurmctld_available:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURMCTLD")
-            elif not slurmdbd_available:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURMDBD")
-            elif not slurmd_available:
-                self.unit.status = BlockedStatus("NEED RELATION TO SLURMD")
-            elif not slurm_installed:
-                self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
-            else:
-                self.unit.status = BlockedStatus("PARTITION NAME UNAVAILABLE")
-            return False
+        msg = str()
+
+        for slurm_component in slurm_component_statuses.keys():
+            if not slurm_component_statuses[slurm_component]["joined"]:
+                relations_needed.append(slurm_component)
+            elif not slurm_component_statuses[slurm_component]["available"]:
+                waiting_on.append(slurm_component)
+
+        relations_needed_len = len(relations_needed)
+        waiting_on_len = len(waiting_on)
+
+        if relations_needed_len > 0:
+            msg += f"Needed relations: {','.join(relations_needed)} "
+
+        if waiting_on_len > 0:
+            msg += f"Waiting on: {','.join(waiting_on)}"
+
+        # Using what we have gathered about the status of each slurm component,
+        # determine the application status.
+        if relations_needed_len > 0:
+            self.unit.status = BlockedStatus(msg)
+        elif waiting_on_len > 0:
+            self.unit.status = WaitingStatus(msg)
         else:
-            self.unit.status = ActiveStatus("")
+            self.unit.status = ActiveStatus("slurm-configurator available")
             return True
+        return False
 
     def _get_influxdb_info(self):
         """Return influxdb info."""
@@ -326,10 +341,6 @@ class SlurmConfiguratorCharm(CharmBase):
         """Return the slurmdbd_info from stored state."""
         return self._stored.munge_key
 
-    def get_default_partition(self):
-        """Return self._stored.default_partition."""
-        return self._stored.default_partition
-
     def is_slurm_installed(self):
         """Return true/false based on whether or not slurm is installed."""
         return self._stored.slurm_installed
@@ -341,10 +352,6 @@ class SlurmConfiguratorCharm(CharmBase):
     def set_slurmdbd_available(self, slurmdbd_available):
         """Set slurmdbd_available."""
         self._stored.slurmdbd_available = slurmdbd_available
-
-    def set_default_partition(self, partition_name):
-        """Set self._stored.default_partition."""
-        self._stored.default_partition = partition_name
 
     def set_slurmd_available(self, slurmd_available):
         """Set slurmd_available."""

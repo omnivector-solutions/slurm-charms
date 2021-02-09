@@ -11,7 +11,7 @@ from ops.model import (
     WaitingStatus,
 )
 from slurm_ops_manager import SlurmManager
-from slurmrestd_requires import SlurmrestdRequires
+from interface_slurmrestd import SlurmrestdRequires
 
 
 logger = logging.getLogger()

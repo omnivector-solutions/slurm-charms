@@ -115,7 +115,7 @@ class Slurmd(Object):
         """Check for the munge_key in the relation data."""
         event_app_data = event.relation.data.get(event.app)
         if not event_app_data:
-            event.defer()
+            #event.defer()
             return
 
         munge_key = event_app_data.get('munge_key')
@@ -123,7 +123,7 @@ class Slurmd(Object):
         slurm_config = self._get_slurm_config_from_relation()
 
         if not (munge_key and slurm_config):
-            event.defer()
+            #event.defer()
             return
 
         # Store the munge_key in the interface StoredState if it has changed
@@ -149,9 +149,13 @@ class Slurmd(Object):
         return self.framework.model.get_relation(self._relation_name)
 
     @property
+    def num_relations(self):
+        return len(self._charm.framework.model.relations["slurmd"])
+
+    @property
     def is_joined(self):
         """Return True if relation is joined."""
-        return self._relation is not None
+        return self.num_relations > 0
 
     def set_partition_info_on_app_relation_data(self, partition_info):
         """Set the slurmd partition on the app relation data.

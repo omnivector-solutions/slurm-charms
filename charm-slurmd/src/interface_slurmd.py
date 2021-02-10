@@ -148,6 +148,7 @@ class Slurmd(Object):
 
     @property
     def num_relations(self):
+        """Return the number of relations."""
         return len(self._charm.framework.model.relations["slurmd"])
 
     @property

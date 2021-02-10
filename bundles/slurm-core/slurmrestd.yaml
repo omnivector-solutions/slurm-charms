@@ -1,0 +1,11 @@
+series: focal
+applications:
+  slurmrestd:
+    charm: ./../../slurmrestd.charm
+    num_units: 1
+    constraints: instance-type=t3.medium spaces=nat
+    options:
+      snapstore-channel: "--beta"
+    bindings:
+      "": nat
+      slurmrestd: nat

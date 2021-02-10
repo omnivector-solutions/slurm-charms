@@ -53,6 +53,8 @@ class Slurmrestd(Object):
         # data on the relation to be retrieved on the other side by slurmdbd.
         app_relation_data = event.relation.data[self.model.app]
         app_relation_data["munge_key"] = self._charm.get_munge_key()
+        self._charm.set_slurmrestd_available(True)
+        self.on.slurmrestd_available.emit()
 
     def _on_relation_broken(self, event):
         self._charm.set_slurmrestd_available(False)

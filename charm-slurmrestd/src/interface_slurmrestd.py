@@ -57,7 +57,7 @@ class SlurmrestdRequires(Object):
         self._stored.set_default(
             munge_key=str(),
             slurm_config=dict(),
-            slurmrestd_restart_uuid=str(),
+            restart_slurmrestd_uuid=str(),
         )
 
         self.framework.observe(
@@ -126,7 +126,6 @@ class SlurmrestdRequires(Object):
                 self.on.restart_slurmrestd.emit()
 
     def _on_relation_broken(self, event):
-        self._charm.set_config_available(False)
         self.on.config_unavailable.emit()
 
     def _get_slurm_config_from_relation(self):

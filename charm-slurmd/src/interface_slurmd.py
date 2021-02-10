@@ -115,7 +115,6 @@ class Slurmd(Object):
         """Check for the munge_key in the relation data."""
         event_app_data = event.relation.data.get(event.app)
         if not event_app_data:
-            #event.defer()
             return
 
         munge_key = event_app_data.get('munge_key')
@@ -123,7 +122,6 @@ class Slurmd(Object):
         slurm_config = self._get_slurm_config_from_relation()
 
         if not (munge_key and slurm_config):
-            #event.defer()
             return
 
         # Store the munge_key in the interface StoredState if it has changed

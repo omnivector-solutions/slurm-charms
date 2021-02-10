@@ -73,7 +73,7 @@ class SlurmConfiguratorCharm(CharmBase):
             self._slurmdbd.on.slurmdbd_unavailable: self._on_check_status_and_write_config,
             self._slurmd.on.slurmd_available: self._on_check_status_and_write_config,
             self._slurmd.on.slurmd_unavailable: self._on_check_status_and_write_config,
-            self._slurmrestd.on.slurmrestd_available: self._on_check_status_and_write_config,
+            self._slurmrestd.on.slurmrestd_available: self._on_slurmrestd_available,
             self._slurmrestd.on.slurmrestd_unavailable: self._on_check_status_and_write_config,
             self._prolog_epilog.on.prolog_epilog_available: self._on_check_status_and_write_config,
             self._prolog_epilog.on.prolog_epilog_unavailable: self._on_check_status_and_write_config,
@@ -158,6 +158,28 @@ class SlurmConfiguratorCharm(CharmBase):
             grafana.set_grafana_source_info(influxdb_info)
 
         self._on_check_status_and_write_config(event)
+
+    def _on_slurmrestd_available(self, event):
+        """Set slurm_config on the relation when slurmrestd available."""
+        if not self._check_status():
+            event.defer()
+            return
+
+        # Generate the slurm_config
+        slurm_config = self._assemble_slurm_config()
+
+        if not slurm_config:
+            self.unit.status = BlockedStatus(
+                "Cannot generate slurm_config - defering event."
+            )
+            event.defer()
+            return
+
+        if self._stored.slurmrestd_available:
+            self._slurmrestd.set_slurm_config_on_app_relation_data(
+                slurm_config,
+            )
+            self._slurmrestd.restart_slurmrestd()
 
     def _on_check_status_and_write_config(self, event):
         """Check that we have what we need before we proceed."""

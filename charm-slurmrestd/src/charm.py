@@ -27,7 +27,7 @@ class SlurmrestdCharm(CharmBase):
         super().__init__(*args)
         self._stored.set_default(
             slurm_installed=False,
-            config_available=False,
+            slurmrestd_restarted=False,
         )
         self._slurm_manager = SlurmManager(self, "slurmrestd")
         self._slurmrestd = SlurmrestdRequires(self, 'slurmrestd')
@@ -39,9 +39,6 @@ class SlurmrestdCharm(CharmBase):
             self.on.upgrade_charm: self._on_upgrade,
 
             self._slurmrestd.on.config_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmrestd.on.config_unavailable:
             self._on_check_status_and_write_config,
 
             self._slurmrestd.on.munge_key_available:

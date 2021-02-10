@@ -88,3 +88,5 @@ relations:
     - slurmd:slurmd
   - - slurm-configurator:slurmctld
     - slurmctld:slurmctld
+  - - slurm-configurator:slurmrestd
+    - slurmrestd:slurmrestd

@@ -81,7 +81,7 @@ class Slurmd(Object):
         if self.framework.model.unit.is_leader():
             event.relation.data[self.model.app]["munge_key"] = ""
             self.set_slurm_config_on_app_relation_data("")
-        #self._charm.set_slurmd_available(False)
+        self._charm.set_slurmd_available(False)
         self.on.slurmd_unavailable.emit()
 
     @property

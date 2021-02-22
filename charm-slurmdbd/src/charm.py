@@ -71,32 +71,6 @@ class SlurmdbdCharm(CharmBase):
         self._stored.munge_key_available = False
         self._check_status()
 
-    def _check_status(self) -> bool:
-        """Check that we have the things we need."""
-        db_info = self._stored.db_info
-        munge_key_available = self._stored.munge_key_available
-        slurm_installed = self._stored.slurm_installed
-        slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
-
-        deps = [
-            slurmdbd_info,
-            db_info,
-            slurm_installed,
-            munge_key_available,
-        ]
-
-        if not all(deps):
-            if not db_info:
-                self.unit.status = BlockedStatus(
-                    "Need relation to MySQL."
-                )
-            elif not munge_key_available:
-                self.unit.status = BlockedStatus(
-                    "Need relation to slurm-configurator."
-                )
-            return False
-        return True
-
     def _write_config_and_restart_slurmdbd(self, event):
         """Check for prereqs before writing config/restart of slurmdbd."""
         # Ensure all pre-conditions are met with _check_status(), if not
@@ -128,6 +102,32 @@ class SlurmdbdCharm(CharmBase):
                     slurmdbd_config,
                 )
         self.unit.status = ActiveStatus("slurmdbd available")
+
+    def _check_status(self) -> bool:
+        """Check that we have the things we need."""
+        db_info = self._stored.db_info
+        munge_key_available = self._stored.munge_key_available
+        slurm_installed = self._stored.slurm_installed
+        slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
+
+        deps = [
+            slurmdbd_info,
+            db_info,
+            slurm_installed,
+            munge_key_available,
+        ]
+
+        if not all(deps):
+            if not db_info:
+                self.unit.status = BlockedStatus(
+                    "Need relation to MySQL."
+                )
+            elif not munge_key_available:
+                self.unit.status = BlockedStatus(
+                    "Need relation to slurm-configurator."
+                )
+            return False
+        return True
 
     def get_port(self):
         """Return the port from slurm-ops-manager."""

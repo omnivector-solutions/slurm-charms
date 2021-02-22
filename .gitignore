@@ -6,3 +6,5 @@ venv
 out
 build
 tmp
+node_modules/
+.env

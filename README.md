@@ -32,7 +32,7 @@
 
 [![](https://github.com/omnivector-solutions/slurm-charms/workflows/TestBuildReleaseEdge/badge.svg)](https://github.com/omnivector-solutions/license-manager-simulator/actions?query=workflow%3ATestBuildReleaseEdge)
 
-<!-- TABLE OF CONTENTS -->
+<!-- TABLE OF CONTENTS  -->
 
 ## Table of Contents
 

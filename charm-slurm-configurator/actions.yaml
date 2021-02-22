@@ -1,9 +1,3 @@
-restart-slurmctld:
-  description: Restart the slurmctld process.
-
-restart-slurmd:
-  description: Restart the slurmd process.
-
 get-slurm-conf:
   description: Return the slurm.conf file as a string.
 

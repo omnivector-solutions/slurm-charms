@@ -78,8 +78,6 @@ class SlurmConfiguratorCharm(CharmBase):
             self._prolog_epilog.on.prolog_epilog_available: self._on_check_status_and_write_config,
             self._prolog_epilog.on.prolog_epilog_unavailable: self._on_check_status_and_write_config,
             # Actions
-            self.on.restart_slurmd_action: self._on_restart_slurmd,
-            self.on.restart_slurmctld_action: self._on_restart_slurmctld,
             self.on.scontrol_reconfigure_action: self._on_scontrol_reconfigure,
             self.on.get_slurm_conf_action: self._on_get_slurm_conf,
             self.on.set_slurm_conf_action: self._on_set_slurm_conf,

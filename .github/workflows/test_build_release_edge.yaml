@@ -151,15 +151,15 @@ jobs:
         if: ${{ success() }}
         shell: bash
         run: |
-          git clone https://github.com/omnivector-solutions/slurm-overlay-bundles
+          git clone https://github.com/omnivector-solutions/slurm-bundles ../slurm-bundles
 
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
               
           juju deploy -m $model \
-              ./bundles/slurm-core/bundle.yaml \
-              --overlay ./slurm-overlay-bundles/clouds/aws.yaml \
-              --overlay ./slurm-overlay-bundles/options/beta-snap.yaml \
-              --overlay ./slurm-overlay-bundles/series/${{ matrix.series }}.yaml
+              ./../slurm-bundles/slurm-core/bundle.yaml \
+              --overlay ./../slurm-bundles/clouds/aws.yaml \
+              --overlay ./../slurm-bundles/options/beta-snap.yaml \
+              --overlay ./../slurm-bundles/series/${{ matrix.series }}.yaml
 
       - name: "Wait for deployments to settle"
         if: ${{ success() }}

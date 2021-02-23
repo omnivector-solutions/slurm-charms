@@ -1,0 +1,11 @@
+{
+  "name": "slurm-charms",
+  "version": "1.0.0",
+  "description": "Slurm lifecycle automation",
+  "author": "Omnivector Solutions",
+  "license": "MIT",
+  "dependencies": {
+    "bats-assert": "^2.0.0",
+    "bats-support": "^0.3.0"
+  }
+}

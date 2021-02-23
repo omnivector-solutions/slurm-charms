@@ -157,9 +157,9 @@ jobs:
               
           juju deploy -m $model \
               ./../slurm-bundles/slurm-core/bundle.yaml \
-              --overlay ./../slurm-bundles/clouds/aws.yaml \
-              --overlay ./../slurm-bundles/options/beta-snap.yaml \
-              --overlay ./../slurm-bundles/series/${{ matrix.series }}.yaml
+              --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
+              --overlay ./../slurm-bundles/slurm-core/options/beta-snap.yaml \
+              --overlay ./../slurm-bundles/slurm-core/series/${{ matrix.series }}.yaml
 
       - name: "Wait for deployments to settle"
         if: ${{ success() }}

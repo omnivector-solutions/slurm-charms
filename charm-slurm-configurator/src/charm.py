@@ -85,14 +85,6 @@ class SlurmConfiguratorCharm(CharmBase):
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
 
-    def _on_restart_slurmd(self, event):
-        """Restart the slurmd."""
-        self._slurmd.restart_slurmd()
-
-    def _on_restart_slurmctld(self, event):
-        """Restart the slurmctld."""
-        self._slurmctld.restart_slurmctld()
-
     def _on_scontrol_reconfigure(self, event):
         """Run 'scontrol reconfigure' on slurmctld."""
         self._slurmctld.scontrol_reconfigure()

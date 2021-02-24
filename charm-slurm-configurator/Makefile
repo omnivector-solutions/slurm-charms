@@ -2,6 +2,9 @@
 lint: ## Run linter
 	tox -e lint
 
+unit: ## Run unit tests
+	tox -e unit
+
 clean: ## Remove .tox and build dirs
 	rm -rf .tox/
 	rm -rf venv/

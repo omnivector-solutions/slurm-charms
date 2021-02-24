@@ -16,6 +16,11 @@ jobs:
           pip install tox
           make lint
 
+      - name: "Run unit test for slurm-configurator"
+        run: | 
+          cd charm-slurm-configurator
+          make unit
+
   build-charms:
     name: "Build the charms"
     needs: lint-charms

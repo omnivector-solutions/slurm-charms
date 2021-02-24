@@ -5,6 +5,9 @@ lint: ## Run linter
 unit: ## Run unit tests
 	tox -e unit
 
+harness: ## Run harness tests
+	tox -e harness
+
 clean: ## Remove .tox and build dirs
 	rm -rf .tox/
 	rm -rf venv/

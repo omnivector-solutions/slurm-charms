@@ -23,6 +23,7 @@ jobs:
         run: | 
           cd charm-slurm-configurator/
           make unit
+          make harness
           cd ../
 
 #      - name: "run slurmd unit tests"

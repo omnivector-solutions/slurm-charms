@@ -121,7 +121,9 @@ class Slurmd(Object):
 
         slurm_configurator = self._assemble_slurm_configurator_inventory()
         partitions.append(slurm_configurator)
+        return ensure_unique_partitions(partitions)
 
+    def ensure_unique_partitions(partitions):
         # Ensure we have partitions with unique inventory only
         #
         # 1) Create a temp copy of the partitions list and iterate

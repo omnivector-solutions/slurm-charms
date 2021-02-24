@@ -123,40 +123,6 @@ class Slurmd(Object):
         partitions.append(slurm_configurator)
         return ensure_unique_partitions(partitions)
 
-    def ensure_unique_partitions(partitions):
-        # Ensure we have partitions with unique inventory only
-        #
-        # 1) Create a temp copy of the partitions list and iterate
-        # over it.
-        #
-        # 2) On each pass create a temp copy of the partition itself.
-        #
-        # 3) Get the inventory from the temp partition and iterate over it to
-        # ensure we have unique entries.
-        #
-        # 4) Add the unique inventory back to the temp partition and
-        # subsequently add the temp partition back to the original partitions
-        # list.
-        #
-        # 5) Return the list of partitions with unique inventory.
-
-        partitions_tmp = copy.deepcopy(partitions)
-        for partition in partitions_tmp:
-
-            partition_tmp = copy.deepcopy(partition)
-            partitions.remove(partition)
-
-            inventory = partition_tmp["inventory"]
-
-            unique_inventory = list(
-                {node["node_name"]: node for node in inventory}.values()
-            )
-
-            partition_tmp["inventory"] = unique_inventory
-            partitions.append(partition_tmp)
-
-        return partitions
-
     def set_slurm_config_on_app_relation_data(
         self,
         slurm_config,
@@ -178,3 +144,39 @@ class Slurmd(Object):
         for relation in relations:
             app_relation_data = relation.data[self.model.app]
             app_relation_data["restart_slurmd_uuid"] = str(uuid.uuid4())
+
+
+def ensure_unique_partitions(partitions):
+    """Return a list of unique partitions."""
+    # Ensure we have partitions with unique inventory only
+    #
+    # 1) Create a temp copy of the partitions list and iterate
+    # over it.
+    #
+    # 2) On each pass create a temp copy of the partition itself.
+    #
+    # 3) Get the inventory from the temp partition and iterate over it to
+    # ensure we have unique entries.
+    #
+    # 4) Add the unique inventory back to the temp partition and
+    # subsequently add the temp partition back to the original partitions
+    # list.
+    #
+    # 5) Return the list of partitions with unique inventory.
+
+    partitions_tmp = copy.deepcopy(partitions)
+    for partition in partitions_tmp:
+
+        partition_tmp = copy.deepcopy(partition)
+        partitions.remove(partition)
+
+        inventory = partition_tmp["inventory"]
+
+        unique_inventory = list(
+            {node["node_name"]: node for node in inventory}.values()
+        )
+
+        partition_tmp["inventory"] = unique_inventory
+        partitions.append(partition_tmp)
+
+    return partitions

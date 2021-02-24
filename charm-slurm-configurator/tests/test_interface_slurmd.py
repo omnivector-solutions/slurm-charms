@@ -1,7 +1,7 @@
 import copy
 import pprint
 
-from src.interface_slurmd import Slurmd
+from src.interface_slurmd import ensure_unique_partitions
 from src.utils import get_inventory
 
 
@@ -9,7 +9,7 @@ class TestSlurmd:
     pp = pprint.PrettyPrinter(indent=4)
 
     def test_ensure_unique_partitions_empty_list(self):
-        assert Slurmd.ensure_unique_partitions([]) == []
+        assert ensure_unique_partitions([]) == []
 
     def test_ensure_unique_partitions_single_partition(self):
         base_partition = {"inventory": [get_inventory("name", "addr")],
@@ -18,7 +18,7 @@ class TestSlurmd:
                           "partition_config": ""}
         partitions = [base_partition.copy()]
 
-        result = Slurmd.ensure_unique_partitions(copy.deepcopy(partitions))
+        result = ensure_unique_partitions(copy.deepcopy(partitions))
         assert result == partitions
 
     def test_ensure_unique_partitions_single_partition_2_inventories(self):
@@ -29,20 +29,20 @@ class TestSlurmd:
                           "partition_config": ""}
         partitions = [base_partition.copy()]
 
-        result = Slurmd.ensure_unique_partitions(copy.deepcopy(partitions))
+        result = ensure_unique_partitions(copy.deepcopy(partitions))
         assert result == partitions
 
-    def test_ensure_unique_partitions_single_partition_repeat_inventories(self):
+    def test_ensure_unique_partitions_single_partition_repeat_inventories(
+            self):
         inv = get_inventory("name", "addr")
         base_partition = [{"inventory": [inv],
-                          "partition_name": "compute",
-                          "partition_state": "IDLE",
-                          "partition_config": ""}]
+                           "partition_name": "compute",
+                           "partition_state": "IDLE",
+                           "partition_config": ""}]
         partition_2 = [{"inventory": [inv.copy(), inv.copy()],
                         "partition_name": "compute",
                         "partition_state": "IDLE",
                         "partition_config": ""}]
 
-        result = Slurmd.ensure_unique_partitions(copy.deepcopy(partition_2))
+        result = ensure_unique_partitions(copy.deepcopy(partition_2))
         assert result == base_partition
-

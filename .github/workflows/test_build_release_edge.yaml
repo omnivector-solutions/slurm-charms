@@ -3,7 +3,7 @@ name: TestBuildDeployEdge
 on: pull_request
 jobs:
   lint-charms:
-    name: "Lint the charms"
+    name: "Lint and unit test the charms"
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v2
@@ -11,15 +11,44 @@ jobs:
         with:
           python-version: '3.x'
           architecture: 'x64'
-      - name: "Install tox, run 'make lint'"
+      - name: "Install tox"
         run: | 
           pip install tox
+
+      - name: "lint the charms"
+        run: | 
           make lint
 
-      - name: "Run unit test for slurm-configurator"
+      - name: "run slurm-configurator unit tests"
         run: | 
-          cd charm-slurm-configurator
+          cd charm-slurm-configurator/
           make unit
+          cd ../
+
+#      - name: "run slurmd unit tests"
+#        run: | 
+#          cd charm-slurmd/
+#          make unit
+#          cd ../
+#
+#      - name: "run slurmctld unit tests"
+#        run: | 
+#          cd charm-slurmctld/
+#          make unit
+#          cd ../
+#
+#      - name: "run slurmdbd unit tests"
+#        run: | 
+#          cd charm-slurmdbd/
+#          make unit
+#          cd ../
+#
+#      - name: "run slurmrestd unit tests"
+#        run: | 
+#          cd charm-slurmrestd/
+#          make unit
+#          cd ../
+
 
   build-charms:
     name: "Build the charms"

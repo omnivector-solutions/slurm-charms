@@ -4,10 +4,11 @@ export PATH := /snap/bin:$(PATH)
 lint: ## Run linter
 	tox -e lint
 
-clean: ## Remove .tox and build dirs
+clean: ## Remove .tox, build dirs, and charms
 	rm -rf .tox/
 	rm -rf venv/
 	rm -rf *.charm
+	rm -rf charm-slurm*/build
 
 slurmd: ## Build slurmd
 	@charmcraft build --from charm-slurmd
@@ -44,7 +45,7 @@ format: # reformat source python files
 
 # Display target comments in 'make help'
 help: 
-	grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # SETTINGS
 # Use one shell for all commands in a target recipe

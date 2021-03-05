@@ -7,7 +7,7 @@ from ops.framework import EventBase, EventSource, Object, ObjectEvents
 
 from utils import get_active_units, get_inventory
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class SlurmdPeerAvailableEvent(EventBase):
@@ -53,9 +53,10 @@ class SlurmdPeer(Object):
         node_name = self._charm.get_hostname()
         node_addr = event.relation.data[self.model.unit]["ingress-address"]
 
-        event.relation.data[self.model.unit]["inventory"] = json.dumps(
-            get_inventory(node_name, node_addr)
-        )
+        inv = get_inventory(node_name, node_addr)
+        inv["new_node"] = self._charm._stored.new_node
+        event.relation.data[self.model.unit]["inventory"] = json.dumps(inv)
+
         if self.framework.model.unit.is_leader():
             self.on.slurmd_peer_available.emit()
 

@@ -27,6 +27,7 @@ class SlurmdCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
+            new_node=True,
             munge_key_available=False,
             slurmd_restarted=False,
             user_node_state=str(),
@@ -53,8 +54,7 @@ class SlurmdCharm(CharmBase):
             self._on_check_status_and_write_config,
             self._slurmd.on.slurm_config_unavailable:
             self._on_check_status_and_write_config,
-            self._slurmd.on.restart_slurmd:
-            self._on_restart_slurmd,
+            self._slurmd.on.restart_slurmd: self._on_restart_slurmd,
             self._slurmd.on.munge_key_available: self._on_write_munge_key,
             self.on.set_node_state_action: self._on_set_node_state_action,
         }

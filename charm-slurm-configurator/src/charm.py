@@ -221,14 +221,18 @@ class SlurmConfiguratorCharm(CharmBase):
 
         addons_info = self._assemble_addons()
         partitions_info = self._assemble_partitions(slurmd_info)
+        down_nodes = self._assemble_down_nodes(slurmd_info)
 
         logger.debug(addons_info)
         logger.debug(partitions_info)
         logger.debug(slurmctld_info)
         logger.debug(slurmdbd_info)
+        logger.debug("#### Down nodes:")
+        logger.debug(f"#### {down_nodes}")
 
         return {
             "partitions": partitions_info,
+            "down_nodes": down_nodes,
             **slurmctld_info,
             **slurmdbd_info,
             **addons_info,
@@ -263,6 +267,22 @@ class SlurmConfiguratorCharm(CharmBase):
             slurmd_info_tmp.append(partition_tmp)
 
         return slurmd_info_tmp
+
+    @staticmethod
+    def _assemble_down_nodes(slurmd_info):
+        """Parse partitions' nodes and assemble a list of DownNodes"""
+
+        down_nodes = []
+        for partition in slurmd_info:
+            # we don't care about the configurator partition
+            # also it does not have the "new_node" key
+            if partition["partition_name"] != "configurator":
+                for node in partition["inventory"]:
+                    if node["new_node"]:
+                        down_nodes.append(node["node_name"])
+
+        return down_nodes
+
 
     def _assemble_addons(self):
         """Assemble any addon components."""

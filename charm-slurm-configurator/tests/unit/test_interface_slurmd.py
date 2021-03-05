@@ -2,7 +2,20 @@ import copy
 import pprint
 
 from src.interface_slurmd import ensure_unique_partitions
-from src.utils import get_inventory
+
+# our "mock" of utils.get_inventory
+# plus the new_node entry, which is crafted in charm-slurmd
+# slurm-configurator inventory does not have this key
+def get_inventory(name, addr):
+    return {'node_name': name,
+            'node_addr': addr,
+            'state': 'UNKNOWN',
+            'real_memory': '1955',
+            'cpus': '2',
+            'threads_per_core': '2',
+            'cores_per_socket': '1',
+            'sockets_per_board': '1',
+            'new_node': True}
 
 
 class TestSlurmd:

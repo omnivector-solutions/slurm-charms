@@ -27,7 +27,6 @@ class SlurmdCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
-            new_node=True,
             munge_key_available=False,
             slurmd_restarted=False,
             user_node_state=str(),
@@ -57,6 +56,7 @@ class SlurmdCharm(CharmBase):
             self._slurmd.on.restart_slurmd: self._on_restart_slurmd,
             self._slurmd.on.munge_key_available: self._on_write_munge_key,
             self.on.set_node_state_action: self._on_set_node_state_action,
+            self.on.node_configured_action: self._on_node_configured_action,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -153,6 +153,12 @@ class SlurmdCharm(CharmBase):
         self._stored.user_node_state = event.params["node-state"]
         self._on_set_partition_info_on_app_relation_data(event)
 
+    def _on_node_configured_action(self, event):
+        """Remove node from DownNodes"""
+        logger.debug(f'### This node is not new anymore')
+        # trigger reconfig
+        self._slurmd_peer.configure_new_node()
+
     def _on_set_partition_info_on_app_relation_data(self, event):
         """Set the slurm partition info on the application relation data."""
         # Only the leader can set data on the relation.
@@ -168,7 +174,9 @@ class SlurmdCharm(CharmBase):
                         partition
                     )
                     return
-            event.defer()
+            # unneeded possible breakage
+            # https://www.pivotaltracker.com/story/show/177270742
+            # event.defer()
             return
 
     def _assemble_partition(self):

@@ -1,4 +1,4 @@
-options:  
+options:
   snapstore-channel:
     type: string
     default: "--stable"

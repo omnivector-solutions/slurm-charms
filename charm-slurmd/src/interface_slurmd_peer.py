@@ -3,7 +3,8 @@
 import json
 import logging
 
-from ops.framework import EventBase, EventSource, Object, ObjectEvents
+from ops.framework import (EventBase, EventSource, Object, ObjectEvents,
+                           StoredState)
 
 from utils import get_active_units, get_inventory
 
@@ -29,12 +30,15 @@ class SlurmdPeer(Object):
     """TestingPeerRelation."""
 
     on = PeerRelationEvents()
+    _stored = StoredState()
 
     def __init__(self, charm, relation_name):
         """Initialize charm attributes."""
         super().__init__(charm, relation_name)
         self._charm = charm
         self._relation_name = relation_name
+
+        self._stored.set_default(inventory=dict())
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_created,
@@ -54,7 +58,8 @@ class SlurmdPeer(Object):
         node_addr = event.relation.data[self.model.unit]["ingress-address"]
 
         inv = get_inventory(node_name, node_addr)
-        inv["new_node"] = self._charm._stored.new_node
+        inv["new_node"] = True
+        self._stored.inventory = inv
         event.relation.data[self.model.unit]["inventory"] = json.dumps(inv)
 
         if self.framework.model.unit.is_leader():
@@ -90,3 +95,12 @@ class SlurmdPeer(Object):
             json.loads(relation.data[self.model.unit]["inventory"])
         )
         return inventory
+
+    @property
+    def _relation(self):
+        return self.framework.model.get_relation(self._relation_name)
+
+    def configure_new_node(self):
+        inv = dict(self._stored.inventory)
+        inv["new_node"] = False
+        self._relation.data[self.model.unit]['inventory'] = json.dumps(inv)

@@ -11,3 +11,7 @@ set-node-state:
     - node-state
   title: Set node(s) state
   type: object
+node-configured:
+  description: >-
+    'Remove a nove from DownNodes when the reason is "New node"'
+  title: Bring this node up

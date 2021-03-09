@@ -6,7 +6,7 @@ set-node-state:
   params:
     node-state:
       type: string
-      description: An optional realm name.
+      description: The node name and state.
   required:
     - node-state
   title: Set node(s) state

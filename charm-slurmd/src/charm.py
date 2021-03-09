@@ -57,6 +57,8 @@ class SlurmdCharm(CharmBase):
             self._slurmd.on.munge_key_available: self._on_write_munge_key,
             self.on.set_node_state_action: self._on_set_node_state_action,
             self.on.node_configured_action: self._on_node_configured_action,
+            self.on.get_node_inventory_action:
+            self._on_get_node_inventory_action,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -155,9 +157,14 @@ class SlurmdCharm(CharmBase):
 
     def _on_node_configured_action(self, event):
         """Remove node from DownNodes"""
-        logger.debug(f'### This node is not new anymore')
         # trigger reconfig
         self._slurmd_peer.configure_new_node()
+        logger.debug(f'### This node is not new anymore')
+
+    def _on_get_node_inventory_action(self, event):
+        """Return node inventory."""
+        inventory = self._slurmd_peer.get_node_inventory()
+        logger.debug(f"### NODE INVENTORY: {inventory}")
 
     def _on_set_partition_info_on_app_relation_data(self, event):
         """Set the slurm partition info on the application relation data."""

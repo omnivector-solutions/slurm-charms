@@ -1,2 +1,2 @@
 ops
-git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.0.3
+git+https://github.com/omnivector-solutions/slurm-ops-manager.git@177145041-new-nodes-in-down-state

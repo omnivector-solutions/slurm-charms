@@ -15,3 +15,7 @@ node-configured:
   description: >-
     'Remove a nove from DownNodes when the reason is "New node"'
   title: Bring this node up
+get-node-inventory:
+  description: >-
+    'Return a nodes inventory.'
+  title: Return node inventory

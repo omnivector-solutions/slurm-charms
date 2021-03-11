@@ -144,3 +144,10 @@ class Slurmctld(Object):
         for relation in relations:
             app_relation_data = relation.data[self.model.app]
             app_relation_data["scontrol_reconfigure_uuid"] = str(uuid.uuid4())
+
+    def scontrol_update(self, nodes, state="resume"):
+        """Send a signal to slurmctld to run 'scontrol update'."""
+        relations = self._charm.framework.model.relations["slurmctld"]
+        for relation in relations:
+            app_relation_data = relation.data[self.model.app]
+            app_relation_data["scontrol_update_nodes"] = repr(nodes)

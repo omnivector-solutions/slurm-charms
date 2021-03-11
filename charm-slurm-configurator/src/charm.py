@@ -40,6 +40,7 @@ class SlurmConfiguratorCharm(CharmBase):
             slurmdbd_available=False,
             slurmd_available=False,
             slurmrestd_available=False,
+            down_nodes=list(),
         )
 
         self._elasticsearch = Elasticsearch(self, "elasticsearch")
@@ -210,6 +211,16 @@ class SlurmConfiguratorCharm(CharmBase):
 
         self._slurmctld.scontrol_reconfigure()
 
+        # get "not new anymore" nodes
+        down_nodes = slurm_config["down_nodes"]
+        configured_nodes = self._assemble_configured_nodes(down_nodes)
+        self._slurmctld.scontrol_update(configured_nodes)
+        # update down nodes cache
+        logger.debug(f"### down_nodes = {down_nodes}")
+        logger.debug(f"### cached down_nodes = {self._stored.down_nodes}")
+        logger.debug(f"### configured_nodes = {configured_nodes}")
+        self._stored.down_nodes = down_nodes.copy()
+
     def _assemble_slurm_config(self):
         """Assemble and return the slurm config."""
         slurmctld_info = self._slurmctld.get_slurmctld_info()
@@ -283,6 +294,17 @@ class SlurmConfiguratorCharm(CharmBase):
 
         return down_nodes
 
+    def _assemble_configured_nodes(self, down_nodes):
+        """Assemble list of nodes that are not new anymore
+
+        new_node status is removed with an action, this method returns a list
+        of nodes that were previously new but are not anymore"""
+        configured_nodes = []
+        for node in self._stored.down_nodes:
+            if node not in down_nodes:
+                configured_nodes.append(node)
+
+        return configured_nodes
 
     def _assemble_addons(self):
         """Assemble any addon components."""

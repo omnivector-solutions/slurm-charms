@@ -26,6 +26,8 @@ def configurator_partition():
     return configurator
 
 
+#### tests of SlurmConfguratorCharm._assemble_down_nodes()
+
 def test_assemble_down_nodes_empty():
     result = SlurmConfiguratorCharm._assemble_down_nodes([])
     assert result == []

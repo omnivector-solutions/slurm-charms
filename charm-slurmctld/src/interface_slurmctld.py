@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Slurmctld."""
+from ast import literal_eval
 import json
 import logging
 
@@ -20,6 +21,10 @@ class RestartSlurmctldEvent(EventBase):
 
 
 class ScontrolReconfigureEvent(EventBase):
+    """Emit this when scontrol needs to be ran."""
+
+
+class ScontrolUpdateEvent(EventBase):
     """Emit this when scontrol needs to be ran."""
 
 
@@ -49,6 +54,9 @@ class SlurmctldEvents(ObjectEvents):
     scontrol_reconfigure = EventSource(
         ScontrolReconfigureEvent
     )
+    scontrol_update = EventSource(
+        ScontrolUpdateEvent
+    )
 
 
 class Slurmctld(Object):
@@ -68,6 +76,8 @@ class Slurmctld(Object):
             munge_key=str(),
             restart_slurmctld_uuid=str(),
             scontrol_reconfigure_uuid=str(),
+            scontrol_update_uuid=str(),
+            scontrol_update_nodes=[]
         )
 
         self.framework.observe(
@@ -122,6 +132,7 @@ class Slurmctld(Object):
         munge_key = event_app_data.get("munge_key")
         restart_slurmctld_uuid = event_app_data.get("restart_slurmctld_uuid")
         scontrol_reconfigure_uuid = event_app_data.get("scontrol_reconfigure_uuid")
+        scontrol_update_nodes = event_app_data.get("scontrol_update_nodes")
         slurm_config = self._get_slurm_config_from_relation()
 
         if not (munge_key and slurm_config):
@@ -148,12 +159,23 @@ class Slurmctld(Object):
                 self._store_scontrol_reconfigure_uuid(scontrol_reconfigure_uuid)
                 self.on.scontrol_reconfigure.emit()
 
+        if scontrol_update_nodes:
+            nodes_list = list(literal_eval(scontrol_update_nodes))
+            self._stored.scontrol_update_nodes = nodes_list
+            self.on.scontrol_update.emit()
+            logger.debug(f"### Slurmctld - peer - updated node list to update:"
+                         f"{nodes_list}")
+
     def _on_relation_departed(self, event):
         self.on.slurm_configurator_unavailable.emit()
 
     def _on_relation_broken(self, event):
         self.set_slurmctld_info_on_app_relation_data("")
         self.on.slurm_configurator_unavailable.emit()
+
+    @property
+    def nodes_to_update(self):
+        return self._stored.scontrol_update_nodes
 
     @property
     def _relation(self):
@@ -205,11 +227,17 @@ class Slurmctld(Object):
     def _store_restart_slurmctld_uuid(self, restart_slurmctld_uuid):
         self._stored.restart_slurmctld_uuid = restart_slurmctld_uuid
 
-    def _store_scontrol_reconfigure_uuid(self, scontrol_reconfigure_uuid):
-        self._stored.scontrol_reconfigure_uuid = scontrol_reconfigure_uuid
-
     def _get_restart_slurmctld_uuid(self):
         return self._stored.restart_slurmctld_uuid
 
+    def _store_scontrol_reconfigure_uuid(self, scontrol_reconfigure_uuid):
+        self._stored.scontrol_reconfigure_uuid = scontrol_reconfigure_uuid
+
+    def _store_scontrol_update_uuid(self, scontrol_update_uuid):
+        self._stored.scontrol_update_uuid = scontrol_update_uuid
+
     def _get_scontrol_reconfigure_uuid(self):
-        return self._stored.restart_slurmctld_uuid
+        return self._stored.scontrol_reconfigure_uuid
+
+    def _get_scontrol_update_uuid(self):
+        return self._stored.scontrol_update_uuid

@@ -39,6 +39,7 @@ class SlurmctldCharm(CharmBase):
             self.on.install: self._on_install,
             self._slurmctld.on.slurm_config_available: self._on_check_status_and_write_config,
             self._slurmctld.on.scontrol_reconfigure: self._on_scontrol_reconfigure,
+            self._slurmctld.on.scontrol_update: self._on_scontrol_update,
             self._slurmctld.on.restart_slurmctld: self._on_restart_slurmctld,
             self._slurmctld.on.munge_key_available: self._on_write_munge_key,
             self._slurmctld_peer.on.slurmctld_peer_available: self._on_slurmctld_peer_available,
@@ -91,6 +92,15 @@ class SlurmctldCharm(CharmBase):
 
     def _on_scontrol_reconfigure(self, event):
         self._slurm_manager.slurm_cmd("scontrol", "reconfigure")
+
+    def _on_scontrol_update(self, event):
+        """runs scontrol update nodeame=node state=resume for each node"""
+        nodes = self._slurmctld.nodes_to_update
+        logger.debug(f"### slurctld - nodes to update: {nodes}")
+        for node in nodes:
+            logger.debug(f"### slurctld - scontrol update nodename={node}")
+            self._slurm_manager.slurm_cmd(f"scontrol",
+                                          f"update nodename={node} state=resume")
 
     def _check_status(self):
         munge_key_available = self._stored.munge_key_available

@@ -27,7 +27,7 @@ class SlurmdbdCharm(CharmBase):
         self._stored.set_default(
             db_info=dict(),
             slurmdbd_config=dict(),
-            munge_key_available=False,
+            slurm_configurator_available=False,
             slurm_installed=False,
         )
 
@@ -40,11 +40,16 @@ class SlurmdbdCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
             self.on.config_changed: self._write_config_and_restart_slurmdbd,
-            self._db.on.database_available: self._write_config_and_restart_slurmdbd,
-            self._slurmdbd_peer.on.slurmdbd_peer_available: self._write_config_and_restart_slurmdbd,
-            self._slurmdbd.on.slurmdbd_available: self._write_config_and_restart_slurmdbd,
-            self._slurmdbd.on.slurmdbd_unavailable: self._on_slurm_configurator_unavailable,
-            self._slurmdbd.on.munge_key_available: self._on_munge_key_available,
+            self._db.on.database_available:
+            self._write_config_and_restart_slurmdbd,
+            self._slurmdbd_peer.on.slurmdbd_peer_available:
+            self._write_config_and_restart_slurmdbd,
+            self._slurmdbd.on.slurmdbd_available:
+            self._write_config_and_restart_slurmdbd,
+            self._slurmdbd.on.slurm_configurator_available:
+            self._on_slurm_configurator_available,
+            self._slurmdbd.on.slurm_configurator_unavailable:
+            self._on_slurm_configurator_unavailable,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -58,17 +63,27 @@ class SlurmdbdCharm(CharmBase):
         """Handle upgrade charm event."""
         self._slurm_manager.upgrade()
 
-    def _on_munge_key_available(self, event):
+    def _on_slurm_configurator_available(self, event):
         if not self._stored.slurm_installed:
             event.defer()
             return
+
+        # Retrieve and configure the munge_key.
         munge_key = self._slurmdbd.get_munge_key()
         self._slurm_manager.configure_munge_key(munge_key)
+
+        # Retrieve and configure the jwt_rsa key.
+        jwt_rsa = self._slurmdbd.get_jwt_rsa()
+        self._slurm_manager.configure_jwt_rsa(jwt_rsa)
+
+        # Restart munged and set slurm_configurator_available = True.
         self._slurm_manager.restart_munged()
-        self._stored.munge_key_available = True
+        self._stored.slurm_configurator_available = True
 
     def _on_slurm_configurator_unavailable(self, event):
-        self._stored.munge_key_available = False
+        """Reset state and charm status when slurm-configurator relation broken.
+        """
+        self._stored.slurm_configurator_available = False
         self._check_status()
 
     def _write_config_and_restart_slurmdbd(self, event):
@@ -106,7 +121,8 @@ class SlurmdbdCharm(CharmBase):
     def _check_status(self) -> bool:
         """Check that we have the things we need."""
         db_info = self._stored.db_info
-        munge_key_available = self._stored.munge_key_available
+        slurm_configurator_available = \
+            self._stored.slurm_configurator_available
         slurm_installed = self._stored.slurm_installed
         slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
 
@@ -114,7 +130,7 @@ class SlurmdbdCharm(CharmBase):
             slurmdbd_info,
             db_info,
             slurm_installed,
-            munge_key_available,
+            slurm_configurator_available,
         ]
 
         if not all(deps):
@@ -122,7 +138,7 @@ class SlurmdbdCharm(CharmBase):
                 self.unit.status = BlockedStatus(
                     "Need relation to MySQL."
                 )
-            elif not munge_key_available:
+            elif not slurm_configurator_available:
                 self.unit.status = BlockedStatus(
                     "Need relation to slurm-configurator."
                 )

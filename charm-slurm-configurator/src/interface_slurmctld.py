@@ -69,6 +69,7 @@ class Slurmctld(Object):
         # data on the relation to be retrieved on the other side by slurmctld.
         app_relation_data = event.relation.data[self.model.app]
         app_relation_data["munge_key"] = self._charm.get_munge_key()
+        app_relation_data["jwt_rsa"] = self._charm.get_jwt_rsa()
 
     def _on_relation_changed(self, event):
         event_app_data = event.relation.data.get(event.app)

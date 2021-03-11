@@ -19,14 +19,14 @@ class SlurmdbdUnAvailableEvent(EventBase):
     """Emitted when slurmdbd is unavailable."""
 
 
-class MungeKeyAvailableEvent(EventBase):
-    """Emitted when the munge key becomes available."""
+class SlurmConfiguratorAvailableEvent(EventBase):
+    """Emitted when slurm-configurator joins the relation."""
 
 
 class SlurmdbdEvents(ObjectEvents):
     """Slurmdbd relation events."""
 
-    munge_key_available = EventSource(MungeKeyAvailableEvent)
+    slurm_configurator_available = EventSource(SlurmConfiguratorAvailableEvent)
     slurmdbd_available = EventSource(SlurmdbdAvailableEvent)
     slurmdbd_unavailable = EventSource(SlurmdbdUnAvailableEvent)
 
@@ -45,7 +45,8 @@ class Slurmdbd(Object):
         self._relation_name = relation_name
 
         self._stored.set_default(
-            munge_key=None,
+            munge_key=str(),
+            jwt_key=str(),
         )
 
         self.framework.observe(
@@ -80,17 +81,28 @@ class Slurmdbd(Object):
             event.defer()
             return
 
-        # Store the munge_key in the interface's stored state object and emit
-        # munge_key_available.
+        # slurm-configurator sets the jwt_rsa on the relation-created event
+        # which happens before relation-joined. We can almost guarantee that
+        # the munge key will exist at this point, but check for it just incase.
+        jwt_rsa = event_app_data.get("jwt_rsa")
+        if not jwt_rsa:
+            event.defer()
+            return
+
+        # Store the munge_key and jwt_rsa in the interface's stored state
+        # object and emit the slurm_configurator_available event.
         self._store_munge_key(munge_key)
-        self.on.munge_key_available.emit()
+        self._store_jwt_rsa(jwt_rsa)
+        self.on.slurm_configurator_available.emit()
 
     def _on_relation_broken(self, event):
+        """Clear the application relation data and emit the unavailable event.
+        """
         self.set_slurmdbd_info_on_app_relation_data("")
         self.on.slurmdbd_unavailable.emit()
 
     def set_slurmdbd_info_on_app_relation_data(self, slurmdbd_info):
-        """Set slurmdbd_info."""
+        """Send slurmdbd_info to slurm-configurator."""
         relations = self.framework.model.relations["slurmdbd"]
         # Iterate over each of the relations setting the relation data.
         for relation in relations:
@@ -108,3 +120,11 @@ class Slurmdbd(Object):
     def get_munge_key(self):
         """Retrieve the munge key from the stored state."""
         return self._stored.munge_key
+
+    def _store_jwt_rsa(self, jwt_rsa):
+        """Store the jwt_rsa in the interface stored state."""
+        self._stored.jwt_rsa = jwt_rsa
+
+    def get_stored_jwt_rsa(self):
+        """Retrieve the jwt_rsa from stored state."""
+        return self._stored.jwt_rsa

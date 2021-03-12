@@ -58,7 +58,6 @@ class Slurmdbd(Object):
 
     def _on_relation_created(self, event):
         """Perform relation-created event operations."""
-
         # Check that slurm has been installed so that we know the munge key is
         # available. Defer if slurm has not been installed yet.
         if not self._charm.is_slurm_installed():

@@ -98,8 +98,7 @@ class Slurmdbd(Object):
         self.on.slurm_configurator_available.emit()
 
     def _on_relation_broken(self, event):
-        """Clear the application relation data and emit the unavailable event.
-        """
+        """Clear the application relation data and emit the event."""
         self.set_slurmdbd_info_on_app_relation_data("")
         self.on.slurm_configurator_unavailable.emit()
 

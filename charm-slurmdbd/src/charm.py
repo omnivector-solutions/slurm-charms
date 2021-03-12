@@ -81,8 +81,7 @@ class SlurmdbdCharm(CharmBase):
         self._stored.slurm_configurator_available = True
 
     def _on_slurm_configurator_unavailable(self, event):
-        """Reset state and charm status when slurm-configurator relation broken.
-        """
+        """Reset state and charm status when slurm-configurator broken."""
         self._stored.slurm_configurator_available = False
         self._check_status()
 

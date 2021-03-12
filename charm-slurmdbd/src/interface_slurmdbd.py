@@ -15,8 +15,8 @@ class SlurmdbdAvailableEvent(EventBase):
     """Emitted when slurmdbd is available."""
 
 
-class SlurmdbdUnAvailableEvent(EventBase):
-    """Emitted when slurmdbd is unavailable."""
+class SlurmConfiguratorUnAvailableEvent(EventBase):
+    """Emitted when slurm-configurator is unavailable."""
 
 
 class SlurmConfiguratorAvailableEvent(EventBase):
@@ -27,8 +27,10 @@ class SlurmdbdEvents(ObjectEvents):
     """Slurmdbd relation events."""
 
     slurm_configurator_available = EventSource(SlurmConfiguratorAvailableEvent)
+    slurm_configurator_unavailable = EventSource(
+        SlurmConfiguratorAvailableEvent
+    )
     slurmdbd_available = EventSource(SlurmdbdAvailableEvent)
-    slurmdbd_unavailable = EventSource(SlurmdbdUnAvailableEvent)
 
 
 class Slurmdbd(Object):
@@ -99,7 +101,7 @@ class Slurmdbd(Object):
         """Clear the application relation data and emit the unavailable event.
         """
         self.set_slurmdbd_info_on_app_relation_data("")
-        self.on.slurmdbd_unavailable.emit()
+        self.on.slurm_configurator_unavailable.emit()
 
     def set_slurmdbd_info_on_app_relation_data(self, slurmdbd_info):
         """Send slurmdbd_info to slurm-configurator."""
@@ -125,6 +127,6 @@ class Slurmdbd(Object):
         """Store the jwt_rsa in the interface stored state."""
         self._stored.jwt_rsa = jwt_rsa
 
-    def get_stored_jwt_rsa(self):
+    def get_jwt_rsa(self):
         """Retrieve the jwt_rsa from stored state."""
         return self._stored.jwt_rsa

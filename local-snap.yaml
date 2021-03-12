@@ -1,0 +1,17 @@
+applications:
+  slurmd:
+    resources:
+      slurm: ./slurm.resource
+  slurmctld:
+    resources:
+      slurm: ./slurm.resource
+  slurmdbd:
+    resources:
+      slurm: ./slurm.resource
+  slurm-configurator:
+    resources:
+      slurm: ./slurm.resource
+  slurmrestd:
+    resources:
+      slurm: ./slurm.resource
+

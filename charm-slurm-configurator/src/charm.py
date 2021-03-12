@@ -236,7 +236,7 @@ class SlurmConfiguratorCharm(CharmBase):
         logger.debug(partitions_info)
         logger.debug(slurmctld_info)
         logger.debug(slurmdbd_info)
-        logger.debug("#### _assemble_slurm_config(): Down nodes: {down_nodes}")
+        logger.debug(f"#### _assemble_slurm_config() Down nodes: {down_nodes}")
 
         return {
             "partitions": partitions_info,
@@ -278,8 +278,7 @@ class SlurmConfiguratorCharm(CharmBase):
 
     @staticmethod
     def _assemble_down_nodes(slurmd_info):
-        """Parse partitions' nodes and assemble a list of DownNodes"""
-
+        """Parse partitions' nodes and assemble a list of DownNodes."""
         down_nodes = []
         for partition in slurmd_info:
             # we don't care about the configurator partition
@@ -292,10 +291,11 @@ class SlurmConfiguratorCharm(CharmBase):
         return down_nodes
 
     def _assemble_configured_nodes(self, down_nodes):
-        """Assemble list of nodes that are not new anymore
+        """Assemble list of nodes that are not new anymore.
 
         new_node status is removed with an action, this method returns a list
-        of nodes that were previously new but are not anymore"""
+        of nodes that were previously new but are not anymore.
+        """
         configured_nodes = []
         for node in self._stored.down_nodes:
             if node not in down_nodes:

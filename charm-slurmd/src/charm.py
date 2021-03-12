@@ -156,10 +156,10 @@ class SlurmdCharm(CharmBase):
         self._on_set_partition_info_on_app_relation_data(event)
 
     def _on_node_configured_action(self, event):
-        """Remove node from DownNodes"""
+        """Remove node from DownNodes."""
         # trigger reconfig
         self._slurmd_peer.configure_new_node()
-        logger.debug(f'### This node is not new anymore')
+        logger.debug('### This node is not new anymore')
 
     def _on_get_node_inventory_action(self, event):
         """Return node inventory."""

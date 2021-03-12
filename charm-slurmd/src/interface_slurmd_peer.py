@@ -101,7 +101,7 @@ class SlurmdPeer(Object):
         return self.framework.model.get_relation(self._relation_name)
 
     def configure_new_node(self):
-        """Set this node as not new and trigger a reconfiguration"""
+        """Set this node as not new and trigger a reconfiguration."""
         self._stored.inventory["new_node"] = False
 
         self._relation.data[self.model.unit]['inventory'] = json.dumps(
@@ -111,4 +111,5 @@ class SlurmdPeer(Object):
         self.on.slurmd_peer_available.emit()
 
     def get_node_inventory(self):
+        """Return stored inventory."""
         return json.dumps(dict(self._stored.inventory))

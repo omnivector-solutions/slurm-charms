@@ -178,6 +178,7 @@ class Slurmctld(Object):
 
     @property
     def nodes_to_update(self):
+        """Get list of nodes that are ready to be resumed."""
         return self._stored.scontrol_update_nodes
 
     @property

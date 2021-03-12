@@ -76,7 +76,6 @@ class Slurmctld(Object):
             munge_key=str(),
             restart_slurmctld_uuid=str(),
             scontrol_reconfigure_uuid=str(),
-            scontrol_update_uuid=str(),
             scontrol_update_nodes=[]
         )
 
@@ -160,6 +159,10 @@ class Slurmctld(Object):
                 self.on.scontrol_reconfigure.emit()
 
         if scontrol_update_nodes:
+            # we don't need to copare this list with a previous value, because
+            # all nodes start with new_node = True, and when we run an action
+            # to enlist them, slurm-configurator assembles a list of configured
+            # nodes. We already did the accounting in slurm-configurator.
             nodes_list = list(literal_eval(scontrol_update_nodes))
             self._stored.scontrol_update_nodes = nodes_list
             self.on.scontrol_update.emit()
@@ -233,11 +236,5 @@ class Slurmctld(Object):
     def _store_scontrol_reconfigure_uuid(self, scontrol_reconfigure_uuid):
         self._stored.scontrol_reconfigure_uuid = scontrol_reconfigure_uuid
 
-    def _store_scontrol_update_uuid(self, scontrol_update_uuid):
-        self._stored.scontrol_update_uuid = scontrol_update_uuid
-
     def _get_scontrol_reconfigure_uuid(self):
         return self._stored.scontrol_reconfigure_uuid
-
-    def _get_scontrol_update_uuid(self):
-        return self._stored.scontrol_update_uuid

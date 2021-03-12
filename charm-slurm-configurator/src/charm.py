@@ -214,11 +214,9 @@ class SlurmConfiguratorCharm(CharmBase):
         # get "not new anymore" nodes
         down_nodes = slurm_config["down_nodes"]
         configured_nodes = self._assemble_configured_nodes(down_nodes)
+        logger.debug(f"### issuing 'scontrol update' for: {down_nodes}")
         self._slurmctld.scontrol_update(configured_nodes)
         # update down nodes cache
-        logger.debug(f"### down_nodes = {down_nodes}")
-        logger.debug(f"### cached down_nodes = {self._stored.down_nodes}")
-        logger.debug(f"### configured_nodes = {configured_nodes}")
         self._stored.down_nodes = down_nodes.copy()
 
     def _assemble_slurm_config(self):
@@ -238,8 +236,7 @@ class SlurmConfiguratorCharm(CharmBase):
         logger.debug(partitions_info)
         logger.debug(slurmctld_info)
         logger.debug(slurmdbd_info)
-        logger.debug("#### Down nodes:")
-        logger.debug(f"#### {down_nodes}")
+        logger.debug("#### _assemble_slurm_config(): Down nodes: {down_nodes}")
 
         return {
             "partitions": partitions_info,

@@ -66,9 +66,7 @@ class SlurmdPeer(Object):
             self.on.slurmd_peer_available.emit()
 
     def _on_relation_changed(self, event):
-        logger.debug(f"IN RELATION CHANGED SLURMD PEER")
         if self.framework.model.unit.is_leader():
-            logger.debug(f"______ I AM THE LEADER")
             self.on.slurmd_peer_available.emit()
 
     def _on_relation_departed(self, event):
@@ -103,6 +101,7 @@ class SlurmdPeer(Object):
         return self.framework.model.get_relation(self._relation_name)
 
     def configure_new_node(self):
+        """Set this node as not new and trigger a reconfiguration"""
         self._stored.inventory["new_node"] = False
 
         self._relation.data[self.model.unit]['inventory'] = json.dumps(

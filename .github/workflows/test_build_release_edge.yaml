@@ -1,5 +1,5 @@
 name: TestBuildDeployEdge
-  
+
 on: pull_request
 
 jobs:
@@ -13,40 +13,40 @@ jobs:
           python-version: '3.x'
           architecture: 'x64'
       - name: "Install tox"
-        run: | 
+        run: |
           pip install tox
 
       - name: "lint the charms"
-        run: | 
+        run: |
           make lint
 
       - name: "run slurm-configurator unit tests"
-        run: | 
+        run: |
           cd charm-slurm-configurator/
           make unit
           make harness
           cd ../
 
 #      - name: "run slurmd unit tests"
-#        run: | 
+#        run: |
 #          cd charm-slurmd/
 #          make unit
 #          cd ../
 #
 #      - name: "run slurmctld unit tests"
-#        run: | 
+#        run: |
 #          cd charm-slurmctld/
 #          make unit
 #          cd ../
 #
 #      - name: "run slurmdbd unit tests"
-#        run: | 
+#        run: |
 #          cd charm-slurmdbd/
 #          make unit
 #          cd ../
 #
 #      - name: "run slurmrestd unit tests"
-#        run: | 
+#        run: |
 #          cd charm-slurmrestd/
 #          make unit
 #          cd ../
@@ -88,7 +88,7 @@ jobs:
 
     outputs:
       charm_hash: ${{ steps.vars.outputs.charm_hash }}
-  
+
 
   cache-juju-tar:
     name: "Cache juju tar for future jobs"
@@ -160,7 +160,7 @@ jobs:
           echo "JUJU_DATA=/home/runner/work/slurm-charms/slurm-charms/.local/share/juju" >> $GITHUB_ENV
 
       - name: "Install juju and jq snaps"
-        run: | 
+        run: |
           sudo snap install juju --classic
           sudo snap install jq
 
@@ -189,7 +189,7 @@ jobs:
           git clone https://github.com/omnivector-solutions/slurm-bundles ../slurm-bundles
 
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
-              
+
           juju deploy -m $model \
               ./../slurm-bundles/slurm-core/bundle.yaml \
               --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
@@ -201,9 +201,11 @@ jobs:
         run: |
           sudo snap install juju-wait --classic
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
+
+          # sometimes the tests fail because we run out of AWS security groups.
           # Wait 9 minutes for model to deploy
-          juju-wait -t 540 -m $model
-          
+          juju-wait -t 540 -m $model || { err=$?; juju status; return $err; }
+
           # Sleep for 5 seconds after all units are idle to give slurm
           # a few seconds to start up.
           sleep 5

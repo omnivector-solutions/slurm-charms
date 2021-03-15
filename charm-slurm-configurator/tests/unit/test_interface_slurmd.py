@@ -1,5 +1,4 @@
 import copy
-import pprint
 
 from src.interface_slurmd import ensure_unique_partitions
 
@@ -19,7 +18,6 @@ def get_inventory(name, addr):
 
 
 class TestSlurmd:
-    pp = pprint.PrettyPrinter(indent=4)
 
     def test_ensure_unique_partitions_empty_list(self):
         assert ensure_unique_partitions([]) == []

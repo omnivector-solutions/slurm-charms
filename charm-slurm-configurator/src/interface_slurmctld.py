@@ -148,7 +148,7 @@ class Slurmctld(Object):
     def scontrol_update(self, nodes: list):
         """Send a signal to slurmctld to run 'scontrol update'.
 
-        for each node in the list, slurctld will run
+        for each node in the list, slurmctld will run
         `scontrol update nodename=node state=resume`
         """
         relations = self._charm.framework.model.relations["slurmctld"]

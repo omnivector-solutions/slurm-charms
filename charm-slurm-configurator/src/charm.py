@@ -2,6 +2,7 @@
 """SlurmctldCharm."""
 import copy
 import logging
+import uuid
 
 from interface_elasticsearch import Elasticsearch
 from interface_grafana_source import GrafanaSource
@@ -40,6 +41,7 @@ class SlurmConfiguratorCharm(CharmBase):
             slurmd_available=False,
             slurmrestd_available=False,
             down_nodes=list(),
+            force_reconfiguration=False,
         )
 
         self._elasticsearch = Elasticsearch(self, "elasticsearch")
@@ -79,6 +81,9 @@ class SlurmConfiguratorCharm(CharmBase):
             self._prolog_epilog.on.prolog_epilog_unavailable: self._on_check_status_and_write_config,
             # Actions
             self.on.scontrol_reconfigure_action: self._on_scontrol_reconfigure,
+            self.on.show_current_config_action: self._on_show_current_config,
+            self.on.show_new_config_action: self._on_show_new_config,
+            self.on.reconfigure_slurm_action: self._on_reconfigure_slurm,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -86,6 +91,22 @@ class SlurmConfiguratorCharm(CharmBase):
     def _on_scontrol_reconfigure(self, event):
         """Run 'scontrol reconfigure' on slurmctld."""
         self._slurmctld.scontrol_reconfigure()
+
+    def _on_show_current_config(self, event):
+        """Show current slurm.conf."""
+        slurm_conf = self._slurm_manager.get_slurm_conf()
+        event.set_results({"slurm.conf": slurm_conf})
+
+    def _on_show_new_config(self, event):
+        """Assemble and show a new slurm.conf, without saving it."""
+        slurm_conf = self._assemble_slurm_config()
+        event.set_results({"slurm.conf": slurm_conf})
+
+    def _on_reconfigure_slurm(self, event):
+        """Force a new slurm.conf to be used in all nodes."""
+        self._stored.force_reconfiguration = True
+        self._on_check_status_and_write_config(event)
+        event.set_results({"reconfigured": True})
 
     def _on_install(self, event):
         """Install the slurm snap and capture the munge key."""
@@ -158,6 +179,8 @@ class SlurmConfiguratorCharm(CharmBase):
             event.defer()
             return
 
+        logger.debug("### Configurator - check status write config ()")
+
         # Generate the slurm_config
         slurm_config = self._assemble_slurm_config()
 
@@ -167,6 +190,10 @@ class SlurmConfiguratorCharm(CharmBase):
             )
             event.defer()
             return
+
+        if self._stored.force_reconfiguration:
+            self._stored.force_reconfiguration = False
+            slurm_config['force_reconfiguration'] = str(uuid.uuid4())
 
         self._slurmctld.set_slurm_config_on_app_relation_data(
             slurm_config,

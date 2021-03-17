@@ -164,7 +164,7 @@ class SlurmdCharm(CharmBase):
     def _on_get_node_inventory_action(self, event):
         """Return node inventory."""
         inventory = self._slurmd_peer.get_node_inventory()
-        logger.debug(f"### NODE INVENTORY: {inventory}")
+        event.set_results({'inventory': inventory})
 
     def _on_set_partition_info_on_app_relation_data(self, event):
         """Set the slurm partition info on the application relation data."""

@@ -9,7 +9,7 @@ from ops.framework import (
 )
 
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class SlurmctldAvailableEvent(EventBase):
@@ -111,6 +111,9 @@ class Slurmctld(Object):
                     slurmctld_info = app_data.get("slurmctld_info")
                     if slurmctld_info:
                         return json.loads(slurmctld_info)
+
+        logger.warning("### Slurm-configurator - interface_slurmctld - "
+                       "get_slurmctld_info got nothing")
         return None
 
     def set_slurm_config_on_app_relation_data(

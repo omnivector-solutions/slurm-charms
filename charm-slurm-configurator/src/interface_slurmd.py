@@ -118,6 +118,8 @@ class Slurmd(Object):
                     partition_info = app_data.get("partition_info")
                     if partition_info:
                         partitions.append(json.loads(partition_info))
+                    else:
+                        logger.warning(f"### interface slurmd - get_slurmd_info - no partition_info for {relation}")
 
         slurm_configurator = self._assemble_slurm_configurator_inventory()
         partitions.append(slurm_configurator)
@@ -136,7 +138,10 @@ class Slurmd(Object):
         relations = self._charm.framework.model.relations["slurmd"]
         for relation in relations:
             app_relation_data = relation.data[self.model.app]
-            app_relation_data["slurm_config"] = json.dumps(slurm_config)
+            if slurm_config != "":
+                app_relation_data["slurm_config"] = json.dumps(slurm_config)
+            else:
+                app_relation_data["slurm_config"] = slurm_config
 
     def restart_slurmd(self):
         """Send a restart signal to related slurmd applications."""

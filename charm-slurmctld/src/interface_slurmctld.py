@@ -212,6 +212,9 @@ class Slurmctld(Object):
                 if app_data:
                     if app_data.get("slurm_config"):
                         return json.loads(app_data["slurm_config"])
+
+        logger.warning("### slurmctdl - interface-slurmctld - "
+                       "get_slurm_config_from_relation got nothing")
         return None
 
     def _store_munge_key(self, munge_key):

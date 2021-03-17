@@ -1,10 +1,13 @@
 #!/usr/bin/python3
 """Slurmd."""
 import json
+import logging
 
 from ops.framework import (
     EventBase, EventSource, Object, ObjectEvents, StoredState,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SlurmConfigAvailableEvent(EventBase):
@@ -175,11 +178,14 @@ class Slurmd(Object):
         if relation:
             app = relation.app
             if app:
-                app_data = self._relation.data.get(app)
+                app_data = relation.data.get(app)
                 if app_data:
                     slurm_config = app_data.get("slurm_config")
                     if slurm_config:
                         return json.loads(slurm_config)
+
+        logger.warning("### Slurmd - interface_slurmd - "
+                       "get_slurm_config_from_relation got nothing")
         return None
 
     def _store_munge_key(self, munge_key):

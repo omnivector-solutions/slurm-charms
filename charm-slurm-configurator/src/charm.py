@@ -33,7 +33,6 @@ class SlurmConfiguratorCharm(CharmBase):
 
         self._stored.set_default(
             munge_key=str(),
-            override_slurm_conf=None,
             slurm_installed=False,
             slurmd_restarted=False,
             slurmctld_available=False,
@@ -80,8 +79,6 @@ class SlurmConfiguratorCharm(CharmBase):
             self._prolog_epilog.on.prolog_epilog_unavailable: self._on_check_status_and_write_config,
             # Actions
             self.on.scontrol_reconfigure_action: self._on_scontrol_reconfigure,
-            self.on.get_slurm_conf_action: self._on_get_slurm_conf,
-            self.on.set_slurm_conf_action: self._on_set_slurm_conf,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -89,22 +86,6 @@ class SlurmConfiguratorCharm(CharmBase):
     def _on_scontrol_reconfigure(self, event):
         """Run 'scontrol reconfigure' on slurmctld."""
         self._slurmctld.scontrol_reconfigure()
-
-    def _on_get_slurm_conf(self, event):
-        """Return the slurm.conf."""
-        # Determine if we have an override config.
-        override_slurm_conf = self._stored.override_slurm_conf
-        if override_slurm_conf:
-            slurm_conf = override_slurm_conf
-        else:
-            slurm_conf = self._slurm_manager.get_slurm_conf()
-
-        # Return the slurm.conf as the result of the action.
-        event.set_results({"slurm.conf": slurm_conf})
-
-    def _on_set_slurm_conf(self, event):
-        """Set the override slurm.conf."""
-        self._stored.override_slurm_conf = event.params["slurm-conf"]
 
     def _on_install(self, event):
         """Install the slurm snap and capture the munge key."""
@@ -115,8 +96,7 @@ class SlurmConfiguratorCharm(CharmBase):
 
     def _on_upgrade(self, event):
         """Upgrade the charm."""
-        slurm_config = \
-            self._stored.override_slurm_conf or self._assemble_slurm_config()
+        slurm_config = self._assemble_slurm_config()
 
         if not slurm_config:
             self.unit.status = BlockedStatus(

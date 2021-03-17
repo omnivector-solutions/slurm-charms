@@ -1,13 +1,2 @@
-get-slurm-conf:
-  description: Return the slurm.conf file as a string.
-
-set-slurm-conf:
-  description: Set a slurm.conf string that will override any configuration created by juju.
-  params:
-    slurm-conf:
-      type: string
-      description: The slurm.conf as a string.
-  required: [slurm-conf]
-
 scontrol-reconfigure:
   description: Run the scontrol reconfigure command on slurmctld.

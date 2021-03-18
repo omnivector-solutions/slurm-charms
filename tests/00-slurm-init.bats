@@ -4,13 +4,13 @@ load "../node_modules/bats-support/load.bash"
 load "../node_modules/bats-assert/load.bash"
 
 myjuju () {
-  command juju "$@"
-  command juju-wait -t 540 -m $JUJU_MODEL
+	juju "$@"
+	juju-wait -t 540 -m $JUJU_MODEL
 }
 
 
 @test "test first node is down" {
-	run juju run "/snap/bin/sinfo" -m $JUJU_MODEL --unit slurm-configurator/0
+	run juju run "/snap/bin/sinfo" -m $JUJU_MODEL --unit slurm-configurator/leader
 	assert_success
 
 	# slurmd node in down state
@@ -20,13 +20,13 @@ myjuju () {
 }
 
 @test "test first node is down because it is new" {
-	run juju run "/snap/bin/sinfo -R" -m $JUJU_MODEL --unit slurm-configurator/0
+	run juju run "/snap/bin/sinfo -R" -m $JUJU_MODEL --unit slurm-configurator/leader
 	assert_success
 	assert_output --partial "New node"
 }
 
 @test "assert that we can enlist that node" {
-	run juju run-action slurmd/0 -m $JUJU_MODEL node-configured
+	run juju run-action slurmd/leader -m $JUJU_MODEL node-configured
 	assert_success
 }
 
@@ -34,7 +34,7 @@ myjuju () {
 	# wait for the node to be up
 	sleep 15
 
-	run juju run "/snap/bin/sinfo" -m $JUJU_MODEL --unit slurm-configurator/0
+	run juju run "/snap/bin/sinfo" -m $JUJU_MODEL --unit slurm-configurator/leader
 	assert_success
 
 	# check the node is not down anymore
@@ -49,7 +49,7 @@ myjuju () {
 @test "add a unit of slurmd and verify it is down" {
 	myjuju add-unit slurmd -m $JUJU_MODEL
 
-	run juju run "/snap/bin/sinfo" -m $JUJU_MODEL --unit slurm-configurator/0
+	run juju run "/snap/bin/sinfo" -m $JUJU_MODEL --unit slurm-configurator/leader
 	assert_success
 
 	# new node in down state
@@ -61,7 +61,7 @@ myjuju () {
 }
 
 @test "test if we have a new node" {
-	run juju run "/snap/bin/sinfo -R" -m $JUJU_MODEL --unit slurm-configurator/0
+	run juju run "/snap/bin/sinfo -R" -m $JUJU_MODEL --unit slurm-configurator/leader
 	assert_success
 	assert_output --partial "New node"
 }

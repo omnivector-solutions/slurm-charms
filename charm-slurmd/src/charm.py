@@ -59,6 +59,7 @@ class SlurmdCharm(CharmBase):
             self.on.node_configured_action: self._on_node_configured_action,
             self.on.get_node_inventory_action:
             self._on_get_node_inventory_action,
+            self.on.show_current_config_action: self._on_show_current_config,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -165,6 +166,11 @@ class SlurmdCharm(CharmBase):
         """Return node inventory."""
         inventory = self._slurmd_peer.get_node_inventory()
         event.set_results({'inventory': inventory})
+
+    def _on_show_current_config(self, event):
+        """Show current slurm.conf."""
+        slurm_conf = self._slurm_manager.get_slurm_conf()
+        event.set_results({"slurm.conf": slurm_conf})
 
     def _on_set_partition_info_on_app_relation_data(self, event):
         """Set the slurm partition info on the application relation data."""

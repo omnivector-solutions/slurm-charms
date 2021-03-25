@@ -50,13 +50,9 @@ class SlurmdbdCharm(CharmBase):
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
-        self._slurm_manager.install(self.config["snapstore-channel"])
+        self._slurm_manager.install()
         self._stored.slurm_installed = True
-        self.unit.status = ActiveStatus("slurm snap successfully installed")
-
-    def _on_upgrade(self, event):
-        """Handle upgrade charm event."""
-        self._slurm_manager.upgrade()
+        self.unit.status = ActiveStatus("slurm successfully installed")
 
     def _on_munge_key_available(self, event):
         if not self._stored.slurm_installed:

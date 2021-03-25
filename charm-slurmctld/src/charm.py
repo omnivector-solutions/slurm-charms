@@ -39,7 +39,6 @@ class SlurmctldCharm(CharmBase):
             self.on.install: self._on_install,
             self._slurmctld.on.slurm_config_available: self._on_check_status_and_write_config,
             self._slurmctld.on.scontrol_reconfigure: self._on_scontrol_reconfigure,
-            self._slurmctld.on.scontrol_update: self._on_scontrol_update,
             self._slurmctld.on.restart_slurmctld: self._on_restart_slurmctld,
             self._slurmctld.on.munge_key_available: self._on_write_munge_key,
             self._slurmctld_peer.on.slurmctld_peer_available: self._on_slurmctld_peer_available,
@@ -48,14 +47,9 @@ class SlurmctldCharm(CharmBase):
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
-        self._slurm_manager.install(self.config["snapstore-channel"])
+        self._slurm_manager.install()
         self._stored.slurm_installed = True
-        self.unit.status = ActiveStatus("slurm snap successfully installed")
-
-    def _on_upgrade(self, event):
-        slurm_config = dict(self._check_status())
-        snapstore_channel = self.config["snapstore-channel"]
-        self._slurm_manager.upgrade(slurm_config, snapstore_channel)
+        self.unit.status = ActiveStatus("slurm successfully installed")
 
     def _on_write_munge_key(self, event):
         if not self._stored.slurm_installed:

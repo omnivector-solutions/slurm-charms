@@ -36,8 +36,6 @@ class SlurmrestdCharm(CharmBase):
             self.on.install:
             self._on_install,
 
-            self.on.upgrade_charm: self._on_upgrade,
-
             self._slurmrestd.on.config_available:
             self._on_check_status_and_write_config,
 
@@ -51,15 +49,9 @@ class SlurmrestdCharm(CharmBase):
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
-        self._slurm_manager.install(self.config["snapstore-channel"])
+        self._slurm_manager.install()
         self.unit.status = ActiveStatus("slurm installed")
         self._stored.slurm_installed = True
-
-    def _on_upgrade(self, event):
-        """Upgrade charm event handler."""
-        slurm_config = self._check_status()
-        snapstore_channel = self.config["snapstore-channel"]
-        self._slurm_manager.upgrade(slurm_config, snapstore_channel)
 
     def _on_restart_slurmrestd(self, event):
         """Resart the slurmrestd component."""

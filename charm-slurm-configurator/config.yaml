@@ -1,9 +1,4 @@
 options:
-  snapstore-channel:
-    type: string
-    default: "--stable"
-    description:
-      'Snap store channel to install the slurm snap from.'
   cluster_name:
     type: string
     default: cluster1

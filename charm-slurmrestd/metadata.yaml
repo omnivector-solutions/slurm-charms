@@ -16,9 +16,3 @@ series:
 provides:
   slurmrestd:
     interface: slurmrestd
-
-resources:
-  slurm:
-    type: file
-    filename: slurm.resource
-    description: slurm resource

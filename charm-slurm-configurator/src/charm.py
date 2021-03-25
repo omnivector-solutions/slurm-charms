@@ -60,7 +60,6 @@ class SlurmConfiguratorCharm(CharmBase):
             # #### Juju lifecycle events #### #
             self.on.install: self._on_install,
             self.on.config_changed: self._on_check_status_and_write_config,
-            self.on.upgrade_charm: self._on_upgrade,
             # ######## Addons lifecycle events ######## #
             self._elasticsearch.on.elasticsearch_available: self._on_check_status_and_write_config,
             self._elasticsearch.on.elasticsearch_unavailable: self._on_check_status_and_write_config,
@@ -109,27 +108,11 @@ class SlurmConfiguratorCharm(CharmBase):
         event.set_results({"reconfigured": True})
 
     def _on_install(self, event):
-        """Install the slurm snap and capture the munge key."""
-        self._slurm_manager.install(self.config["snapstore-channel"])
+        """Install slurm and capture the munge key."""
+        self._slurm_manager.install()
         self._stored.munge_key = self._slurm_manager.get_munge_key()
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("slurm installed")
-
-    def _on_upgrade(self, event):
-        """Upgrade the charm."""
-        slurm_config = self._assemble_slurm_config()
-
-        if not slurm_config:
-            self.unit.status = BlockedStatus(
-                "Cannot generate slurm_config, defering upgrade."
-            )
-            event.defer()
-            return
-
-        self._slurm_manager.upgrade(
-            slurm_config,
-            self.config["snapstore-channel"]
-        )
 
     def _on_grafana_available(self, event):
         """Create the grafana-source if we are the leader and have influxdb."""

@@ -42,7 +42,6 @@ class SlurmdCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
-            self.on.upgrade_charm: self._on_upgrade,
             self.on.start: self._on_check_status_and_write_config,
             self.on.config_changed: self._on_config_changed,
             self._slurmd_peer.on.slurmd_peer_available:
@@ -65,24 +64,13 @@ class SlurmdCharm(CharmBase):
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
-        self._slurm_manager.install(self.config["snapstore-channel"])
+        self._slurm_manager.install()
 
         if self.model.unit.is_leader():
             self._get_set_partition_name()
             logger.debug(f"PARTITION_NAME: {self._stored.partition_name}")
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("Slurm installed")
-
-    def _on_upgrade(self, event):
-        slurm_config = self._check_status()
-        if not slurm_config:
-            event.defer()
-            return
-
-        self._slurm_manager.upgrade(
-            slurm_config,
-            self.config["snapstore-channel"]
-        )
 
     def _on_config_changed(self, event):
         if self.model.unit.is_leader():

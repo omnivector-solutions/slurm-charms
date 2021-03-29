@@ -1,5 +1,5 @@
-#!/usr/bin/python3
-"""SlurmctldCharm."""
+#!/usr/bin/env python3
+"""SlurmConfiguratorCharm."""
 import copy
 import logging
 import uuid
@@ -34,6 +34,7 @@ class SlurmConfiguratorCharm(CharmBase):
 
         self._stored.set_default(
             munge_key=str(),
+            jwt_rsa=str(),
             slurm_installed=False,
             slurmd_restarted=False,
             slurmctld_available=False,
@@ -110,7 +111,15 @@ class SlurmConfiguratorCharm(CharmBase):
     def _on_install(self, event):
         """Install slurm and capture the munge key."""
         self._slurm_manager.install()
-        self._stored.munge_key = self._slurm_manager.get_munge_key()
+
+        # Store the munge_key and jwt_rsa key in the stored state.
+        #
+        # NOTE: Use leadership settings instead of stored state when
+        # leadership settings support becomes available in the framework.
+        if self._is_leader():
+            self._stored.jwt_rsa = self._slurm_manager.generate_jwt_rsa()
+            self._stored.munge_key = self._slurm_manager.get_munge_key()
+
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("slurm installed")
 
@@ -381,6 +390,10 @@ class SlurmConfiguratorCharm(CharmBase):
     def get_munge_key(self):
         """Return the slurmdbd_info from stored state."""
         return self._stored.munge_key
+
+    def get_jwt_rsa(self):
+        """Return the jwt rsa key."""
+        return self._stored.jwt_rsa
 
     def is_slurm_installed(self):
         """Return true/false based on whether or not slurm is installed."""

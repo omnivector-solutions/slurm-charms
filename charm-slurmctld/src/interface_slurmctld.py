@@ -29,17 +29,24 @@ class ScontrolUpdateEvent(EventBase):
 
 
 class SlurmConfiguratorAvailableEvent(EventBase):
-    """Emitted when slurm-config is available."""
+    """Emitted when slurm configurator relation has joined."""
 
 
 class SlurmConfiguratorUnAvailableEvent(EventBase):
     """Emitted when a slurmctld unit joins the relation."""
 
 
+class SlurmConfigAvailableEvent(EventBase):
+    """Emitted when slurm-config is available."""
+
+
 class SlurmctldEvents(ObjectEvents):
     """Slurmctld emitted events."""
 
     slurm_config_available = EventSource(
+        SlurmConfigAvailableEvent
+    )
+    slurm_configurator_available = EventSource(
         SlurmConfiguratorAvailableEvent
     )
     slurm_configurator_unavailable = EventSource(
@@ -74,6 +81,7 @@ class Slurmctld(Object):
         self._stored.set_default(
             slurm_config=dict(),
             munge_key=str(),
+            jwt_rsa=str(),
             restart_slurmctld_uuid=str(),
             scontrol_reconfigure_uuid=str(),
             scontrol_update_nodes=[]
@@ -118,9 +126,18 @@ class Slurmctld(Object):
             event.defer()
             return
 
-        # Store the munge_key in the charm's state
+        # slurm-configurator sets the jwt_rsa on the relation-created event
+        # which happens before relation-joined. We can almost guarantee that
+        # the munge key will exist at this point, but check for it just incase.
+        jwt_rsa = event_app_data.get("jwt_rsa")
+        if not jwt_rsa:
+            event.defer()
+            return
+
+        # Store the jwt_rsa and munge_key in the charm's state
         self._store_munge_key(munge_key)
-        self.on.munge_key_available.emit()
+        self._store_jwt_rsa(jwt_rsa)
+        self.on.slurm_configurator_available.emit()
 
     def _on_relation_changed(self, event):
         event_app_data = event.relation.data.get(event.app)
@@ -223,6 +240,13 @@ class Slurmctld(Object):
     def get_stored_munge_key(self):
         """Retrieve the munge_key from stored state."""
         return self._stored.munge_key
+
+    def _store_jwt_rsa(self, jwt_rsa):
+        self._stored.jwt_rsa = jwt_rsa
+
+    def get_stored_jwt_rsa(self):
+        """Retrieve the jwt_rsa from stored state."""
+        return self._stored.jwt_rsa
 
     def _store_slurm_config(self, slurm_config):
         self._stored.slurm_config = slurm_config

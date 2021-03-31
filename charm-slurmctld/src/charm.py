@@ -69,7 +69,6 @@ class SlurmctldCharm(CharmBase):
         self._slurm_manager.configure_jwt_rsa(jwt_rsa)
 
         self._slurm_manager.restart_munged()
-        self._stored.munge_key_available = True
         self._stored.slurm_configurator_available = True
 
     def _on_slurmctld_peer_available(self, event):
@@ -112,6 +111,10 @@ class SlurmctldCharm(CharmBase):
         slurm_installed = self._stored.slurm_installed
         slurm_config = self._slurmctld.get_stored_slurm_config()
 
+        components = [slurm_configurator_available,
+                      slurm_installed,
+                      slurm_config]
+
         slurmctld_joined = self._slurmctld.is_joined
 
         if not slurmctld_joined:
@@ -120,7 +123,7 @@ class SlurmctldCharm(CharmBase):
             )
             return None
 
-        elif not (munge_key_available and slurm_installed and slurm_config):
+        if not all(components):
             self.unit.status = WaitingStatus("Waiting on: configuration")
             return None
 

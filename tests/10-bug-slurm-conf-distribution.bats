@@ -11,7 +11,7 @@ myjuju () {
 
 
 @test "Assert we can rebuild slurm.conf correctly" {
-	SLURM_CONF="/var/snap/slurm/common/etc/slurm/slurm.conf"
+	SLURM_CONF="/etc/slurm/slurm.conf"
 
 	# manually modify slurm.conf in units
 	for unit in slurm-configurator slurmctld slurmd

@@ -222,7 +222,7 @@ jobs:
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
           # Remove the applications and wait for the model to empty
           juju remove-application -m $model \
-              slurmctld slurmdbd slurmd slurmrestd slurm-configurator percona-cluster
+              slurmctld slurmdbd slurmd slurm-configurator percona-cluster # TODO readd slurmrestd
           juju-wait -m $model
 
       - name: "Grab the charm logs"

@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 """Slurmctld."""
 from ast import literal_eval
 import json

@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 """utils.py module for slurmd charm."""
 import json
 import os

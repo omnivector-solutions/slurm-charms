@@ -186,14 +186,27 @@ jobs:
         if: ${{ success() }}
         shell: bash
         run: |
-          git clone https://github.com/omnivector-solutions/slurm-bundles -b 177292813-replace-snap-with-rpm ../slurm-bundles
+          git clone https://github.com/omnivector-solutions/slurm-bundles -b 1.0.1 ../slurm-bundles
 
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
 
-          juju deploy -m $model \
-              ./../slurm-bundles/slurm-core/bundle.yaml \
-              --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
-              --overlay ./../slurm-bundles/slurm-core/series/${{ matrix.series }}.yaml
+          case ${{ matrix.series }} in
+
+            "focal")
+
+              juju deploy ./../slurm-bundles/slurm-core/bundle.yaml \
+                  --overlay ./../slurm-bundles/slurm-core/focal/bundle.yaml \
+                  --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
+                  --overlay ./../slurm-bundles/slurm-core/focal/clouds/aws.yaml
+              ;;
+
+            "centos7")
+
+              juju deploy ./../slurm-bundles/slurm-core/bundle.yaml \
+                  --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
+              ;;
+          esac
+
 
       - name: "Wait for deployments to settle"
         if: ${{ success() }}
@@ -202,8 +215,9 @@ jobs:
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
 
           # sometimes the tests fail because we run out of AWS security groups.
-          # Wait 9 minutes for model to deploy
-          juju-wait -t 540 -m $model || { err=$?; juju status; return $err; }
+          # Wait 9 minutes for model to deploy and for teh workload status of
+          # all charms to be "active".
+          juju-wait --workload -t 1080 -m $model || { err=$?; juju status; return $err; }
 
           # Sleep for 5 seconds after all units are idle to give slurm
           # a few seconds to start up.
@@ -220,9 +234,14 @@ jobs:
         if: ${{ always() }}
         run: |
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
+
           # Remove the applications and wait for the model to empty
           juju remove-application -m $model \
-              slurmctld slurmdbd slurmd slurm-configurator percona-cluster # TODO readd slurmrestd
+              slurmctld slurmdbd slurmd slurm-configurator percona-cluster
+
+          if [ "${{ matrix.series}}" = "focal" ]; then
+              juju remove-application -m $model slurmrestd
+          fi
           juju-wait -m $model
 
       - name: "Grab the charm logs"
@@ -234,6 +253,10 @@ jobs:
               log=$charm-$model.log
               juju debug-log --replay --include $charm > $log
           done
+
+          if [ "${{ matrix.series}}" = "focal" ]; then
+              juju debug-log --replay --include slurmrestd > slurmrestd-$model.log
+          fi
 
       - name: "Upload slurm charm logs"
         if: ${{ always() }}
@@ -295,22 +318,20 @@ jobs:
         shell: bash
         run: |
           for charm in slurmctld slurmdbd slurmd slurm-configurator slurmrestd; do
-              aws s3 cp $charm.charm s3://omnivector-public-assets/charms/$charm/edge/
+              if [ -f $charm.charm ]; then
+                  aws s3 cp $charm.charm s3://omnivector-public-assets/charms/$charm/edge/
+              fi
           done
 
-
   notify:
-    name: Notify status
-    runs-on: ubuntu-18.04
+    name: notify
+    runs-on: ubuntu-latest
     needs: [release-slurm-charms-to-edge]
     steps:
-      - uses: actions/checkout@master
-      - name: Microsoft Teams Notification
-        uses: skitionek/notify-microsoft-teams@master
-        if: always()
+      - uses: 8398a7/action-slack@v3
         with:
-          webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
-          needs: ${{ toJson(needs) }}
-          job: ${{ toJson(job) }}
-          steps: ${{ toJson(steps) }}
-          dry_run: False
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
+        if: always() # Pick up events even if the job fails or is canceled.

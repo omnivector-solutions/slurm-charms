@@ -121,7 +121,7 @@ jobs:
     name: "Deploy charms on aws"
     strategy:
       matrix:
-        series: [focal, bionic, centos7]
+        series: [focal, centos7]
     needs: [cache-juju-tar, build-charms]
     runs-on: "ubuntu-latest"
     steps:
@@ -186,7 +186,7 @@ jobs:
         if: ${{ success() }}
         shell: bash
         run: |
-          git clone https://github.com/omnivector-solutions/slurm-bundles ../slurm-bundles
+          git clone https://github.com/omnivector-solutions/slurm-bundles -b 177292813-replace-snap-with-rpm ../slurm-bundles
 
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
 

@@ -12,7 +12,6 @@ tags:
 
 series:
     - focal
-    - bionic
     - centos7
 
 provides:

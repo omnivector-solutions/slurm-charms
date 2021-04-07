@@ -202,7 +202,8 @@ jobs:
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
 
           # sometimes the tests fail because we run out of AWS security groups.
-          # Wait 9 minutes for model to deploy
+          # Wait 9 minutes for model to deploy and for teh workload status of
+          # all charms to be "active".
           juju-wait --workload -t 540 -m $model || { err=$?; juju status; return $err; }
 
           # Sleep for 5 seconds after all units are idle to give slurm

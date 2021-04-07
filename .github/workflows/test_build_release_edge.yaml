@@ -121,7 +121,7 @@ jobs:
     name: "Deploy charms on aws"
     strategy:
       matrix:
-        series: [focal, bionic, centos7]
+        series: [focal, centos7]
     needs: [cache-juju-tar, build-charms]
     runs-on: "ubuntu-latest"
     steps:

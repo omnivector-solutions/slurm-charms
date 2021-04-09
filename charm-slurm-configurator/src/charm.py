@@ -123,6 +123,8 @@ class SlurmConfiguratorCharm(CharmBase):
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("slurm installed")
 
+        self._slurm_manager.start_munged()
+
     def _on_grafana_available(self, event):
         """Create the grafana-source if we are the leader and have influxdb."""
         leader = self._is_leader()

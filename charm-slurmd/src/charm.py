@@ -72,6 +72,8 @@ class SlurmdCharm(CharmBase):
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("Slurm installed")
 
+        self._slurm_manager.start_munged()
+
     def _on_config_changed(self, event):
         if self.model.unit.is_leader():
             self._get_set_partition_name()

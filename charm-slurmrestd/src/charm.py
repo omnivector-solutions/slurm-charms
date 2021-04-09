@@ -53,6 +53,8 @@ class SlurmrestdCharm(CharmBase):
         self.unit.status = ActiveStatus("slurm installed")
         self._stored.slurm_installed = True
 
+        self._slurm_manager.start_munged()
+
     def _on_restart_slurmrestd(self, event):
         """Resart the slurmrestd component."""
         self._slurm_manager.restart_slurm_component()

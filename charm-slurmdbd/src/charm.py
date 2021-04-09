@@ -59,6 +59,8 @@ class SlurmdbdCharm(CharmBase):
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("slurm successfully installed")
 
+        self._slurm_manager.start_munged()
+
     def _on_slurm_configurator_available(self, event):
         if not self._stored.slurm_installed:
             event.defer()

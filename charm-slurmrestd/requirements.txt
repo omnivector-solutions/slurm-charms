@@ -1,2 +1,2 @@
 ops
-git+https://github.com/omnivector-solutions/slurm-ops-manager.git@177292813-replace-snap-with-rpm
+git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.3.0

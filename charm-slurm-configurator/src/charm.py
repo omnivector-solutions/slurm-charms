@@ -7,7 +7,6 @@ import uuid
 from interface_elasticsearch import Elasticsearch
 from interface_grafana_source import GrafanaSource
 from interface_influxdb import InfluxDB
-from interface_nhc import Nhc
 from interface_prolog_epilog import PrologEpilog
 from interface_slurmctld import Slurmctld
 from interface_slurmdbd import Slurmdbd
@@ -48,7 +47,6 @@ class SlurmConfiguratorCharm(CharmBase):
         self._elasticsearch = Elasticsearch(self, "elasticsearch")
         self._grafana = GrafanaSource(self, "grafana-source")
         self._influxdb = InfluxDB(self, "influxdb-api")
-        self._nhc = Nhc(self, "nhc")
         self._slurmrestd = Slurmrestd(self, "slurmrestd")
         self._slurm_manager = SlurmManager(self, "slurmd")
         self._slurmctld = Slurmctld(self, "slurmctld")
@@ -67,7 +65,6 @@ class SlurmConfiguratorCharm(CharmBase):
             self._grafana.on.grafana_available: self._on_grafana_available,
             self._influxdb.on.influxdb_available: self._on_influxdb_available,
             self._influxdb.on.influxdb_unavailable: self._on_check_status_and_write_config,
-            self._nhc.on.nhc_bin_available: self._on_check_status_and_write_config,
             # ######## Slurm component lifecycle events ######## #
             self._slurmctld.on.slurmctld_available: self._on_check_status_and_write_config,
             self._slurmctld.on.slurmctld_unavailable: self._on_check_status_and_write_config,
@@ -308,7 +305,6 @@ class SlurmConfiguratorCharm(CharmBase):
         """Assemble any addon components."""
         acct_gather = self._get_influxdb_info()
         elasticsearch_ingress = self._elasticsearch.get_elasticsearch_ingress()
-        nhc_info = self._nhc.get_nhc_info()
         prolog_epilog = self._prolog_epilog.get_prolog_epilog()
 
         ctxt = dict()
@@ -321,13 +317,6 @@ class SlurmConfiguratorCharm(CharmBase):
             acct_gather_custom = self.config.get("acct_gather_custom")
             if acct_gather_custom:
                 ctxt["acct_gather"]["custom"] = acct_gather_custom
-
-        if nhc_info:
-            ctxt["nhc"] = {
-                "nhc_bin": nhc_info["nhc_bin"],
-                "health_check_interval": nhc_info["health_check_interval"],
-                "health_check_node_state": nhc_info["health_check_node_state"],
-            }
 
         if elasticsearch_ingress:
             ctxt["elasticsearch_address"] = elasticsearch_ingress

@@ -108,6 +108,9 @@ class SlurmdCharm(CharmBase):
         # Ensure we aren't dealing with a StoredDict before trying
         # to render the slurm.conf.
         slurm_config = dict(slurm_config)
+        # NOTE: slurm_config_nhc_values allows to change the interval and note
+        # state. Could be turned into config.yaml options later.
+        slurm_config.update(self._slurm_manager.slurm_config_nhc_values())
         self._slurm_manager.render_slurm_configs(slurm_config)
 
         # Only restart slurmd the first time the node is brought up.

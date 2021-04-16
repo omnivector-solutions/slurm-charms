@@ -36,3 +36,9 @@ options:
     description: |
       A comma-separated list of nagios servicegroups.
       If left empty, the nagios_context will be used as the servicegroup
+  nhc-conf:
+    default: ""
+    type: string
+    description: |
+      Custom extra configuration to use for Node Health Check.
+      These lines are appended to a basic nhc.conf provided by the charm.

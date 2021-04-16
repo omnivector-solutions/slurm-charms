@@ -31,6 +31,7 @@ class SlurmdCharm(CharmBase):
             slurmd_restarted=False,
             user_node_state=str(),
             partition_name=str(),
+            nhc_conf=str(),
         )
 
         self._nrpe = Nrpe(self, "nrpe-external-master")
@@ -81,6 +82,12 @@ class SlurmdCharm(CharmBase):
                 self._on_set_partition_info_on_app_relation_data(
                     event
                 )
+
+        nhc_conf = self.model.config.get('nhc-conf')
+        if nhc_conf:
+            if nhc_conf != self._stored.nhc_conf:
+                self._stored.nhc_conf = nhc_conf
+                self._slurm_manager.render_nhc_config(nhc_conf)
 
     def _on_write_munge_key(self, event):
         if not self._stored.slurm_installed:

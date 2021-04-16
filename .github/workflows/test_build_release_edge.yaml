@@ -186,7 +186,7 @@ jobs:
         if: ${{ success() }}
         shell: bash
         run: |
-          git clone https://github.com/omnivector-solutions/slurm-bundles -b 1.0.1 ../slurm-bundles
+          git clone https://github.com/omnivector-solutions/slurm-bundles -b 1.0.2 ../slurm-bundles
 
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
 

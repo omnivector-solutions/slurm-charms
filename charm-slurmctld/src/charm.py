@@ -26,6 +26,7 @@ class SlurmctldCharm(CharmBase):
         self._stored.set_default(
             slurm_configurator_available=False,
             slurmctld_controller_type=str(),
+            slurm_installed=False,
         )
 
         self._nrpe = Nrpe(self, "nrpe-external-master")
@@ -98,7 +99,10 @@ class SlurmctldCharm(CharmBase):
         self._slurm_manager.restart_slurm_component()
 
     def _on_scontrol_reconfigure(self, event):
-        self._slurm_manager.slurm_cmd("scontrol", "reconfigure")
+        if not self._stored.slurm_installed:
+            event.defer()
+        else:
+            self._slurm_manager.slurm_cmd("scontrol", "reconfigure")
 
     def _on_scontrol_update(self, event):
         """Run scontrol update nodename=node state=resume for each node."""

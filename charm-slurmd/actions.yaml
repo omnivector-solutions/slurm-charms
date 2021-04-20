@@ -25,3 +25,35 @@ show-current-config:
 
     This action is best visualized with:
     $ juju show-action-output 206 --format=json | jq .results.slurm.conf | xargs -I % -0 python3 -c 'print(%)'"
+
+get-infiniband-repo:
+  title: >-
+    "Display the currently configured repository for Infiniband drivers."
+set-infiniband-repo:
+  title: "Set the new infiniband repository."
+  params:
+    repo:
+      type: string
+      description: String that holds all information about the repository.
+  required:
+    - repo
+  description: >-
+    'Overrides the repository file with a custom repository for Infiniband installation.
+
+    On CentOS, the file is placed at /etc/yum.repos.d/infiniband.repo, while on Ubuntu it is at /etc/apt/sources.list.d/infiniband.list.'
+install-infiniband:
+  title: 'Install Mellanox Infiniband drivers.'
+  description: >-
+    'Running this action will set Mellanox repository to install the drivers from, unless you define a custom repository before.'
+uninstall-infiniband:
+  title: 'Uninstall Mellanox Infiniband drivers.'
+start-infiniband:
+  title: 'Start Infiniband systemd service.'
+enable-infiniband:
+  title: 'Enable Infiniband systemd service.'
+stop-infiniband:
+  title: 'Stop Infiniband systemd service.'
+is-active-infiniband:
+  title: 'Check if Infiniband systemd service is active.'
+ibstat:
+  title: 'Runs ibstat on the node.'

@@ -55,11 +55,22 @@ class SlurmdCharm(CharmBase):
             self._on_check_status_and_write_config,
             self._slurmd.on.restart_slurmd: self._on_restart_slurmd,
             self._slurmd.on.munge_key_available: self._on_write_munge_key,
+            # actions
             self.on.set_node_state_action: self._on_set_node_state_action,
             self.on.node_configured_action: self._on_node_configured_action,
             self.on.get_node_inventory_action:
             self._on_get_node_inventory_action,
             self.on.show_current_config_action: self._on_show_current_config,
+            # infiniband actions
+            self.on.get_infiniband_repo_action: self.get_infiniband_repo,
+            self.on.set_infiniband_repo_action: self.set_infiniband_repo,
+            self.on.install_infiniband_action: self.install_infiniband,
+            self.on.uninstall_infiniband_action: self.uninstall_infiniband,
+            self.on.start_infiniband_action: self.start_infiniband,
+            self.on.enable_infiniband_action: self.enable_infiniband,
+            self.on.stop_infiniband_action: self.stop_infiniband,
+            self.on.is_active_infiniband_action: self.is_active_infiniband,
+            self.on.ibstat_action: self.ibstat,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -166,6 +177,55 @@ class SlurmdCharm(CharmBase):
         """Return node inventory."""
         inventory = self._slurmd_peer.get_node_inventory()
         event.set_results({'inventory': inventory})
+
+    def get_infiniband_repo(self, event):
+        """Return the currently used infiniband repository."""
+        repo = self._slurm_manager.infiniband.repository
+        event.set_results({'infiniband-repo': repo})
+
+    def set_infiniband_repo(self, event):
+        """Set the infiniband repository."""
+        repo = event.params["repo"]
+        logger.debug(f"#### setting custom infiniband repo: {repo}")
+        self._slurm_manager.infiniband.repository = repo
+
+    def install_infiniband(self, event):
+        """Install infiniband."""
+        logger.debug("#### Installing Infiniband")
+        self._slurm_manager.infiniband.install()
+        event.set_results({'installation': 'Successfull. Please reboot node.'})
+
+    def uninstall_infiniband(self, event):
+        """Install infiniband."""
+        logger.debug("#### Uninstalling Infiniband")
+        self._slurm_manager.infiniband.uninstall()
+
+    def start_infiniband(self, event):
+        """Start Infiniband systemd service."""
+        logger.debug("#### Starting Infiniband service")
+        self._slurm_manager.infiniband.start()
+
+    def enable_infiniband(self, event):
+        """Enable Infiniband systemd service."""
+        logger.debug("#### Enabling Infiniband service")
+        self._slurm_manager.infiniband.enable()
+
+    def stop_infiniband(self, event):
+        """Stop Infiniband systemd service."""
+        logger.debug("#### Stoping Infiniband service")
+        self._slurm_manager.infiniband.stop()
+
+    def is_active_infiniband(self, event):
+        """Check if Infiniband systemd service is arctive."""
+        status = self._slurm_manager.infiniband.is_active()
+        logger.debug(f"#### Infiniband service is-active: {status}")
+        event.set_results({'infiniband-is-active': status})
+
+    def ibstat(self, event):
+        """Run ibstat on the node."""
+        status = self._slurm_manager.infiniband.ibstat()
+        logger.debug(f"#### Infiniband ibstat: {status}")
+        event.set_results({'infiniband-ibstat': status})
 
     def _on_show_current_config(self, event):
         """Show current slurm.conf."""

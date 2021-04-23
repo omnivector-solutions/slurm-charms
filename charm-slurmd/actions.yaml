@@ -1,59 +1,53 @@
 set-node-state:
-  description: >-
-    'Set specific node:states mappings for nodes in this partition.
-     Acceptable node state values are; DOWN, DRAIN, FAIL, or FAILING.
-     Ex. n-c100=DOWN,n-c101=DOWN'
+  description: >
+    Set specific node:states mappings for nodes in this partition. Acceptable
+    node state values are; DOWN, DRAIN, FAIL, or FAILING. Ex.
+    n-c100=DOWN,n-c101=DOWN
   params:
     node-state:
       type: string
       description: The node name and state.
   required:
     - node-state
-  title: Set node(s) state
   type: object
 node-configured:
-  description: >-
-    'Remove a nove from DownNodes when the reason is "New node"'
-  title: Bring this node up
+  description: Remove a nove from DownNodes when the reason is "New node".
 get-node-inventory:
-  description: >-
-    'Return a nodes inventory.'
-  title: Return node inventory
+  description: Return node inventory.
 show-current-config:
-  description: >-
-    "Display the currently used slurm.conf.
+  description: >
+    Display the currently used slurm.conf.
 
     This action is best visualized with:
-    $ juju show-action-output 206 --format=json | jq .results.slurm.conf | xargs -I % -0 python3 -c 'print(%)'"
+    $ juju show-action-output 206 --format=json | jq .results.slurm.conf | xargs -I % -0 python3 -c 'print(%)'
 
 get-infiniband-repo:
-  title: >-
-    "Display the currently configured repository for Infiniband drivers."
+  description: Display the currently configured repository for Infiniband drivers.
 set-infiniband-repo:
-  title: "Set the new infiniband repository."
+  description: Set the new infiniband repository.
   params:
     repo:
       type: string
       description: String that holds all information about the repository.
   required:
     - repo
-  description: >-
-    'Overrides the repository file with a custom repository for Infiniband installation.
+  description: >
+    Overrides the repository file with a custom repository for Infiniband installation.
 
-    On CentOS, the file is placed at /etc/yum.repos.d/infiniband.repo, while on Ubuntu it is at /etc/apt/sources.list.d/infiniband.list.'
+    On CentOS, the file is placed at /etc/yum.repos.d/infiniband.repo, while on Ubuntu it is at /etc/apt/sources.list.d/infiniband.list.
 install-infiniband:
-  title: 'Install Mellanox Infiniband drivers.'
-  description: >-
-    'Running this action will set Mellanox repository to install the drivers from, unless you define a custom repository before.'
+  description: >
+    Install Mellanox Infiniband drivers. This might take a few minutes to complete.
+    If no custom repository was specified before, this action will set the Mellanox repository as the default and install the latest drivers from it.
 uninstall-infiniband:
-  title: 'Uninstall Mellanox Infiniband drivers.'
+  description: Uninstall Mellanox Infiniband drivers.
 start-infiniband:
-  title: 'Start Infiniband systemd service.'
+  description: Start Infiniband systemd service.
 enable-infiniband:
-  title: 'Enable Infiniband systemd service.'
+  description: Enable Infiniband systemd service.
 stop-infiniband:
-  title: 'Stop Infiniband systemd service.'
+  description: Stop Infiniband systemd service.
 is-active-infiniband:
-  title: 'Check if Infiniband systemd service is active.'
+  description: Check if Infiniband systemd service is active.
 ibstat:
-  title: 'Runs ibstat on the node.'
+  description: Runs ibstat on the node.

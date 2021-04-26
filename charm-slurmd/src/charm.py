@@ -70,7 +70,6 @@ class SlurmdCharm(CharmBase):
             self.on.enable_infiniband_action: self.enable_infiniband,
             self.on.stop_infiniband_action: self.stop_infiniband,
             self.on.is_active_infiniband_action: self.is_active_infiniband,
-            self.on.ibstat_action: self.ibstat,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -220,12 +219,6 @@ class SlurmdCharm(CharmBase):
         status = self._slurm_manager.infiniband.is_active()
         logger.debug(f"#### Infiniband service is-active: {status}")
         event.set_results({'infiniband-is-active': status})
-
-    def ibstat(self, event):
-        """Run ibstat on the node."""
-        status = self._slurm_manager.infiniband.ibstat()
-        logger.debug(f"#### Infiniband ibstat: {status}")
-        event.set_results({'infiniband-ibstat': status})
 
     def _on_show_current_config(self, event):
         """Show current slurm.conf."""

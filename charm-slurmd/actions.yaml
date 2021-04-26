@@ -49,5 +49,3 @@ stop-infiniband:
   description: Stop Infiniband systemd service.
 is-active-infiniband:
   description: Check if Infiniband systemd service is active.
-ibstat:
-  description: Runs ibstat on the node.

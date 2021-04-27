@@ -193,6 +193,7 @@ class SlurmdCharm(CharmBase):
         logger.debug("#### Installing Infiniband")
         self._slurm_manager.infiniband.install()
         event.set_results({'installation': 'Successfull. Please reboot node.'})
+        self.unit.status = BlockedStatus("Need reboot for Infiniband")
 
     def uninstall_infiniband(self, event):
         """Install infiniband."""

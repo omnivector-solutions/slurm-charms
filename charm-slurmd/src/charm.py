@@ -61,6 +61,7 @@ class SlurmdCharm(CharmBase):
             self.on.get_node_inventory_action:
             self._on_get_node_inventory_action,
             self.on.show_current_config_action: self._on_show_current_config,
+            self.on.show_nhc_config_action: self._on_show_nhc_config,
             # infiniband actions
             self.on.get_infiniband_repo_action: self.get_infiniband_repo,
             self.on.set_infiniband_repo_action: self.set_infiniband_repo,
@@ -225,6 +226,11 @@ class SlurmdCharm(CharmBase):
         """Show current slurm.conf."""
         slurm_conf = self._slurm_manager.get_slurm_conf()
         event.set_results({"slurm.conf": slurm_conf})
+
+    def _on_show_nhc_config(self, event):
+        """Show current nhc.conf."""
+        nhc_conf = self._slurm_manager.get_nhc_config()
+        event.set_results({"nhc.conf": nhc_conf})
 
     def _on_set_partition_info_on_app_relation_data(self, event):
         """Set the slurm partition info on the application relation data."""

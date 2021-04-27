@@ -21,6 +21,9 @@ show-current-config:
     This action is best visualized with:
     $ juju show-action-output 206 --format=json | jq .results.slurm.conf | xargs -I % -0 python3 -c 'print(%)'
 
+show-nhc-config:
+  description: Display the currently used nhc.conf
+
 get-infiniband-repo:
   description: Display the currently configured repository for Infiniband drivers.
 set-infiniband-repo:

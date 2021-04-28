@@ -42,3 +42,11 @@ options:
     description: |
       Custom extra configuration to use for Node Health Check.
       These lines are appended to a basic nhc.conf provided by the charm.
+  health-check-interval:
+    default: 600
+    type: int
+    description: Interval in seconds between executions of the Health Check.
+  health-check-state:
+    default: "ANY,CYCLE"
+    type: string
+    description: Only run the Health Check on nodes in this state.

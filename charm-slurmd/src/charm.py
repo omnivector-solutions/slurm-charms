@@ -32,6 +32,8 @@ class SlurmdCharm(CharmBase):
             user_node_state=str(),
             partition_name=str(),
             nhc_conf=str(),
+            health_check_interval=int(),
+            health_check_state=str(),
         )
 
         self._nrpe = Nrpe(self, "nrpe-external-master")
@@ -87,6 +89,8 @@ class SlurmdCharm(CharmBase):
         self._slurm_manager.start_munged()
 
     def _on_config_changed(self, event):
+        reconfigure_slurm = False
+
         if self.model.unit.is_leader():
             self._get_set_partition_name()
             if self._check_status():
@@ -99,6 +103,21 @@ class SlurmdCharm(CharmBase):
             if nhc_conf != self._stored.nhc_conf:
                 self._stored.nhc_conf = nhc_conf
                 self._slurm_manager.render_nhc_config(nhc_conf)
+
+        health_check_interval = self.model.config.get('health-check-interval')
+        if health_check_interval:
+            if health_check_interval != self._stored.health_check_interval:
+                self._stored.health_check_interval = health_check_interval
+                reconfigure_slurm = True
+
+        health_check_state = self.model.config.get('health-check-state')
+        if health_check_state:
+            if health_check_state != self._stored.health_check_state:
+                self._stored.health_check_state = health_check_state
+                reconfigure_slurm = True
+
+        if reconfigure_slurm:
+            self._on_check_status_and_write_config(event)
 
     def _on_write_munge_key(self, event):
         if not self._stored.slurm_installed:
@@ -126,9 +145,12 @@ class SlurmdCharm(CharmBase):
         # Ensure we aren't dealing with a StoredDict before trying
         # to render the slurm.conf.
         slurm_config = dict(slurm_config)
-        # NOTE: slurm_config_nhc_values allows to change the interval and note
-        # state. Could be turned into config.yaml options later.
-        slurm_config.update(self._slurm_manager.slurm_config_nhc_values())
+
+        nhc_settings = self._slurm_manager.slurm_config_nhc_values(
+            self._stored.health_check_interval,
+            self._stored.health_check_state)
+        slurm_config.update(nhc_settings)
+
         self._slurm_manager.render_slurm_configs(slurm_config)
 
         # Only restart slurmd the first time the node is brought up.

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """SlurmctldCharm."""
 import logging
+import shlex
+import subprocess
 
 from interface_slurmctld import Slurmctld
 from interface_slurmctld_peer import SlurmctldPeer
@@ -47,6 +49,9 @@ class SlurmctldCharm(CharmBase):
             self._on_provision_keys,
             self._slurmctld_peer.on.slurmctld_peer_available:
             self._on_slurmctld_peer_available,
+            # ations
+            self.on.drain_action: self._drain_nodes_action,
+            self.on.resume_action: self._resume_nodes_action,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -134,6 +139,35 @@ class SlurmctldCharm(CharmBase):
             return None
 
         return slurm_config
+
+    def _drain_nodes_action(self, event):
+        """Drain specified nodes."""
+        nodes = event.params['nodename']
+        reason = event.params['reason']
+
+        logger.debug(f'#### Draining {nodes} because {reason}.')
+        event.log(f'Draining {nodes} because {reason}.')
+
+        try:
+            cmd = f'scontrol update nodename={nodes} state=drain reason="{reason}"'
+            subprocess.check_output(shlex.split(cmd))
+            event.set_results({'status': 'draining', 'nodes': nodes})
+        except subprocess.CalledProcessError as e:
+            event.fail(message=f'Error draining {nodes}: {e.output}')
+
+    def _resume_nodes_action(self, event):
+        """Resume specified nodes."""
+        nodes = event.params['nodename']
+
+        logger.debug(f'#### Resuming {nodes}.')
+        event.log(f'Resuming {nodes}.')
+
+        try:
+            cmd = f'scontrol update nodename={nodes} state=resume'
+            subprocess.check_output(shlex.split(cmd))
+            event.set_results({'status': 'resuming', 'nodes': nodes})
+        except subprocess.CalledProcessError as e:
+            event.fail(message=f'Error resuming {nodes}: {e.output}')
 
     def get_slurm_component(self):
         """Return the slurm component."""

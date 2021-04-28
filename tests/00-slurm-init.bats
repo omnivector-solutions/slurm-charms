@@ -1,7 +1,7 @@
 #!/bin/npx bats
 
-load "../node_modules/bats-support/load.bash"
-load "../node_modules/bats-assert/load.bash"
+load "../node_modules/bats-support/load"
+load "../node_modules/bats-assert/load"
 
 myjuju () {
 	juju "$@"
@@ -64,4 +64,24 @@ myjuju () {
 	run juju run "sinfo -R" -m $JUJU_MODEL --unit slurm-configurator/leader
 	assert_success
 	assert_output --partial "New node"
+}
+
+@test "drain a node" {
+	# drain slurm-configurator
+	host=$(juju run --model $JUJU_MODEL --unit slurm-configurator/leader hostname)
+	juju run-action -m $JUJU_MODEL slurmctld/leader drain nodename=$host reason="Unit test" --wait
+	run juju run -m $JUJU_MODEL --unit slurmctld/leader "sinfo -R"
+	assert_output --partial "Unit test"
+}
+
+@test "resume a drained node" {
+	# drain slurm-configurator
+	host=$(juju run --model $JUJU_MODEL --unit slurm-configurator/leader hostname)
+	juju run-action -m $JUJU_MODEL slurmctld/leader drain nodename=$host reason="Unit test" --wait
+
+	# resume it
+	juju run-action -m $JUJU_MODEL slurmctld/leader resume nodename=$host --wait
+	run juju run -m $JUJU_MODEL --unit slurmctld/leader "sinfo"
+
+	assert_line --partial "configurator*     inact   infinite      1   idle"
 }

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """SlurmdCharm."""
-import copy
 import logging
 
 from nrpe_external_master import Nrpe
@@ -29,7 +28,6 @@ class SlurmdCharm(CharmBase):
         self._stored.set_default(
             munge_key_available=False,
             slurmd_restarted=False,
-            user_node_state=str(),
             partition_name=str(),
             nhc_conf=str(),
             health_check_interval=int(),
@@ -58,7 +56,6 @@ class SlurmdCharm(CharmBase):
             self._slurmd.on.restart_slurmd: self._on_restart_slurmd,
             self._slurmd.on.munge_key_available: self._on_write_munge_key,
             # actions
-            self.on.set_node_state_action: self._on_set_node_state_action,
             self.on.node_configured_action: self._on_node_configured_action,
             self.on.get_node_inventory_action:
             self._on_get_node_inventory_action,
@@ -184,11 +181,6 @@ class SlurmdCharm(CharmBase):
 
         return dict(slurm_config)
 
-    def _on_set_node_state_action(self, event):
-        """Set the node state."""
-        self._stored.user_node_state = event.params["node-state"]
-        self._on_set_partition_info_on_app_relation_data(event)
-
     def _on_node_configured_action(self, event):
         """Remove node from DownNodes."""
         # trigger reconfig
@@ -294,35 +286,6 @@ class SlurmdCharm(CharmBase):
         slurmd_inventory = self._slurmd_peer.get_slurmd_inventory()
         if not slurmd_inventory:
             return None
-
-        # If the user has set custom state for nodes
-        # ensure we update the state for the targeted nodes.
-        user_node_state = self._stored.user_node_state
-        if user_node_state:
-            node_states = {
-                item.split("=")[0]: item.split("=")[1]
-                for item in user_node_state.split(",")
-            }
-
-            # Copy the slurmd_inventory returned from the the slurmd-peer
-            # relation to a temporary variable that we will use to
-            # iterate over while we conditionally make modifications to the
-            # original inventory.
-            slurmd_inventory_tmp = copy.deepcopy(slurmd_inventory)
-
-            # Iterate over the slurmd nodes in the partition and check
-            # for nodes that need their state modified.
-            for partition in slurmd_inventory_tmp:
-                partition_tmp = copy.deepcopy(partition)
-                for slurmd_node in partition["inventory"]:
-                    if slurmd_node["hostname"] in node_states.keys():
-                        slurmd_node_tmp = copy.deepcopy(slurmd_node)
-                        slurmd_node_tmp["state"] = \
-                            node_states[slurmd_node["hostname"]]
-                        partition_tmp["inventory"].remove(slurmd_node)
-                        partition_tmp["inventory"].append(slurmd_node_tmp)
-                slurmd_inventory.remove(partition)
-                slurmd_inventory.append(partition_tmp)
 
         return slurmd_inventory
 

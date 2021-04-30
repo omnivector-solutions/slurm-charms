@@ -1,15 +1,3 @@
-set-node-state:
-  description: >
-    Set specific node:states mappings for nodes in this partition. Acceptable
-    node state values are; DOWN, DRAIN, FAIL, or FAILING. Ex.
-    n-c100=DOWN,n-c101=DOWN
-  params:
-    node-state:
-      type: string
-      description: The node name and state.
-  required:
-    - node-state
-  type: object
 node-configured:
   description: Remove a nove from DownNodes when the reason is "New node".
 get-node-inventory:

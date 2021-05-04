@@ -19,11 +19,13 @@ set-infiniband-repo:
   params:
     repo:
       type: string
-      description: String that holds all information about the repository.
+      description: Base64 encoded string that holds all information about the repository.
   required:
     - repo
   description: >
     Overrides the repository file with a custom repository for Infiniband installation.
+
+    Note: this file should be base64 encoded.
 
     On CentOS, the file is placed at /etc/yum.repos.d/infiniband.repo, while on Ubuntu it is at /etc/apt/sources.list.d/infiniband.list.
 install-infiniband:

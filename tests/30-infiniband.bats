@@ -22,7 +22,8 @@ myjuju () {
 }
 
 @test "Test changing the repo" {
-	juju run-action slurmd/leader set-infiniband-repo repo="new custom repo" --wait
+	repo=$(echo [new custom repo] | base64)
+	juju run-action slurmd/leader set-infiniband-repo repo="$repo" --wait
 
 	run juju run-action slurmd/leader get-infiniband-repo --wait
 	assert_output --partial "new custom repo"

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """SlurmdCharm."""
+import base64
 import logging
 
 from nrpe_external_master import Nrpe
@@ -201,6 +202,7 @@ class SlurmdCharm(CharmBase):
         """Set the infiniband repository."""
         repo = event.params["repo"]
         logger.debug(f"#### setting custom infiniband repo: {repo}")
+        repo = base64.b64decode(repo).decode()
         self._slurm_manager.infiniband.repository = repo
 
     def install_infiniband(self, event):

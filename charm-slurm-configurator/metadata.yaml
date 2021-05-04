@@ -1,13 +1,13 @@
 name: slurm-configurator
 
 summary: |
-    Confuration engine for slurm.
+    Configuration engine for slurm.
 
 maintainers:
     - OmniVector Solutions <admin@omnivector.solutions>
 
 description: |
-    An in house configuration engine developed by Omnivector.
+    A slurm configuration engine developed by Omnivector.
 
 tags:
     - slurm

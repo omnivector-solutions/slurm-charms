@@ -1,8 +1,15 @@
 name: slurmrestd
-summary: Interface to Slurm via REST API.
+
+summary: |
+    Interface to Slurm via REST API.
+
 maintainers:
     - OmniVector Solutions <admin@omnivector.solutions>
+
 description: |
+    This charm provides slurmrestd, munged, and the bindings to
+    other utilities that make lifecycle operations a breeze.
+
     slurmrestd is REST API interface for Slurm.
 
 tags:
@@ -12,6 +19,7 @@ tags:
 series:
     - focal
     - centos7
+
 provides:
   slurmrestd:
     interface: slurmrestd

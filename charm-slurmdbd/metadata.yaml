@@ -1,13 +1,18 @@
 name: slurmdbd
-summary: Slurm DBD accounting daemon
+
+summary: |
+    Slurm DBD accounting daemon
+
 maintainers:
     - OmniVector Solutions <info@omnivector.solutions>
+
 description: |
     slurmdbd provides a secure enterprise-wide interface to a database for Slurm.
     This is particularly useful for archiving accounting records.
 
 tags:
   - slurm
+  - hpc
 
 series:
   - focal

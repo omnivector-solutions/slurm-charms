@@ -1,14 +1,22 @@
 name: slurmctld
-summary: Describe your charm here
+summary: |
+    Slurmctld, the central management daemon of Slurm.
+
 maintainers:
     - OmniVector Solutions <admin@omnivector.solutions>
+
 description: |
-    A nice long description of what the product does and any
-    high level information about how the charm provides the product,
-    on which platform, etc.
+    This charm provides slurmctld, munged, and the bindings to other utilities
+    that make lifecycle operations a breeze.
+
+    slurmctld is the central management daemon of Slurm. It monitors all other Slurm
+    daemons and resources, accepts work (jobs), and allocates resources to those jobs.
+    Given the critical functionality of slurmctld, there may be a backup server to assume
+    these functions in the event that the primary server fails.
 
 tags:
     - slurm
+    - hpc
 
 series:
     - focal

@@ -1,14 +1,17 @@
 name: slurm-configurator
-summary: Describe your charm here
+
+summary: |
+    Configuration engine for slurm.
+
 maintainers:
     - OmniVector Solutions <admin@omnivector.solutions>
+
 description: |
-    A nice long description of what the product does and any
-    high level information about how the charm provides the product,
-    on which platform, etc.
+    A slurm configuration engine developed by Omnivector.
 
 tags:
     - slurm
+    - hpc
 
 series:
     - focal

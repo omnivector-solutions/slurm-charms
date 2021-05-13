@@ -22,13 +22,12 @@ series:
     - focal
     - centos7
 
-provides:
-  slurmctld:
-    interface: slurmctld
-  nrpe-external-master:
-    interface: nrpe-external-master
-    scope: container
-
 peers:
   slurmctld-peer:
     interface: slurmctld-peer
+
+requires:
+  slurmd:
+    interface: slurmd
+  slurmdbd:
+    interface: slurmdbd

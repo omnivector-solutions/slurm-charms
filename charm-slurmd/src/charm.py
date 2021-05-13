@@ -3,7 +3,6 @@
 import base64
 import logging
 
-from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -28,14 +27,11 @@ class SlurmdCharm(CharmBase):
 
         self._stored.set_default(
             munge_key_available=False,
-            slurmd_restarted=False,
             partition_name=str(),
             nhc_conf=str(),
             health_check_interval=int(),
             health_check_state=str(),
         )
-
-        self._nrpe = Nrpe(self, "nrpe-external-master")
 
         self._slurm_manager = SlurmManager(self, "slurmd")
 
@@ -44,36 +40,20 @@ class SlurmdCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
-            self.on.start: self._on_check_status_and_write_config,
             self.on.config_changed: self._on_config_changed,
-            self._slurmd_peer.on.slurmd_peer_available:
-            self._on_set_partition_info_on_app_relation_data,
+            self._slurmd.on.munge_key_available:
+            self._on_write_munge_key,
             self._slurmd_peer.on.slurmd_peer_departed:
-            self._on_set_partition_info_on_app_relation_data,
-            self._slurmd.on.slurm_config_available:
-            self._on_check_status_and_write_config,
-            self._slurmd.on.slurm_config_unavailable:
-            self._on_check_status_and_write_config,
-            self._slurmd.on.restart_slurmd: self._on_restart_slurmd,
-            self._slurmd.on.munge_key_available: self._on_write_munge_key,
-            # actions
-            self.on.node_configured_action: self._on_node_configured_action,
-            self.on.get_node_inventory_action:
-            self._on_get_node_inventory_action,
-            self.on.show_current_config_action: self._on_show_current_config,
-            self.on.show_nhc_config_action: self._on_show_nhc_config,
-            # infiniband actions
-            self.on.get_infiniband_repo_action: self.get_infiniband_repo,
-            self.on.set_infiniband_repo_action: self.set_infiniband_repo,
-            self.on.install_infiniband_action: self.install_infiniband,
-            self.on.uninstall_infiniband_action: self.uninstall_infiniband,
-            self.on.start_infiniband_action: self.start_infiniband,
-            self.on.enable_infiniband_action: self.enable_infiniband,
-            self.on.stop_infiniband_action: self.stop_infiniband,
-            self.on.is_active_infiniband_action: self.is_active_infiniband,
+            self._on_send_inventory,
+            self._slurmd.on.slurmctld_available:
+            self._on_send_inventory,
+            
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
+
+    #def _on_remove(self, event):
+    #    self._slurmd.set_partition_info_on_app_relation_data("")
 
     def _on_install(self, event):
         self._slurm_manager.install()
@@ -84,17 +64,17 @@ class SlurmdCharm(CharmBase):
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("Slurm installed")
 
-        self._slurm_manager.start_munged()
+    def _on_send_inventory(self, event):
+        self._on_set_partition_info_on_app_relation_data(event)
 
     def _on_config_changed(self, event):
         reconfigure_slurm = False
 
         if self.model.unit.is_leader():
             self._get_set_partition_name()
-            if self._check_status():
-                self._on_set_partition_info_on_app_relation_data(
-                    event
-                )
+            self._on_set_partition_info_on_app_relation_data(
+                event
+            )
 
         nhc_conf = self.model.config.get('nhc-conf')
         if nhc_conf:
@@ -114,73 +94,17 @@ class SlurmdCharm(CharmBase):
                 self._stored.health_check_state = health_check_state
                 reconfigure_slurm = True
 
-        if reconfigure_slurm:
-            self._on_check_status_and_write_config(event)
-
     def _on_write_munge_key(self, event):
         if not self._stored.slurm_installed:
             event.defer()
             return
-        munge_key = self._slurmd.get_stored_munge_key()
-        self._slurm_manager.configure_munge_key(munge_key)
+    
+        self._slurm_manager.configure_munge_key(
+            self._slurmd.get_stored_munge_key()
+        )
         self._slurm_manager.restart_munged()
         self._stored.munge_key_available = True
 
-    def _on_check_status_and_write_config(self, event):
-        slurm_config = self._check_status()
-        if not slurm_config:
-            event.defer()
-            return
-
-        # if slurm_config['configless']:
-        #    slurmctld_hostname = slurm_config['active_controller_hostname']
-        #    self._slurm_manager.configure_slurmctld_hostname(
-        #        slurmctld_hostname
-        #    )
-        #    self._slurm_manager.restart_slurm_component()
-        # else:
-
-        # Ensure we aren't dealing with a StoredDict before trying
-        # to render the slurm.conf.
-        slurm_config = dict(slurm_config)
-
-        nhc_settings = self._slurm_manager.slurm_config_nhc_values(
-            self._stored.health_check_interval,
-            self._stored.health_check_state)
-        slurm_config.update(nhc_settings)
-
-        self._slurm_manager.render_slurm_configs(slurm_config)
-
-        # Only restart slurmd the first time the node is brought up.
-        if not self._stored.slurmd_restarted:
-            self._slurm_manager.restart_slurm_component()
-            self._stored.slurmd_restarted = True
-
-        self.unit.status = ActiveStatus("slurmd available")
-
-    def _on_restart_slurmd(self, event):
-        self._slurm_manager.restart_slurm_component()
-
-    def _check_status(self):
-        munge_key_available = self._stored.munge_key_available
-        slurm_installed = self._stored.slurm_installed
-        slurm_config = self._slurmd.get_stored_slurm_config()
-
-        slurmd_joined = self._slurmd.is_joined
-
-        if not slurmd_joined:
-            self.unit.status = BlockedStatus(
-                "Needed relations: slurm-configurator"
-            )
-            return None
-
-        elif not (munge_key_available and slurm_config and slurm_installed):
-            self.unit.status = WaitingStatus(
-                "Waiting on: configuration"
-            )
-            return None
-
-        return dict(slurm_config)
 
     def _on_node_configured_action(self, event):
         """Remove node from DownNodes."""
@@ -262,11 +186,12 @@ class SlurmdCharm(CharmBase):
                     self._slurmd.set_partition_info_on_app_relation_data(
                         partition
                     )
-                    return
+                else:
+                    event.defer()
             # unneeded possible breakage
             # https://www.pivotaltracker.com/story/show/177270742
-            # event.defer()
-            return
+            else:
+                event.defer()
 
     def _assemble_partition(self):
         """Assemble the partition info."""
@@ -309,17 +234,10 @@ class SlurmdCharm(CharmBase):
         """Return the partition_name."""
         return self._stored.partition_name
 
-    def get_slurm_component(self):
-        """Return the slurm component."""
-        return self._slurm_manager.slurm_component
-
-    def get_hostname(self):
+    @property
+    def hostname(self):
         """Return the hostname."""
         return self._slurm_manager.hostname
-
-    def get_port(self):
-        """Return the port."""
-        return self._slurm_manager.port
 
 
 if __name__ == "__main__":

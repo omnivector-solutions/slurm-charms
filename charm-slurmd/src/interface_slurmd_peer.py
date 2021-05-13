@@ -54,7 +54,7 @@ class SlurmdPeer(Object):
         )
 
     def _on_relation_created(self, event):
-        node_name = self._charm.get_hostname()
+        node_name = self._charm.hostname
         node_addr = event.relation.data[self.model.unit]["ingress-address"]
 
         inv = get_inventory(node_name, node_addr)
@@ -70,8 +70,8 @@ class SlurmdPeer(Object):
             self.on.slurmd_peer_available.emit()
 
     def _on_relation_departed(self, event):
-        if self.framework.model.unit.is_leader():
-            self.on.slurmd_peer_departed.emit()
+        logger.debug(f"####### RATS EVENT : {event.__dict__}")
+        self.on.slurmd_peer_departed.emit()
 
     def get_slurmd_inventory(self):
         """Return slurmd inventory."""

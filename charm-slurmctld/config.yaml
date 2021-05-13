@@ -1,4 +1,9 @@
 options:
+  default-partition:
+    type: string
+    default: ""
+    description: |
+      Default partition. This is only used if defined, and must match an existing partition.
   nagios_context:
     default: "juju"
     type: string

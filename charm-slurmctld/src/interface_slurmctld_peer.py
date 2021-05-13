@@ -11,13 +11,17 @@ logger = logging.getLogger()
 
 
 class SlurmctldPeerAvailableEvent(EventBase):
-    """Emmited on the relation_changed event."""
+    """Emmited when a slurmctld peer is available."""
+
+class SlurmctldPeerUnavailableEvent(EventBase):
+    """Emmited when the slurmctld peer departs the relation."""
 
 
 class SlurmctldPeerRelationEvents(ObjectEvents):
     """Slurmctld peer relation events."""
 
     slurmctld_peer_available = EventSource(SlurmctldPeerAvailableEvent)
+    slurmctld_peer_unavailable = EventSource(SlurmctldPeerUnavailableEvent)
 
 
 class SlurmctldPeer(Object):
@@ -46,13 +50,17 @@ class SlurmctldPeer(Object):
             self._on_relation_departed,
         )
 
+    @property
+    def _relation(self):
+        return self.framework.model.get_relation(self._relation_name)
+
     def _on_relation_created(self, event):
         """Set hostname and port on the unit data."""
-        relation = self.framework.model.get_relation(self._relation_name)
+        relation = self._relation
         unit_relation_data = relation.data[self.model.unit]
 
-        unit_relation_data["hostname"] = self._charm.get_hostname()
-        unit_relation_data["port"] = self._charm.get_port()
+        unit_relation_data["hostname"] = self._charm.hostname
+        unit_relation_data["port"] = str(self._charm.port)
 
         # Call _on_relation_changed to assemble the slurmctld_info and
         # emit the slurmctld_peer_available event.
@@ -64,7 +72,7 @@ class SlurmctldPeer(Object):
         # if we are the leaader. As such, we dont need to preform
         # any operations if we are not the leader.
         if self.framework.model.unit.is_leader():
-            relation = self.framework.model.get_relation(self._relation_name)
+            relation = self._relation
 
             app_relation_data = relation.data[self.model.app]
             unit_relation_data = relation.data[self.model.unit]
@@ -131,8 +139,8 @@ class SlurmctldPeer(Object):
             ctxt["active_controller_ingress_address"] = unit_relation_data[
                 "ingress-address"
             ]
-            ctxt["active_controller_hostname"] = self._charm.get_hostname()
-            ctxt["active_controller_port"] = str(self._charm.get_port())
+            ctxt["active_controller_hostname"] = self._charm.hostname
+            ctxt["active_controller_port"] = str(self._charm.port)
 
             # If we have > 0 controllers (also have a backup), iterate over
             # them retrieving the info for the backup and set it along with
@@ -156,11 +164,8 @@ class SlurmctldPeer(Object):
             self.on.slurmctld_peer_available.emit()
 
     def _on_relation_departed(self, event):
+        self._on_relation_changed(event)
         self.on.slurmctld_peer_available.emit()
-
-    @property
-    def _relation(self):
-        return self.framework.model.get_relation(self._relation_name)
 
     def get_slurmctld_info(self):
         """Return slurmctld info."""

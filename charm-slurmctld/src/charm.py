@@ -105,6 +105,9 @@ class SlurmctldCharm(CharmBase):
     def get_munge_key(self):
         return self._stored.munge_key
 
+    def get_jwt_rsa(self):
+        return self._stored.jwt_rsa
+
     def _assemble_partitions(self, slurmd_info):
         """Make any needed modifications to partition data."""
         slurmd_info_tmp = copy.deepcopy(slurmd_info)

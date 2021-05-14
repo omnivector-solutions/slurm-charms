@@ -62,8 +62,7 @@ class Slurmd(Object):
         # Get the munge_key from the slurm_ops_manager and set it to the app
         # data on the relation to be retrieved on the other side by slurmdbd.
         app_relation_data = event.relation.data[self.model.app]
-        #app_relation_data["munge_key"] = self._charm.get_munge_key()
-        app_relation_data["munge_key"] = "RATS"
+        app_relation_data["munge_key"] = self._charm.get_munge_key()
 
     def _on_relation_changed(self, event):
         event_app_data = event.relation.data.get(event.app)
@@ -72,8 +71,9 @@ class Slurmd(Object):
             # NOTE: fix this code
             if partition_info:
                 self.on.slurmd_available.emit()
-        else:
-            event.defer()
+                return
+
+        event.defer()
 
     def _on_relation_broken(self, event):
         if self.framework.model.unit.is_leader():

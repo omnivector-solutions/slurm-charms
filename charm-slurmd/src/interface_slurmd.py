@@ -158,6 +158,7 @@ class Slurmd(Object):
             )
 
     def _store_munge_key(self, munge_key):
+        """Store the munge_key in the StoredState."""
         self._stored.munge_key = munge_key
 
     def get_stored_munge_key(self):

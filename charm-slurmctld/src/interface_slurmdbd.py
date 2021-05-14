@@ -69,15 +69,13 @@ class Slurmdbd(Object):
 
         # Get the munge_key and set it to the application relation data,
         # to be retrieved on the other side by slurmdbd.
-        #munge_key = self._charm.get_munge_key()
-        #event.relation.data[self.model.app]["munge_key"] = munge_key
-        event.relation.data[self.model.app]["munge_key"] = "RATS"
+        munge_key = self._charm.get_munge_key()
+        event.relation.data[self.model.app]["munge_key"] = munge_key
 
         # Get the jwt_rsa key from the slurm_ops_manager and set it to the app
         # data on the relation to be retrieved on the other side by slurmdbd.
-        #jwt_rsa = self._charm.get_jwt_rsa()
-        #event.relation.data[self.model.app]["jwt_rsa"] = jwt_rsa
-        event.relation.data[self.model.app]["jwt_rsa"] = "RATS.RATS.RATS"
+        jwt_rsa = self._charm.get_jwt_rsa()
+        event.relation.data[self.model.app]["jwt_rsa"] = jwt_rsa
 
     def _on_relation_changed(self, event):
         event_app_data = event.relation.data.get(event.app)

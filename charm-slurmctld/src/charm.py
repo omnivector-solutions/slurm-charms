@@ -75,6 +75,9 @@ class SlurmctldCharm(CharmBase):
     def _slurmd_info(self):
         return self._slurmd.get_slurmd_info()
 
+    def _is_leader(self):
+        return self.model.unit.is_leader()
+
     def _debug_action(self, event):
         slurm_config = self._assemble_slurm_config()
         logger.debug(f"############ DEBUG FUNC RATS -> {slurm_config}")
@@ -86,18 +89,21 @@ class SlurmctldCharm(CharmBase):
         """
         logger.debug(f"######### ON_INSTALL: {self.on.__dict__}")
 
-        #self._slurm_manager.install()
+        self._slurm_manager.install()
 
         # Store the munge_key and jwt_rsa key in the stored state.
         #
         # NOTE: Use leadership settings instead of stored state when
         # leadership settings support becomes available in the framework.
-        #if self._is_leader():
-        #    self._stored.jwt_rsa = self._slurm_manager.generate_jwt_rsa()
-        #    self._stored.munge_key = self._slurm_manager.get_munge_key()
+        if self._is_leader():
+            self._stored.jwt_rsa = self._slurm_manager.generate_jwt_rsa()
+            self._stored.munge_key = self._slurm_manager.get_munge_key()
 
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("slurm installed")
+
+    def get_munge_key(self):
+        return self._stored.munge_key
 
     def _assemble_partitions(self, slurmd_info):
         """Make any needed modifications to partition data."""
@@ -138,7 +144,7 @@ class SlurmctldCharm(CharmBase):
         logger.debug(slurmd_info)
         logger.debug(slurmctld_info)
         logger.debug(slurmdbd_info)
-        
+
         if not (slurmctld_info and slurmd_info and slurmdbd_info):
             return {}
 

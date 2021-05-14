@@ -27,12 +27,12 @@ class SlurmdbdCharm(CharmBase):
         self._stored.set_default(
             db_info=dict(),
             slurmdbd_config=dict(),
-            slurm_configurator_available=False,
+            slurmctld_available=False,
             slurm_installed=False,
         )
 
         self._db = MySQLClient(self, "db")
-        self._nrpe = Nrpe(self, "nrpe-external-master")
+        #self._nrpe = Nrpe(self, "nrpe-external-master")
         self._slurm_manager = SlurmManager(self, "slurmdbd")
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
         self._slurmdbd_peer = SlurmdbdPeer(self, "slurmdbd-peer")
@@ -40,16 +40,11 @@ class SlurmdbdCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
             self.on.config_changed: self._write_config_and_restart_slurmdbd,
-            self._db.on.database_available:
-            self._write_config_and_restart_slurmdbd,
-            self._slurmdbd_peer.on.slurmdbd_peer_available:
-            self._write_config_and_restart_slurmdbd,
-            self._slurmdbd.on.slurmdbd_available:
-            self._write_config_and_restart_slurmdbd,
-            self._slurmdbd.on.slurm_configurator_available:
-            self._on_slurm_configurator_available,
-            self._slurmdbd.on.slurm_configurator_unavailable:
-            self._on_slurm_configurator_unavailable,
+            self._db.on.database_available: self._write_config_and_restart_slurmdbd,
+            self._slurmdbd_peer.on.slurmdbd_peer_available: self._write_config_and_restart_slurmdbd,
+            self._slurmdbd.on.slurmdbd_available: self._write_config_and_restart_slurmdbd,
+            self._slurmdbd.on.slurmctld_available: self._on_slurmctld_available,
+            self._slurmdbd.on.slurmctld_unavailable: self._on_slurmctld_unavailable,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -61,7 +56,7 @@ class SlurmdbdCharm(CharmBase):
 
         self._slurm_manager.start_munged()
 
-    def _on_slurm_configurator_available(self, event):
+    def _on_slurmctld_available(self, event):
         if not self._stored.slurm_installed:
             event.defer()
             return
@@ -74,14 +69,17 @@ class SlurmdbdCharm(CharmBase):
         jwt_rsa = self._slurmdbd.get_jwt_rsa()
         self._slurm_manager.configure_jwt_rsa(jwt_rsa)
 
-        # Restart munged and set slurm_configurator_available = True.
+        # Restart munged and set slurmctld_available = True.
         self._slurm_manager.restart_munged()
-        self._stored.slurm_configurator_available = True
+        self._stored.slurmctld_available = True
 
-    def _on_slurm_configurator_unavailable(self, event):
-        """Reset state and charm status when slurm-configurator broken."""
-        self._stored.slurm_configurator_available = False
+    def _on_slurmctld_unavailable(self, event):
+        """Reset state and charm status when slurmctld broken."""
+        self._stored.slurmctld_available = False
         self._check_status()
+
+    def _is_leader(self):
+        return self.model.unit.is_leader()
 
     def _write_config_and_restart_slurmdbd(self, event):
         """Check for prereqs before writing config/restart of slurmdbd."""
@@ -118,8 +116,7 @@ class SlurmdbdCharm(CharmBase):
     def _check_status(self) -> bool:
         """Check that we have the things we need."""
         db_info = self._stored.db_info
-        slurm_configurator_available = \
-            self._stored.slurm_configurator_available
+        slurmctld_available = self._stored.slurmctld_available
         slurm_installed = self._stored.slurm_installed
         slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
 
@@ -127,7 +124,7 @@ class SlurmdbdCharm(CharmBase):
             slurmdbd_info,
             db_info,
             slurm_installed,
-            slurm_configurator_available,
+            slurmctld_available,
         ]
 
         if not all(deps):
@@ -135,9 +132,9 @@ class SlurmdbdCharm(CharmBase):
                 self.unit.status = BlockedStatus(
                     "Need relation to MySQL."
                 )
-            elif not slurm_configurator_available:
+            elif not slurmctld_available:
                 self.unit.status = BlockedStatus(
-                    "Need relation to slurm-configurator."
+                    "Need relation to slurmctld."
                 )
             return False
         return True

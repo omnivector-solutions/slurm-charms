@@ -41,13 +41,9 @@ class SlurmdCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
             self.on.config_changed: self._on_config_changed,
-            self._slurmd.on.munge_key_available:
-            self._on_write_munge_key,
-            self._slurmd_peer.on.slurmd_peer_departed:
-            self._on_send_inventory,
-            self._slurmd.on.slurmctld_available:
-            self._on_send_inventory,
-            
+            self._slurmd.on.munge_key_available: self._on_write_munge_key,
+            self._slurmd_peer.on.slurmd_peer_departed: self._on_send_inventory,
+            self._slurmd.on.slurmctld_available: self._on_send_inventory,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -61,6 +57,7 @@ class SlurmdCharm(CharmBase):
         if self.model.unit.is_leader():
             self._get_set_partition_name()
             logger.debug(f"PARTITION_NAME: {self._stored.partition_name}")
+
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("Slurm installed")
 
@@ -82,29 +79,30 @@ class SlurmdCharm(CharmBase):
                 self._stored.nhc_conf = nhc_conf
                 self._slurm_manager.render_nhc_config(nhc_conf)
 
-        health_check_interval = self.model.config.get('health-check-interval')
-        if health_check_interval:
-            if health_check_interval != self._stored.health_check_interval:
-                self._stored.health_check_interval = health_check_interval
-                reconfigure_slurm = True
+        # TODO: move these to slurmctld
+        #health_check_interval = self.model.config.get('health-check-interval')
+        #if health_check_interval:
+        #    if health_check_interval != self._stored.health_check_interval:
+        #        self._stored.health_check_interval = health_check_interval
+        #        reconfigure_slurm = True
 
-        health_check_state = self.model.config.get('health-check-state')
-        if health_check_state:
-            if health_check_state != self._stored.health_check_state:
-                self._stored.health_check_state = health_check_state
-                reconfigure_slurm = True
+        #health_check_state = self.model.config.get('health-check-state')
+        #if health_check_state:
+        #    if health_check_state != self._stored.health_check_state:
+        #        self._stored.health_check_state = health_check_state
+        #        reconfigure_slurm = True
 
     def _on_write_munge_key(self, event):
         if not self._stored.slurm_installed:
             event.defer()
             return
-    
+
+        logger.debug('#### slurmd charm - writting munge key')
         self._slurm_manager.configure_munge_key(
             self._slurmd.get_stored_munge_key()
         )
         self._slurm_manager.restart_munged()
         self._stored.munge_key_available = True
-
 
     def _on_node_configured_action(self, event):
         """Remove node from DownNodes."""

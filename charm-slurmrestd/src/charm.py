@@ -33,17 +33,10 @@ class SlurmrestdCharm(CharmBase):
         self._slurmrestd = SlurmrestdRequires(self, 'slurmrestd')
 
         event_handler_bindings = {
-            self.on.install:
-            self._on_install,
-
-            self._slurmrestd.on.config_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmrestd.on.munge_key_available:
-            self._on_configure_munge_key,
-
-            self._slurmrestd.on.restart_slurmrestd:
-            self._on_restart_slurmrestd,
+            self.on.install: self._on_install,
+            self._slurmrestd.on.config_available: self._on_check_status_and_write_config,
+            self._slurmrestd.on.munge_key_available: self._on_configure_munge_key,
+            self._slurmrestd.on.restart_slurmrestd: self._on_restart_slurmrestd,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)

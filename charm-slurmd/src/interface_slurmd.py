@@ -46,6 +46,8 @@ class Slurmd(Object):
             slurm_config=dict(),
             munge_key=str(),
             restart_slurmd_uuid=str(),
+            slurmctld_hostname=str(),
+            slurmctld_port=str(),
         )
 
         self.framework.observe(
@@ -85,8 +87,7 @@ class Slurmd(Object):
     def _on_relation_joined(self, event):
         """Handle the relation-joined event.
 
-        Get the munge_key from slurm-configurator and save it to the
-        charm stored state.
+        Get the munge_key from slurmctld and save it to the charm stored state.
         """
         # Since we are in relation-joined (with the app on the other side)
         # we can almost guarantee that the app object will exist in
@@ -107,8 +108,14 @@ class Slurmd(Object):
         # Store the munge_key in the charm's state
         self._store_munge_key(munge_key)
         self.on.munge_key_available.emit()
-        self.on.slurmctld_available.emit()
 
+        # get slurmctld's hostname and port to enable configless
+        host = event_app_data.get('slurmctld_host')
+        port = event_app_data.get('slurmctld_port')
+        if not (host or port):
+            event.defer()
+        self._store_slurmctld_host_port(host, port)
+        self.on.slurmctld_available.emit()
 
     def _on_relation_changed(self, event):
         """Check for the munge_key in the relation data."""
@@ -117,8 +124,6 @@ class Slurmd(Object):
             return
 
         munge_key = event_app_data.get('munge_key')
-
-
         if not munge_key:
             return
 
@@ -144,6 +149,14 @@ class Slurmd(Object):
         """Return True if relation is joined."""
         return self.num_relations > 0
 
+    @property
+    def slurmctld_hostname(self):
+        return self._stored.slurmctld_hostname
+
+    @property
+    def slurmctld_port(self):
+        return self._stored.slurmctld_port
+
     def set_partition_info_on_app_relation_data(self, partition_info):
         """Set the slurmd partition on the app relation data.
 
@@ -160,6 +173,15 @@ class Slurmd(Object):
     def _store_munge_key(self, munge_key):
         """Store the munge_key in the StoredState."""
         self._stored.munge_key = munge_key
+
+    def _store_slurmctld_host_port(self, host, port):
+        """Store the hostname and port of slurmctld in StoredState."""
+
+        if host != self._stored.slurmctld_hostname:
+            self._stored.slurmctld_hostname = host
+
+        if port != self._stored.slurmctld_port:
+            self._stored.slurmctld_port = port
 
     def get_stored_munge_key(self):
         """Retrieve the munge_key from the StoredState."""

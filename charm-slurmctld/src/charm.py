@@ -41,13 +41,11 @@ class SlurmctldCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
-
             self._slurmdbd.on.slurmdbd_available: self._on_write_slurm_config,
             self._slurmdbd.on.slurmdbd_unavailable: self._on_write_slurm_config,
             self._slurmd.on.slurmd_available: self._on_write_slurm_config,
             self._slurmd.on.slurmd_unavailable: self._on_write_slurm_config,
             self._slurmctld_peer.on.slurmctld_peer_available: self._on_write_slurm_config,
-
             self.on.debug_action: self._debug_action,
         }
         for event, handler in event_handler_bindings.items():
@@ -77,6 +75,10 @@ class SlurmctldCharm(CharmBase):
 
     def _is_leader(self):
         return self.model.unit.is_leader()
+
+    def is_slurm_installed(self):
+        """Return true/false based on whether or not slurm is installed."""
+        return self._stored.slurm_installed
 
     def _debug_action(self, event):
         slurm_config = self._assemble_slurm_config()
@@ -139,14 +141,17 @@ class SlurmctldCharm(CharmBase):
 
     def _assemble_slurm_config(self):
         """Assemble and return the slurm config."""
+        logger.debug('## Assembling new slurm.conf')
+
         slurmctld_info = self._slurmctld_info
         slurmdbd_info = self._slurmdbd_info
         slurmd_info = self._slurmd_info
 
-        logger.debug("######## RATS INFO")
+        logger.debug("######## RATS INFO - d, ctld, dbd")
         logger.debug(slurmd_info)
         logger.debug(slurmctld_info)
         logger.debug(slurmdbd_info)
+        logger.debug("######## RATS INFO - end")
 
         if not (slurmctld_info and slurmd_info and slurmdbd_info):
             return {}
@@ -156,9 +161,7 @@ class SlurmctldCharm(CharmBase):
         #down_nodes = self._assemble_down_nodes(slurmd_info)
 
         #logger.debug(addons_info)
-        logger.debug(partitions_info)
-        logger.debug(slurmctld_info)
-        logger.debug(slurmdbd_info)
+        logger.debug(f'#### partitions_info: {partitions_info}')
         #logger.debug(f"#### _assemble_slurm_config() Down nodes: {down_nodes}")
 
         return {
@@ -172,20 +175,17 @@ class SlurmctldCharm(CharmBase):
 
     def _on_write_slurm_config(self, event):
         """Check that we have what we need before we proceed."""
-        #if not self._check_status():
-        #    event.defer()
-        #    return
 
         logger.debug("### Slurmctld - _on_write_slurm_config()")
 
-        # Generate the slurm_config
         slurm_config = self._assemble_slurm_config()
-        logger.debug(f"####### WRITE SLURM CONFIG: {slurm_config}")
-        return slurm_config
-
-    def is_slurm_installed(self):
-        """Return true/false based on whether or not slurm is installed."""
-        return self._stored.slurm_installed
+        if slurm_config:
+            self._slurm_manager.render_slurm_configs(slurm_config)
+            self._slurm_manager.slurm_cmd('scontrol', 'reconfigure')
+        else:
+            logger.debug("## Should rewrite slurm.conf, but we don't have it. "
+                         "Deferring.")
+            event.defer()
 
 
 if __name__ == "__main__":

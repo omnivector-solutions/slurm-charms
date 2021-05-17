@@ -31,6 +31,7 @@ class SlurmdCharm(CharmBase):
             nhc_conf=str(),
             health_check_interval=int(),
             health_check_state=str(),
+            slurm_installed=False,
         )
 
         self._slurm_manager = SlurmManager(self, "slurmd")
@@ -42,14 +43,11 @@ class SlurmdCharm(CharmBase):
             self.on.install: self._on_install,
             self.on.config_changed: self._on_config_changed,
             self._slurmd.on.munge_key_available: self._on_write_munge_key,
-            self._slurmd_peer.on.slurmd_peer_departed: self._on_send_inventory,
-            self._slurmd.on.slurmctld_available: self._on_send_inventory,
+            self._slurmd_peer.on.slurmd_peer_departed: self._on_set_partition_info_on_app_relation_data,
+            self._slurmd.on.slurmctld_available: self._on_slurmctld_available,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
-
-    #def _on_remove(self, event):
-    #    self._slurmd.set_partition_info_on_app_relation_data("")
 
     def _on_install(self, event):
         self._slurm_manager.install()
@@ -61,7 +59,20 @@ class SlurmdCharm(CharmBase):
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("Slurm installed")
 
-    def _on_send_inventory(self, event):
+    def _on_slurmctld_available(self, event):
+        if not self._stored.slurm_installed:
+            event.defer()
+            return
+
+        logger.debug('#### Slurmctld available - setting overrides for configless')
+        # get slurmctld host:port from relation and override systemd services
+        host = self._slurmd.slurmctld_hostname
+        port = self._slurmd.slurmctld_port
+
+        self._slurm_manager.create_configless_systemd_override(host, port)
+        self._slurm_manager.daemon_reload()
+        self._slurm_manager.slurm_systemctl('restart')
+
         self._on_set_partition_info_on_app_relation_data(event)
 
     def _on_config_changed(self, event):
@@ -197,7 +208,9 @@ class SlurmdCharm(CharmBase):
         partition_config = self.config.get("partition-config")
         partition_state = self.config.get("partition-state")
 
-        slurmd_inventory = self._assemble_slurmd_inventory()
+        slurmd_inventory = self._slurmd_peer.get_slurmd_inventory()
+        if not slurmd_inventory:
+            return None
 
         return {
             "inventory": slurmd_inventory,
@@ -205,14 +218,6 @@ class SlurmdCharm(CharmBase):
             "partition_state": partition_state,
             "partition_config": partition_config,
         }
-
-    def _assemble_slurmd_inventory(self):
-        """Apply mutations to nodes in the partition, return slurmd nodes."""
-        slurmd_inventory = self._slurmd_peer.get_slurmd_inventory()
-        if not slurmd_inventory:
-            return None
-
-        return slurmd_inventory
 
     def _get_set_partition_name(self):
         """Set the partition name."""

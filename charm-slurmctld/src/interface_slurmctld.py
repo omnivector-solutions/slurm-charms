@@ -88,10 +88,6 @@ class Slurmctld(Object):
         )
 
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_joined,
-            self._on_relation_joined,
-        )
-        self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed,
         )
@@ -104,66 +100,15 @@ class Slurmctld(Object):
             self._on_relation_broken,
         )
 
-    def _on_relation_joined(self, event):
-        """Handle the relation-joined event.
-
-        Get the munge_key from slurm-configurator and save it to the
-        charm stored state.
-        """
-        # Since we are in relation-joined (with the app on the other side)
-        # we can almost guarantee that the app object will exist in
-        # the event, but check for it just in case.
-        event_app_data = event.relation.data.get(event.app)
-        if not event_app_data:
-            event.defer()
-            return
-
-        # slurm-configurator sets the munge_key on the relation-created event
-        # which happens before relation-joined. We can almost guarantee that
-        # the munge key will exist at this point, but check for it just incase.
-        munge_key = event_app_data.get("munge_key")
-        if not munge_key:
-            event.defer()
-            return
-
-        # slurm-configurator sets the jwt_rsa on the relation-created event
-        # which happens before relation-joined. We can almost guarantee that
-        # the munge key will exist at this point, but check for it just incase.
-        jwt_rsa = event_app_data.get("jwt_rsa")
-        if not jwt_rsa:
-            event.defer()
-            return
-
-        # Store the jwt_rsa and munge_key in the charm's state
-        self._store_munge_key(munge_key)
-        self._store_jwt_rsa(jwt_rsa)
-        self.on.slurm_configurator_available.emit()
-
     def _on_relation_changed(self, event):
         event_app_data = event.relation.data.get(event.app)
         if not event_app_data:
             event.defer()
             return
 
-        munge_key = event_app_data.get("munge_key")
         restart_slurmctld_uuid = event_app_data.get("restart_slurmctld_uuid")
         scontrol_reconfigure_uuid = event_app_data.get("scontrol_reconfigure_uuid")
         scontrol_update_nodes = event_app_data.get("scontrol_update_nodes")
-        slurm_config = self._get_slurm_config_from_relation()
-
-        if not (munge_key and slurm_config):
-            event.defer()
-            return
-
-        # Store the munge_key in the interface StoredState if it has changed
-        if munge_key != self.get_stored_munge_key():
-            self._store_munge_key(munge_key)
-            self.on.munge_key_available.emit()
-
-        # Store the slurm_config in the interface StoredState if it has changed
-        if slurm_config != self.get_stored_slurm_config():
-            self._store_slurm_config(slurm_config)
-            self.on.slurm_config_available.emit()
 
         if restart_slurmctld_uuid:
             if restart_slurmctld_uuid != self._get_restart_slurmctld_uuid():
@@ -233,27 +178,6 @@ class Slurmctld(Object):
         logger.warning("### slurmctdl - interface-slurmctld - "
                        "get_slurm_config_from_relation got nothing")
         return None
-
-    def _store_munge_key(self, munge_key):
-        self._stored.munge_key = munge_key
-
-    def get_stored_munge_key(self):
-        """Retrieve the munge_key from stored state."""
-        return self._stored.munge_key
-
-    def _store_jwt_rsa(self, jwt_rsa):
-        self._stored.jwt_rsa = jwt_rsa
-
-    def get_stored_jwt_rsa(self):
-        """Retrieve the jwt_rsa from stored state."""
-        return self._stored.jwt_rsa
-
-    def _store_slurm_config(self, slurm_config):
-        self._stored.slurm_config = slurm_config
-
-    def get_stored_slurm_config(self):
-        """Retrieve the slurm_config from stored state."""
-        return self._stored.slurm_config
 
     def _store_restart_slurmctld_uuid(self, restart_slurmctld_uuid):
         self._stored.restart_slurmctld_uuid = restart_slurmctld_uuid

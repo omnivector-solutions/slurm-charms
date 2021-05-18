@@ -45,7 +45,7 @@ class SlurmctldCharm(CharmBase):
             self._slurmdbd.on.slurmdbd_unavailable: self._on_write_slurm_config,
             self._slurmd.on.slurmd_available: self._on_write_slurm_config,
             self._slurmd.on.slurmd_unavailable: self._on_write_slurm_config,
-            self._slurmctld_peer.on.slurmctld_peer_available: self._on_write_slurm_config,
+            self._slurmctld_peer.on.slurmctld_peer_available: self._on_write_slurm_config, # NOTE: a second slurmctld should get the jwt/munge keys and configure them
             self.on.debug_action: self._debug_action,
         }
         for event, handler in event_handler_bindings.items():
@@ -100,6 +100,10 @@ class SlurmctldCharm(CharmBase):
         if self._is_leader():
             self._stored.jwt_rsa = self._slurm_manager.generate_jwt_rsa()
             self._stored.munge_key = self._slurm_manager.get_munge_key()
+
+            # NOTE the backup controller should also have the jwt and munge
+            # keys configured.
+            self._slurm_manager.configure_jwt_rsa(self.get_jwt_rsa())
 
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("slurm installed")

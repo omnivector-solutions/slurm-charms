@@ -72,6 +72,7 @@ class SlurmdbdCharm(CharmBase):
         # Restart munged and set slurmctld_available = True.
         self._slurm_manager.restart_munged()
         self._stored.slurmctld_available = True
+        self._check_status()
 
     def _on_slurmctld_unavailable(self, event):
         """Reset state and charm status when slurmctld broken."""
@@ -137,6 +138,8 @@ class SlurmdbdCharm(CharmBase):
                     "Need relation to slurmctld."
                 )
             return False
+
+        self.unit.status = ActiveStatus('Slurmdbd ready.')
         return True
 
     def get_port(self):

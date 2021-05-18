@@ -102,6 +102,7 @@ class Slurmdbd(Object):
 
     def set_slurmdbd_info_on_app_relation_data(self, slurmdbd_info):
         """Send slurmdbd_info to slurmctld."""
+        logger.debug('## Setting info in app relation data: {slurmdbd_info}')
         relations = self.framework.model.relations["slurmdbd"]
         # Iterate over each of the relations setting the relation data.
         for relation in relations:
@@ -125,5 +126,5 @@ class Slurmdbd(Object):
         self._stored.jwt_rsa = jwt_rsa
 
     def get_jwt_rsa(self):
-        """Retrieve the jwt_rsa from stored state."""
+        """Retrieve the jwt_rsa from the stored state."""
         return self._stored.jwt_rsa

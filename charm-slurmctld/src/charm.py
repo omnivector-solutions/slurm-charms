@@ -28,6 +28,8 @@ class SlurmctldCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
+            jwt_key=str(),
+            munge_key=str(),
             slurmctld_controller_type=str(),
             slurm_installed=False,
         )
@@ -41,6 +43,7 @@ class SlurmctldCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
+            self.on.config_changed: self._on_write_slurm_config,
             self._slurmdbd.on.slurmdbd_available: self._on_write_slurm_config,
             self._slurmdbd.on.slurmdbd_unavailable: self._on_write_slurm_config,
             self._slurmd.on.slurmd_available: self._on_write_slurm_config,
@@ -72,6 +75,17 @@ class SlurmctldCharm(CharmBase):
     @property
     def _slurmd_info(self):
         return self._slurmd.get_slurmd_info()
+
+    @property
+    def _cluster_info(self):
+        """Assemble information about the cluster."""
+        cluster_info = {}
+        cluster_info['cluster_name'] = self.config.get('cluster-name')
+        cluster_info['custom_config'] = self.config.get('custom-config')
+        cluster_info['proctrack_type'] = self.config.get('proctrack-type')
+        cluster_info['cgroup_config'] = self.config.get('cgroup-config')
+
+        return cluster_info
 
     def _is_leader(self):
         return self.model.unit.is_leader()
@@ -106,6 +120,8 @@ class SlurmctldCharm(CharmBase):
             self._slurm_manager.configure_jwt_rsa(self.get_jwt_rsa())
 
         self._stored.slurm_installed = True
+        # FIXME the status should be blocked (or simitlar) until we have all
+        # the necessary relations: slurmdbd and slurmd (restd is optional?)
         self.unit.status = ActiveStatus("slurm installed")
 
     def get_munge_key(self):
@@ -131,6 +147,7 @@ class SlurmctldCharm(CharmBase):
             # If the user hasn't provided a default partition, then we infer
             # the partition_default by defaulting to the "configurator"
             # partition.
+            # FIXME: we don't have a configurator partition anymore
             if not default_partition_from_config:
                 if partition["partition_name"] == "configurator":
                     partition_tmp["partition_default"] = "YES"
@@ -150,11 +167,13 @@ class SlurmctldCharm(CharmBase):
         slurmctld_info = self._slurmctld_info
         slurmdbd_info = self._slurmdbd_info
         slurmd_info = self._slurmd_info
+        cluster_info = self._cluster_info
 
-        logger.debug("######## RATS INFO - d, ctld, dbd")
-        logger.debug(slurmd_info)
-        logger.debug(slurmctld_info)
-        logger.debug(slurmdbd_info)
+        logger.debug("######## RATS INFO - d, ctld, dbd, cluster")
+        logger.debug(f'## slurmd: {slurmd_info}')
+        logger.debug(f'## slurmctld_info: {slurmctld_info}')
+        logger.debug(f'## slurmdbd_info: {slurmdbd_info}')
+        logger.debug(f'## cluster_info: {cluster_info}')
         logger.debug("######## RATS INFO - end")
 
         if not (slurmctld_info and slurmd_info and slurmdbd_info):
@@ -174,7 +193,7 @@ class SlurmctldCharm(CharmBase):
             **slurmctld_info,
             **slurmdbd_info,
             #**addons_info,
-            #**self.config,
+            **cluster_info,
         }
 
     def _on_write_slurm_config(self, event):

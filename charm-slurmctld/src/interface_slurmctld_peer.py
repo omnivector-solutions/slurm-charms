@@ -69,7 +69,7 @@ class SlurmctldPeer(Object):
     def _on_relation_changed(self, event):
         """Use the leader and app relation data to schedule the controllers."""
         # We only modify the slurmctld controller queue
-        # if we are the leaader. As such, we dont need to preform
+        # if we are the leader. As such, we don't need to perform
         # any operations if we are not the leader.
         if self.framework.model.unit.is_leader():
             relation = self._relation

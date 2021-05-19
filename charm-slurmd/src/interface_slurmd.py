@@ -127,10 +127,12 @@ class Slurmd(Object):
 
     @property
     def slurmctld_hostname(self):
+        """Get slurmctld hostname."""
         return self._stored.slurmctld_hostname
 
     @property
     def slurmctld_port(self):
+        """Get slurmctld port."""
         return self._stored.slurmctld_port
 
     def set_partition_info_on_app_relation_data(self, partition_info):
@@ -152,7 +154,6 @@ class Slurmd(Object):
 
     def _store_slurmctld_host_port(self, host, port):
         """Store the hostname and port of slurmctld in StoredState."""
-
         if host != self._stored.slurmctld_hostname:
             self._stored.slurmctld_hostname = host
 

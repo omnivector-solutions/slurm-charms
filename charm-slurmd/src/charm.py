@@ -80,6 +80,7 @@ class SlurmdCharm(CharmBase):
         return True
 
     def set_slurmctld_available(self, flag: bool):
+        """Change stored value for slurmctld availability."""
         self._stored.slurmctld_available = flag
 
     def _on_slurmctld_available(self, event):
@@ -99,8 +100,6 @@ class SlurmdCharm(CharmBase):
         self._slurm_manager.slurm_systemctl('restart')
 
     def _on_config_changed(self, event):
-        reconfigure_slurm = False
-
         if self.model.unit.is_leader():
             self._get_set_partition_name()
             self._on_set_partition_info_on_app_relation_data(event)
@@ -112,6 +111,8 @@ class SlurmdCharm(CharmBase):
                 self._slurm_manager.render_nhc_config(nhc_conf)
 
         # TODO: move these to slurmctld
+        #reconfigure_slurm = False
+        #
         #health_check_interval = self.model.config.get('health-check-interval')
         #if health_check_interval:
         #    if health_check_interval != self._stored.health_check_interval:

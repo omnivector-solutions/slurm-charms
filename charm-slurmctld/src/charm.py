@@ -42,7 +42,6 @@ class SlurmctldCharm(CharmBase):
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
         self._slurmctld_peer = SlurmctldPeer(self, "slurmctld-peer")
 
-
         event_handler_bindings = {
             self.on.install: self._on_install,
             self.on.config_changed: self._on_write_slurm_config,
@@ -93,9 +92,11 @@ class SlurmctldCharm(CharmBase):
         return cluster_info
 
     def set_slurmd_available(self, flag: bool):
+        """Set stored value of slurmd available."""
         self._stored.slurmd_available = flag
 
     def set_slurmdbd_available(self, flag: bool):
+        """Set stored value of slurmdbd available."""
         self._stored.slurmdbd_available = flag
 
     def _is_leader(self):
@@ -111,9 +112,7 @@ class SlurmctldCharm(CharmBase):
         event.set_results({"slurmctld-info": slurm_config})
 
     def _on_install(self, event):
-        """
-        Perform installation operations for slurmctld.
-        """
+        """Perform installation operations for slurmctld."""
         logger.debug(f"######### ON_INSTALL: {self.on.__dict__}")
 
         self._slurm_manager.install()
@@ -157,9 +156,11 @@ class SlurmctldCharm(CharmBase):
             return True
 
     def get_munge_key(self):
+        """Get the stored munge key."""
         return self._stored.munge_key
 
     def get_jwt_rsa(self):
+        """Get the stored jwt_rsa key."""
         return self._stored.jwt_rsa
 
     def _assemble_partitions(self, slurmd_info):
@@ -230,7 +231,6 @@ class SlurmctldCharm(CharmBase):
 
     def _on_write_slurm_config(self, event):
         """Check that we have what we need before we proceed."""
-
         logger.debug("### Slurmctld - _on_write_slurm_config()")
 
         if not self._check_status():
@@ -282,10 +282,9 @@ class SlurmctldCharm(CharmBase):
 
     def _resume_nodes(self, nodelist):
         """Run scontrol to resume the speficied node list."""
-
         nodes = ",".join(nodelist)
-        update = f"update nodename={nodes} state=resume"
-        self._slurm_manager.slurm_cmd('scontrol', update)
+        update_cmd = f"update nodename={nodes} state=resume"
+        self._slurm_manager.slurm_cmd('scontrol', update_cmd)
 
     def _drain_nodes_action(self, event):
         """Drain specified nodes."""
@@ -315,6 +314,7 @@ class SlurmctldCharm(CharmBase):
             event.set_results({'status': 'resuming', 'nodes': nodes})
         except subprocess.CalledProcessError as e:
             event.fail(message=f'Error resuming {nodes}: {e.output}')
+
 
 if __name__ == "__main__":
     main(SlurmctldCharm)

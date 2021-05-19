@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Interface slurmd."""
 import copy
-import uuid
 import json
 import logging
 

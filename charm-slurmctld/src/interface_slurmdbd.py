@@ -80,7 +80,12 @@ class Slurmdbd(Object):
         if event_app_data:
             slurmdbd_info = event_app_data.get("slurmdbd_info")
             if slurmdbd_info:
+                self._charm.set_slurmdbd_available(True)
                 self.on.slurmdbd_available.emit()
+            else:
+                event.defer()
+        else:
+            event.defer()
 
     def _on_relation_departed(self, event):
         self.on.slurmdbd_unavailable.emit()
@@ -89,6 +94,7 @@ class Slurmdbd(Object):
         if self.framework.model.unit.is_leader():
             event.relation.data[self.model.app]["munge_key"] = ""
             event.relation.data[self.model.app]["jwt_rsa"] = ""
+        self._charm.set_slurmdbd_available(False)
         self.on.slurmdbd_unavailable.emit()
 
     @property
@@ -98,6 +104,7 @@ class Slurmdbd(Object):
     def get_slurmdbd_info(self):
         """Return the slurmdbd_info."""
         relation = self._relation
+        # NOTE: clean up these dangling statements
         if relation:
             app = relation.app
             if app:

@@ -1,3 +1,33 @@
 debug:
   description: >
     DEBUG
+
+drain:
+  description: >
+    Drain specified nodes.
+
+    Example usage: juju run-action slurmctld/leader drain nodename=node-[1,2] reason="Updating kernel"
+  params:
+    nodename:
+      type: string
+      description: The nodes to drain, Using the Slurm format, e.g. node-[1,2].
+    reason:
+      type: string
+      description: Reason to drain the nodes.
+  required:
+    - nodename
+    - reason
+resume:
+  description: >
+    Resume specified nodes.
+
+    Note: newly added nodes will remain in the "down" state until configured,
+    with the node-configured action.
+
+    Example usage: juju run-action slurmctld/leader resume nodename=node-[1,2]
+  params:
+    nodename:
+      type: string
+      description: The nodes to resume, using the Slurm format, e.g. node-[1,2].
+  required:
+    - nodename

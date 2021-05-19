@@ -71,19 +71,18 @@ class Slurmd(Object):
 
     def _on_relation_changed(self, event):
         event_app_data = event.relation.data.get(event.app)
-        if event_app_data:
-            partition_info = event_app_data.get("partition_info")
-            # NOTE: fix this code
-            if partition_info:
-                self.on.slurmd_available.emit()
-                return
-
-        event.defer()
+        partition_info = event_app_data.get("partition_info")
+        if partition_info:
+            self._charm.set_slurmd_available(True)
+            self.on.slurmd_available.emit()
+        else:
+            event.defer()
 
     def _on_relation_broken(self, event):
         if self.framework.model.unit.is_leader():
             event.relation.data[self.model.app]["munge_key"] = ""
         self.on.slurmd_unavailable.emit()
+        self._charm.set_slurmd_available(False)
 
     @property
     def _num_relations(self):

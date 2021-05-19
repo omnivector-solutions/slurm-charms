@@ -32,6 +32,7 @@ class SlurmdCharm(CharmBase):
             health_check_interval=int(),
             health_check_state=str(),
             slurm_installed=False,
+            slurmctld_available=False,
         )
 
         self._slurm_manager = SlurmManager(self, "slurmd")
@@ -43,8 +44,14 @@ class SlurmdCharm(CharmBase):
             self.on.install: self._on_install,
             self.on.config_changed: self._on_config_changed,
             self._slurmd.on.munge_key_available: self._on_write_munge_key,
+            self._slurmd_peer.on.slurmd_peer_available: self._on_set_partition_info_on_app_relation_data,
             self._slurmd_peer.on.slurmd_peer_departed: self._on_set_partition_info_on_app_relation_data,
             self._slurmd.on.slurmctld_available: self._on_slurmctld_available,
+            # actions
+            self.on.node_configured_action: self._on_node_configured_action,
+            self.on.get_node_inventory_action: self._on_get_node_inventory_action,
+            self.on.show_nhc_config_action: self._on_show_nhc_config,
+            # TODO readd infiniband actions and test them
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -57,10 +64,26 @@ class SlurmdCharm(CharmBase):
             logger.debug(f"PARTITION_NAME: {self._stored.partition_name}")
 
         self._stored.slurm_installed = True
-        self.unit.status = ActiveStatus("Slurm installed")
+        self._check_status()
+
+    def _check_status(self) -> bool:
+        if not self._stored.slurm_installed:
+            self.unit.status = WaitingStatus('Waiting slurmd installation')
+            return False
+
+        # if slurmctld is available, we have the munge key as well
+        if not self._stored.slurmctld_available:
+            self.unit.status = WaitingStatus('Waiting on slurmctld relation')
+            return False
+
+        self.unit.status = ActiveStatus("Slurmd available")
+        return True
+
+    def set_slurmctld_available(self, flag: bool):
+        self._stored.slurmctld_available = flag
 
     def _on_slurmctld_available(self, event):
-        if not self._stored.slurm_installed:
+        if not self._check_status():
             event.defer()
             return
 
@@ -71,18 +94,16 @@ class SlurmdCharm(CharmBase):
 
         self._slurm_manager.create_configless_systemd_override(host, port)
         self._slurm_manager.daemon_reload()
-        self._slurm_manager.slurm_systemctl('restart')
 
         self._on_set_partition_info_on_app_relation_data(event)
+        self._slurm_manager.slurm_systemctl('restart')
 
     def _on_config_changed(self, event):
         reconfigure_slurm = False
 
         if self.model.unit.is_leader():
             self._get_set_partition_name()
-            self._on_set_partition_info_on_app_relation_data(
-                event
-            )
+            self._on_set_partition_info_on_app_relation_data(event)
 
         nhc_conf = self.model.config.get('nhc-conf')
         if nhc_conf:
@@ -104,7 +125,7 @@ class SlurmdCharm(CharmBase):
         #        reconfigure_slurm = True
 
     def _on_write_munge_key(self, event):
-        if not self._stored.slurm_installed:
+        if not self._check_status():
             event.defer()
             return
 
@@ -171,11 +192,6 @@ class SlurmdCharm(CharmBase):
         logger.debug(f"#### Infiniband service is-active: {status}")
         event.set_results({'infiniband-is-active': status})
 
-    def _on_show_current_config(self, event):
-        """Show current slurm.conf."""
-        slurm_conf = self._slurm_manager.get_slurm_conf()
-        event.set_results({"slurm.conf": slurm_conf})
-
     def _on_show_nhc_config(self, event):
         """Show current nhc.conf."""
         nhc_conf = self._slurm_manager.get_nhc_config()
@@ -185,7 +201,7 @@ class SlurmdCharm(CharmBase):
         """Set the slurm partition info on the application relation data."""
         # Only the leader can set data on the relation.
         if self.framework.model.unit.is_leader():
-            # If the relation with slurm-configurator exists then set our
+            # If the relation with slurmctld exists then set our
             # partition info on the application relation data.
             # This handler shouldn't fire if the relation isn't made,
             # but add this extra check here just incase.

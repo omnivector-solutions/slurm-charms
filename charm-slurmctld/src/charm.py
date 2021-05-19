@@ -30,8 +30,10 @@ class SlurmctldCharm(CharmBase):
         self._stored.set_default(
             jwt_key=str(),
             munge_key=str(),
-            slurmctld_controller_type=str(),
             slurm_installed=False,
+            slurmd_available=False,
+            slurmdbd_available=False,
+            down_nodes=list(),
         )
 
         self._slurm_manager = SlurmManager(self, "slurmctld")
@@ -49,7 +51,10 @@ class SlurmctldCharm(CharmBase):
             self._slurmd.on.slurmd_available: self._on_write_slurm_config,
             self._slurmd.on.slurmd_unavailable: self._on_write_slurm_config,
             self._slurmctld_peer.on.slurmctld_peer_available: self._on_write_slurm_config, # NOTE: a second slurmctld should get the jwt/munge keys and configure them
-            self.on.debug_action: self._debug_action,
+            # actions
+            self.on.drain_action: self._drain_nodes_action,
+            self.on.resume_action: self._resume_nodes_action,
+            self.on.debug_action: self._debug_action, # TODO remove this on cleanup
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -87,6 +92,12 @@ class SlurmctldCharm(CharmBase):
 
         return cluster_info
 
+    def set_slurmd_available(self, flag: bool):
+        self._stored.slurmd_available = flag
+
+    def set_slurmdbd_available(self, flag: bool):
+        self._stored.slurmdbd_available = flag
+
     def _is_leader(self):
         return self.model.unit.is_leader()
 
@@ -120,9 +131,30 @@ class SlurmctldCharm(CharmBase):
             self._slurm_manager.configure_jwt_rsa(self.get_jwt_rsa())
 
         self._stored.slurm_installed = True
-        # FIXME the status should be blocked (or simitlar) until we have all
-        # the necessary relations: slurmdbd and slurmd (restd is optional?)
-        self.unit.status = ActiveStatus("slurm installed")
+
+        self._check_status()
+
+    def _check_status(self):
+        """Check for all relations and set appropriate status."""
+        # NOTE: improve this function to display joined/available
+
+        if not self._stored.slurm_installed:
+            self.unit.stauts = WaitingStatus('Waiting slurm installation')
+            return False
+
+        msg = ""
+        if not self._stored.slurmd_available:
+            msg += "slurmd"
+        if not self._stored.slurmdbd_available:
+            msg += " slurmdbd"
+
+        if msg != "":
+            msg = 'Wating on' + msg
+            self.unit.status = BlockedStatus(msg)
+            return False
+        else:
+            self.unit.status = ActiveStatus("slurmctld available")
+            return True
 
     def get_munge_key(self):
         return self._stored.munge_key
@@ -181,15 +213,15 @@ class SlurmctldCharm(CharmBase):
 
         #addons_info = self._assemble_addons()
         partitions_info = self._assemble_partitions(slurmd_info)
-        #down_nodes = self._assemble_down_nodes(slurmd_info)
+        down_nodes = self._assemble_down_nodes(slurmd_info)
 
         #logger.debug(addons_info)
         logger.debug(f'#### partitions_info: {partitions_info}')
-        #logger.debug(f"#### _assemble_slurm_config() Down nodes: {down_nodes}")
+        logger.debug(f"#### Down nodes: {down_nodes}")
 
         return {
             "partitions": partitions_info,
-            #"down_nodes": down_nodes,
+            "down_nodes": down_nodes,
             **slurmctld_info,
             **slurmdbd_info,
             #**addons_info,
@@ -201,15 +233,88 @@ class SlurmctldCharm(CharmBase):
 
         logger.debug("### Slurmctld - _on_write_slurm_config()")
 
+        if not self._check_status():
+            event.defer()
+            return
+
         slurm_config = self._assemble_slurm_config()
         if slurm_config:
             self._slurm_manager.render_slurm_configs(slurm_config)
+            self._slurm_manager.slurm_systemctl('restart')
             self._slurm_manager.slurm_cmd('scontrol', 'reconfigure')
+
+            # check for "not new anymore" nodes, i.e., nodes that runned the
+            # node-configured action
+            down_nodes = slurm_config['down_nodes']
+            configured_nodes = self._assemble_configured_nodes(down_nodes)
+            logger.debug(f"### configured nodes: {configured_nodes}")
+            self._resume_nodes(configured_nodes)
+            # update down nodes cache
+            self._stored.down_nodes = down_nodes.copy()
         else:
             logger.debug("## Should rewrite slurm.conf, but we don't have it. "
                          "Deferring.")
             event.defer()
 
+    @staticmethod
+    def _assemble_down_nodes(slurmd_info):
+        """Parse partitions' nodes and assemble a list of DownNodes."""
+        down_nodes = []
+        for partition in slurmd_info:
+            for node in partition["inventory"]:
+                if node["new_node"]:
+                    down_nodes.append(node["node_name"])
+
+        return down_nodes
+
+    def _assemble_configured_nodes(self, down_nodes):
+        """Assemble list of nodes that are not new anymore.
+
+        new_node status is removed with an action, this method returns a list
+        of nodes that were previously new but are not anymore.
+        """
+        configured_nodes = []
+        for node in self._stored.down_nodes:
+            if node not in down_nodes:
+                configured_nodes.append(node)
+
+        return configured_nodes
+
+    def _resume_nodes(self, nodelist):
+        """Run scontrol to resume the speficied node list."""
+
+        nodes = ",".join(nodelist)
+        update = f"update nodename={nodes} state=resume"
+        self._slurm_manager.slurm_cmd('scontrol', update)
+
+    def _drain_nodes_action(self, event):
+        """Drain specified nodes."""
+        nodes = event.params['nodename']
+        reason = event.params['reason']
+
+        logger.debug(f'#### Draining {nodes} because {reason}.')
+        event.log(f'Draining {nodes} because {reason}.')
+
+        try:
+            cmd = f'scontrol update nodename={nodes} state=drain reason="{reason}"'
+            subprocess.check_output(shlex.split(cmd))
+            event.set_results({'status': 'draining', 'nodes': nodes})
+        except subprocess.CalledProcessError as e:
+            event.fail(message=f'Error draining {nodes}: {e.output}')
+
+    def _resume_nodes_action(self, event):
+        """Resume specified nodes."""
+        nodes = event.params['nodename']
+
+        logger.debug(f'#### Resuming {nodes}.')
+        event.log(f'Resuming {nodes}.')
+
+        try:
+            cmd = f'scontrol update nodename={nodes} state=resume'
+            subprocess.check_output(shlex.split(cmd))
+            event.set_results({'status': 'resuming', 'nodes': nodes})
+        except subprocess.CalledProcessError as e:
+            event.fail(message=f'Error resuming {nodes}: {e.output}')
 
 if __name__ == "__main__":
     main(SlurmctldCharm)

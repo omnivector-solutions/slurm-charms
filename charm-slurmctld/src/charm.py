@@ -89,7 +89,21 @@ class SlurmctldCharm(CharmBase):
         cluster_info['proctrack_type'] = self.config.get('proctrack-type')
         cluster_info['cgroup_config'] = self.config.get('cgroup-config')
 
+        interval = self.config.get('health-check-interval')
+        state = self.config.get('health-check-state')
+        nhc = self._slurm_manager.slurm_config_nhc_values(interval, state)
+        cluster_info.update(nhc)
+
         return cluster_info
+
+    @property
+    def _addons_info(self):
+        """Assemble addons for slurm.conf."""
+        addons = {}
+        # NOTE add prolog and epilog
+        # NOTE add acct-gather
+
+        return addons
 
     def set_slurmd_available(self, flag: bool):
         """Set stored value of slurmd available."""
@@ -212,11 +226,11 @@ class SlurmctldCharm(CharmBase):
         if not (slurmctld_info and slurmd_info and slurmdbd_info):
             return {}
 
-        #addons_info = self._assemble_addons()
+        addons_info = self._addons_info
         partitions_info = self._assemble_partitions(slurmd_info)
         down_nodes = self._assemble_down_nodes(slurmd_info)
 
-        #logger.debug(addons_info)
+        logger.debug(f'#### addons: {addons_info}')
         logger.debug(f'#### partitions_info: {partitions_info}')
         logger.debug(f"#### Down nodes: {down_nodes}")
 
@@ -225,7 +239,7 @@ class SlurmctldCharm(CharmBase):
             "down_nodes": down_nodes,
             **slurmctld_info,
             **slurmdbd_info,
-            #**addons_info,
+            **addons_info,
             **cluster_info,
         }
 

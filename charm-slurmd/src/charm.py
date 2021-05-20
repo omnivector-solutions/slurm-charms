@@ -29,8 +29,6 @@ class SlurmdCharm(CharmBase):
             munge_key_available=False,
             partition_name=str(),
             nhc_conf=str(),
-            health_check_interval=int(),
-            health_check_state=str(),
             slurm_installed=False,
             slurmctld_available=False,
         )
@@ -109,21 +107,6 @@ class SlurmdCharm(CharmBase):
             if nhc_conf != self._stored.nhc_conf:
                 self._stored.nhc_conf = nhc_conf
                 self._slurm_manager.render_nhc_config(nhc_conf)
-
-        # TODO: move these to slurmctld
-        #reconfigure_slurm = False
-        #
-        #health_check_interval = self.model.config.get('health-check-interval')
-        #if health_check_interval:
-        #    if health_check_interval != self._stored.health_check_interval:
-        #        self._stored.health_check_interval = health_check_interval
-        #        reconfigure_slurm = True
-
-        #health_check_state = self.model.config.get('health-check-state')
-        #if health_check_state:
-        #    if health_check_state != self._stored.health_check_state:
-        #        self._stored.health_check_state = health_check_state
-        #        reconfigure_slurm = True
 
     def _on_write_munge_key(self, event):
         if not self._check_status():

@@ -30,6 +30,14 @@ options:
       ConstrainCores=yes
     description: |
       Configuration content for cgroup.conf
+  health-check-interval:
+    default: 600
+    type: int
+    description: Interval in seconds between executions of the Health Check.
+  health-check-state:
+    default: "ANY,CYCLE"
+    type: string
+    description: Only run the Health Check on nodes in this state.
 
 # nagios_context:
 #   default: "juju"

@@ -20,13 +20,6 @@ jobs:
         run: |
           make lint
 
-      - name: "run slurm-configurator unit tests"
-        run: |
-          cd charm-slurm-configurator/
-          make unit
-          make harness
-          cd ../
-
 #      - name: "run slurmd unit tests"
 #        run: |
 #          cd charm-slurmd/
@@ -83,7 +76,6 @@ jobs:
             slurmdbd.charm
             slurmctld.charm
             slurmrestd.charm
-            slurm-configurator.charm
           key: slurm-charms-${{ steps.vars.outputs.charm_hash }}
 
     outputs:
@@ -152,7 +144,6 @@ jobs:
             slurmdbd.charm
             slurmctld.charm
             slurmrestd.charm
-            slurm-configurator.charm
           key: slurm-charms-${{ needs.build-charms.outputs.charm_hash }}
 
       - name: "Set JUJU_DATA to GITHUB_ENV"
@@ -186,7 +177,7 @@ jobs:
         if: ${{ success() }}
         shell: bash
         run: |
-          git clone https://github.com/omnivector-solutions/slurm-bundles -b 1.0.2 ../slurm-bundles
+          git clone https://github.com/omnivector-solutions/slurm-bundles -b configless ../slurm-bundles
 
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
 
@@ -236,8 +227,7 @@ jobs:
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
 
           # Remove the applications and wait for the model to empty
-          juju remove-application -m $model \
-              slurmctld slurmdbd slurmd slurm-configurator percona-cluster
+          juju remove-application -m $model slurmctld slurmdbd slurmd percona-cluster
 
           if [ "${{ matrix.series}}" = "focal" ]; then
               juju remove-application -m $model slurmrestd
@@ -249,7 +239,7 @@ jobs:
         run: |
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
 
-          for charm in slurmd slurmctld slurmdbd slurmrestd slurm-configurator; do
+          for charm in slurmd slurmctld slurmdbd slurmrestd; do
               log=$charm-$model.log
               juju debug-log --replay --include $charm > $log
           done
@@ -311,13 +301,12 @@ jobs:
             slurmdbd.charm
             slurmctld.charm
             slurmrestd.charm
-            slurm-configurator.charm
           key: slurm-charms
 
       - name: "Push charms to s3"
         shell: bash
         run: |
-          for charm in slurmctld slurmdbd slurmd slurm-configurator slurmrestd; do
+          for charm in slurmctld slurmdbd slurmd slurmrestd; do
               if [ -f $charm.charm ]; then
                   aws s3 cp $charm.charm s3://omnivector-public-assets/charms/$charm/edge/
               fi

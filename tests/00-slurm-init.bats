@@ -14,7 +14,7 @@ myjuju () {
 	assert_success
 
 	# slurmd node in down state
-	assert_line --regexp "juju-compute-[a-zA-Z ]+ up   infinite      1   down.*"
+	assert_line --regexp "juju-compute-[a-zA-Z ]+up *infinite *1 *down.*"
 }
 
 @test "test first node is down because it is new" {
@@ -31,7 +31,7 @@ myjuju () {
 	assert_success
 
 	# check the node is not down anymore
-	assert_line --regexp "juju-compute-[a-zA-Z ]+ up   infinite      1   idle.*"
+	assert_line --regexp "juju-compute-[a-zA-Z ]+up *infinite *1 *idle.*"
 }
 
 @test "add a unit of slurmd and verify it is down" {
@@ -41,9 +41,9 @@ myjuju () {
 	assert_success
 
 	# new node in down state
-	assert_line --regexp "juju-compute-[a-zA-Z ]+ up   infinite      1   down.*"
+	assert_line --regexp "juju-compute-[a-zA-Z ]+up *infinite *1 *down.*"
 	# old node should still be idle
-	assert_line --regexp "juju-compute-[a-zA-Z ]+ up   infinite      1   idle.*"
+	assert_line --regexp "juju-compute-[a-zA-Z ]+up *infinite *1 *idle.*"
 }
 
 @test "test if we have a new node" {
@@ -69,5 +69,5 @@ myjuju () {
 	juju run-action -m $JUJU_MODEL slurmctld/leader resume nodename=$host --wait
 	run juju run -m $JUJU_MODEL --unit slurmctld/leader "sinfo -n $host"
 
-	assert_line --regexp "juju-compute-[a-zA-Z ]+ up   infinite      1   idle.*"
+	assert_line --regexp "juju-compute-[a-zA-Z ]+up *infinite *1 *idle.*"
 }

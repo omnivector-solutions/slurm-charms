@@ -49,7 +49,15 @@ class SlurmdCharm(CharmBase):
             self.on.node_configured_action: self._on_node_configured_action,
             self.on.get_node_inventory_action: self._on_get_node_inventory_action,
             self.on.show_nhc_config_action: self._on_show_nhc_config,
-            # TODO readd infiniband actions and test them
+            # infiniband actions
+            self.on.get_infiniband_repo_action: self.get_infiniband_repo,
+            self.on.set_infiniband_repo_action: self.set_infiniband_repo,
+            self.on.install_infiniband_action: self.install_infiniband,
+            self.on.uninstall_infiniband_action: self.uninstall_infiniband,
+            self.on.start_infiniband_action: self.start_infiniband,
+            self.on.enable_infiniband_action: self.enable_infiniband,
+            self.on.stop_infiniband_action: self.stop_infiniband,
+            self.on.is_active_infiniband_action: self.is_active_infiniband,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)

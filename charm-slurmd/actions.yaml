@@ -25,6 +25,7 @@ set-infiniband-repo:
 install-infiniband:
   description: >
     Install Mellanox Infiniband drivers. This might take a few minutes to complete.
+
     If no custom repository was specified before, this action will set the Mellanox repository as the default and install the latest drivers from it.
 uninstall-infiniband:
   description: Uninstall Mellanox Infiniband drivers.

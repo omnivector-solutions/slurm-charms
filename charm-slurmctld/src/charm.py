@@ -51,9 +51,10 @@ class SlurmctldCharm(CharmBase):
             self._slurmd.on.slurmd_unavailable: self._on_write_slurm_config,
             self._slurmctld_peer.on.slurmctld_peer_available: self._on_write_slurm_config, # NOTE: a second slurmctld should get the jwt/munge keys and configure them
             # actions
+            self.on.debug_action: self._debug_action, # TODO remove this on cleanup
+            self.on.show_current_config_action: self._on_show_current_config,
             self.on.drain_action: self._drain_nodes_action,
             self.on.resume_action: self._resume_nodes_action,
-            self.on.debug_action: self._debug_action, # TODO remove this on cleanup
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -124,6 +125,11 @@ class SlurmctldCharm(CharmBase):
         slurm_config = self._assemble_slurm_config()
         logger.debug(f"############ DEBUG FUNC RATS -> {slurm_config}")
         event.set_results({"slurmctld-info": slurm_config})
+
+    def _on_show_current_config(self, event):
+        """Show current slurm.conf."""
+        slurm_conf = self._slurm_manager.get_slurm_conf()
+        event.set_results({"slurm.conf": slurm_conf})
 
     def _on_install(self, event):
         """Perform installation operations for slurmctld."""

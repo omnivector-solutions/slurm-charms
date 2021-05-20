@@ -21,13 +21,13 @@ myjuju () {
 }
 
 @test "Assert we can change the slurm settings for NHC - interval" {
-	juju config slurmd health-check-interval=3
-	run juju run-action slurmd/leader show-current-config --wait
+	juju config slurmctld health-check-interval=3
+	run juju run-action slurmctld/leader show-current-config --wait
 	assert_output --partial "HealthCheckInterval=3"
 }
 
 @test "Assert we can change the slurm settings for NHC - state" {
-	juju config slurmd health-check-state="CYCLE,ANY"
-	run juju run-action slurmd/leader show-current-config --wait
+	juju config slurmctld health-check-state="CYCLE,ANY"
+	run juju run-action slurmctld/leader show-current-config --wait
 	assert_output --partial "HealthCheckNodeState=CYCLE,ANY"
 }

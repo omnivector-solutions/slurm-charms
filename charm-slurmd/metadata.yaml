@@ -24,9 +24,6 @@ series:
 provides:
   slurmd:
     interface: slurmd
-  nrpe-external-master:
-    interface: nrpe-external-master
-    scope: container
 
 peers:
   slurmd-peer:

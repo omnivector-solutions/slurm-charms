@@ -2,6 +2,7 @@
 """SlurmdCharm."""
 import base64
 import logging
+from time import sleep
 
 from ops.charm import CharmBase
 from ops.framework import StoredState
@@ -88,6 +89,24 @@ class SlurmdCharm(CharmBase):
         self.unit.status = ActiveStatus("Slurmd available")
         return True
 
+    def _check_slurmd(self, max_attemps=3):
+        """Ensure slurmd is up and running."""
+        logger.debug('## Checking if slurmd is active')
+
+        for i in range(max_attemps):
+            if self._slurm_manager.slurm_is_active():
+                logger.debug('## Slurmd running')
+                break
+            else:
+                logger.warning('## Slurmd not running, trying to start it')
+                self.unit.status = WaitingStatus('Starting slurmd')
+                sleep(1)
+
+                self._slurm_manager.slurm_systemctl('restart')
+
+        if self._slurm_manager.slurm_is_active():
+            self.unit.status = ActiveStatus("Slurmd available")
+
     def set_slurmctld_available(self, flag: bool):
         """Change stored value for slurmctld availability."""
         self._stored.slurmctld_available = flag
@@ -107,6 +126,7 @@ class SlurmdCharm(CharmBase):
 
         self._on_set_partition_info_on_app_relation_data(event)
         self._slurm_manager.slurm_systemctl('restart')
+        self._check_slurmd()
 
     def _on_config_changed(self, event):
         if self.model.unit.is_leader():

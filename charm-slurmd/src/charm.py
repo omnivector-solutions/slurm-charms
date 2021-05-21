@@ -77,9 +77,12 @@ class SlurmdCharm(CharmBase):
             self.unit.status = WaitingStatus('Waiting slurmd installation')
             return False
 
-        # if slurmctld is available, we have the munge key as well
-        if not self._stored.slurmctld_available:
+        if not (self._stored.slurmctld_available and self._slurmd.is_joined):
             self.unit.status = WaitingStatus('Waiting on slurmctld relation')
+            return False
+
+        if not self._stored.munge_key_available:
+            self.unit.status = WaitingStatus('Waiting munge key')
             return False
 
         self.unit.status = ActiveStatus("Slurmd available")
@@ -117,7 +120,7 @@ class SlurmdCharm(CharmBase):
                 self._slurm_manager.render_nhc_config(nhc_conf)
 
     def _on_write_munge_key(self, event):
-        if not self._check_status():
+        if not self._stored.slurm_installed:
             event.defer()
             return
 
@@ -205,8 +208,6 @@ class SlurmdCharm(CharmBase):
                     )
                 else:
                     event.defer()
-            # unneeded possible breakage
-            # https://www.pivotaltracker.com/story/show/177270742
             else:
                 event.defer()
 

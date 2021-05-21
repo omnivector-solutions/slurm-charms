@@ -84,6 +84,9 @@ class Slurmd(Object):
         Get the munge_key from slurmctld and save it to the charm stored state.
         """
         event_app_data = event.relation.data.get(event.app)
+        if not event_app_data:
+            event.defer()
+            return
 
         # slurmctld sets the munge_key on the relation-created event
         # which happens before relation-joined. We can almost guarantee that

@@ -70,6 +70,10 @@ class Slurmd(Object):
 
     def _on_relation_changed(self, event):
         event_app_data = event.relation.data.get(event.app)
+        if not event_app_data:
+            event.defer()
+            return
+
         partition_info = event_app_data.get("partition_info")
         if partition_info:
             self._charm.set_slurmd_available(True)

@@ -70,7 +70,7 @@ class SlurmdPeer(Object):
             self.on.slurmd_peer_available.emit()
 
     def _on_relation_departed(self, event):
-        logger.debug(f"####### RATS EVENT : {event.__dict__}")
+        logger.debug(f"## slurmd peer departed: {event.__dict__}")
         self.on.slurmd_peer_departed.emit()
 
     def get_slurmd_inventory(self):

@@ -9,7 +9,6 @@ from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
 from interface_slurmrestd import Slurmrestd
 from interface_slurmctld_peer import SlurmctldPeer
-#from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -56,7 +55,6 @@ class SlurmctldCharm(CharmBase):
             self._slurmrestd.on.slurmrestd_unavailable: self._on_write_slurm_config,
             self._slurmctld_peer.on.slurmctld_peer_available: self._on_write_slurm_config, # NOTE: a second slurmctld should get the jwt/munge keys and configure them
             # actions
-            self.on.debug_action: self._debug_action, # TODO remove this on cleanup
             self.on.show_current_config_action: self._on_show_current_config,
             self.on.drain_action: self._drain_nodes_action,
             self.on.resume_action: self._resume_nodes_action,
@@ -130,11 +128,6 @@ class SlurmctldCharm(CharmBase):
         """Return true/false based on whether or not slurm is installed."""
         return self._stored.slurm_installed
 
-    def _debug_action(self, event):
-        slurm_config = self._assemble_slurm_config()
-        logger.debug(f"############ DEBUG FUNC RATS -> {slurm_config}")
-        event.set_results({"slurmctld-info": slurm_config})
-
     def _on_show_current_config(self, event):
         """Show current slurm.conf."""
         slurm_conf = self._slurm_manager.get_slurm_conf()
@@ -142,7 +135,7 @@ class SlurmctldCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmctld."""
-        logger.debug(f"######### ON_INSTALL: {self.on.__dict__}")
+        logger.debug(f"##l ON_INSTALL: {self.on.__dict__}")
 
         self._slurm_manager.install()
 
@@ -231,12 +224,12 @@ class SlurmctldCharm(CharmBase):
         slurmd_info = self._slurmd_info
         cluster_info = self._cluster_info
 
-        logger.debug("######## RATS INFO - d, ctld, dbd, cluster")
+        logger.debug("######## INFO")
         logger.debug(f'## slurmd: {slurmd_info}')
         logger.debug(f'## slurmctld_info: {slurmctld_info}')
         logger.debug(f'## slurmdbd_info: {slurmdbd_info}')
         logger.debug(f'## cluster_info: {cluster_info}')
-        logger.debug("######## RATS INFO - end")
+        logger.debug("######## INFO - end")
 
         if not (slurmctld_info and slurmd_info and slurmdbd_info):
             return {}

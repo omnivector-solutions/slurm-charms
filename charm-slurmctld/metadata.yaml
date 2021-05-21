@@ -31,3 +31,5 @@ requires:
     interface: slurmd
   slurmdbd:
     interface: slurmdbd
+  slurmrestd:
+    interface: slurmrestd

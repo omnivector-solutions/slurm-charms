@@ -28,6 +28,10 @@ class MungeKeyAvailableEvent(EventBase):
     """MungeKeyAvailableEvent."""
 
 
+class JwtRsaAvailableEvent(EventBase):
+    """JwtRsaAvailableEvent."""
+
+
 class RestartSlurmrestdEvent(EventBase):
     """RestartSlurmrestdEvent."""
 
@@ -38,6 +42,7 @@ class SlurmrestdEvents(ObjectEvents):
     config_available = EventSource(SlurmrestdAvailableEvent)
     config_unavailable = EventSource(SlurmrestdUnavailableEvent)
     munge_key_available = EventSource(MungeKeyAvailableEvent)
+    jwt_rsa_available = EventSource(JwtRsaAvailableEvent)
     restart_slurmrestd = EventSource(RestartSlurmrestdEvent)
 
 
@@ -56,6 +61,7 @@ class SlurmrestdRequires(Object):
 
         self._stored.set_default(
             munge_key=str(),
+            jwt_rsa=str(),
             slurm_config=dict(),
             restart_slurmrestd_uuid=str(),
         )
@@ -74,7 +80,7 @@ class SlurmrestdRequires(Object):
         )
 
     def _on_relation_joined(self, event):
-        """Get the munge key from slurm-configurator on relation joined."""
+        """Get the munge/jwt keys from slurmctld on relation joined."""
         # Since we are in relation-joined (with the app on the other side)
         # we can almost guarantee that the app object will exist in
         # the event, but check for it just in case.
@@ -83,7 +89,7 @@ class SlurmrestdRequires(Object):
             event.defer()
             return
 
-        # slurm-configurator sets the munge_key on the relation-created event
+        # slurmctld sets the munge_key on the relation-created event
         # which happens before relation-joined. We can almost guarantee that
         # the munge key will exist at this point, but check for it just incase.
         munge_key = event_app_data.get("munge_key")
@@ -91,9 +97,16 @@ class SlurmrestdRequires(Object):
             event.defer()
             return
 
-        # Store the munge_key in the charm's state
+        jwt_rsa = event_app_data.get("jwt_rsa")
+        if not jwt_rsa:
+            event.defer()
+            return
+
+        # Store the keys in the charm's state
         self._store_munge_key(munge_key)
+        self._store_jwt_rsa(jwt_rsa)
         self.on.munge_key_available.emit()
+        self.on.jwt_rsa_available.emit()
 
     def _on_relation_changed(self, event):
         """Check for the munge_key in the relation data."""
@@ -103,6 +116,7 @@ class SlurmrestdRequires(Object):
             return
 
         munge_key = event_app_data.get('munge_key')
+        jwt_rsa = event_app_data.get('jwt_rsa')
         restart_slurmrestd_uuid = event_app_data.get("restart_slurmrestd_uuid")
         slurm_config = self._get_slurm_config_from_relation()
 
@@ -114,6 +128,11 @@ class SlurmrestdRequires(Object):
         if munge_key != self.get_stored_munge_key():
             self._store_munge_key(munge_key)
             self.on.munge_key_available.emit()
+
+        # Store the jwt_rsa in the interface StoredState if it has changed
+        if jwt_rsa != self.get_stored_jwt_rsa():
+            self._store_jwt_rsa(jwt_rsa)
+            self.on.jwt_rsa_available.emit()
 
         # Store the slurm_config in the interface StoredState if it has changed
         if slurm_config != self.get_stored_slurm_config():
@@ -162,6 +181,13 @@ class SlurmrestdRequires(Object):
     def get_stored_munge_key(self):
         """Retrieve the munge_key from stored state."""
         return self._stored.munge_key
+
+    def _store_jwt_rsa(self, jwt_rsa):
+        self._stored.jwt_rsa = jwt_rsa
+
+    def get_stored_jwt_rsa(self):
+        """Retrieve the jwt_rsa from stored state."""
+        return self._stored.jwt_rsa
 
     def _store_slurm_config(self, slurm_config):
         self._stored.slurm_config = slurm_config

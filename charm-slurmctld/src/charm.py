@@ -7,6 +7,7 @@ import subprocess
 
 from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
+from interface_slurmrestd import Slurmrestd
 from interface_slurmctld_peer import SlurmctldPeer
 #from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
@@ -32,6 +33,7 @@ class SlurmctldCharm(CharmBase):
             munge_key=str(),
             slurm_installed=False,
             slurmd_available=False,
+            slurmrestd_available=False,
             slurmdbd_available=False,
             down_nodes=list(),
         )
@@ -40,6 +42,7 @@ class SlurmctldCharm(CharmBase):
 
         self._slurmd = Slurmd(self, "slurmd")
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
+        self._slurmrestd = Slurmrestd(self, "slurmrestd")
         self._slurmctld_peer = SlurmctldPeer(self, "slurmctld-peer")
 
         event_handler_bindings = {
@@ -49,6 +52,8 @@ class SlurmctldCharm(CharmBase):
             self._slurmdbd.on.slurmdbd_unavailable: self._on_write_slurm_config,
             self._slurmd.on.slurmd_available: self._on_write_slurm_config,
             self._slurmd.on.slurmd_unavailable: self._on_write_slurm_config,
+            self._slurmrestd.on.slurmrestd_available: self._on_slurmrestd_available,
+            self._slurmrestd.on.slurmrestd_unavailable: self._on_write_slurm_config,
             self._slurmctld_peer.on.slurmctld_peer_available: self._on_write_slurm_config, # NOTE: a second slurmctld should get the jwt/munge keys and configure them
             # actions
             self.on.debug_action: self._debug_action, # TODO remove this on cleanup
@@ -113,6 +118,10 @@ class SlurmctldCharm(CharmBase):
     def set_slurmdbd_available(self, flag: bool):
         """Set stored value of slurmdbd available."""
         self._stored.slurmdbd_available = flag
+
+    def set_slurmrestd_available(self, flag: bool):
+        """Set stored value of slurmdrest available."""
+        self._stored.slurmrestd_available = flag
 
     def _is_leader(self):
         return self.model.unit.is_leader()
@@ -249,6 +258,27 @@ class SlurmctldCharm(CharmBase):
             **cluster_info,
         }
 
+    def _on_slurmrestd_available(self, event):
+        """Set slurm_config on the relation when slurmrestd available."""
+        if not self._check_status():
+            event.defer()
+            return
+
+        slurm_config = self._assemble_slurm_config()
+
+        if not slurm_config:
+            self.unit.status = BlockedStatus(
+                "Cannot generate slurm_config - defering event."
+            )
+            event.defer()
+            return
+
+        if self._stored.slurmrestd_available:
+            self._slurmrestd.set_slurm_config_on_app_relation_data(
+                slurm_config,
+            )
+            self._slurmrestd.restart_slurmrestd()
+
     def _on_write_slurm_config(self, event):
         """Check that we have what we need before we proceed."""
         logger.debug("### Slurmctld - _on_write_slurm_config()")
@@ -271,6 +301,13 @@ class SlurmctldCharm(CharmBase):
             self._resume_nodes(configured_nodes)
             # update down nodes cache
             self._stored.down_nodes = down_nodes.copy()
+
+            # slurmrestd needs the slurm.conf file, so send it
+            if self._stored.slurmrestd_available:
+                self._slurmrestd.set_slurm_config_on_app_relation_data(
+                    slurm_config
+                )
+                self._slurmrestd.restart_slurmrestd()
         else:
             logger.debug("## Should rewrite slurm.conf, but we don't have it. "
                          "Deferring.")

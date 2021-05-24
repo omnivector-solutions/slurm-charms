@@ -41,7 +41,7 @@ myjuju () {
 	new_node=$(juju run --model $JUJU_MODEL --unit slurmd/1 hostname)
 
 	flag=0
-	for {0..5}
+	for i in {0..5}
 	do
 		sinfo0=$(juju run "sinfo -n $old_node" -m $JUJU_MODEL --unit slurmctld/leader)
 		sinfo1=$(juju run "sinfo -n $new_node" -m $JUJU_MODEL --unit slurmctld/leader)

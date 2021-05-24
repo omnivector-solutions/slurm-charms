@@ -27,11 +27,14 @@ myjuju () {
 	run juju run-action slurmd/leader -m $JUJU_MODEL node-configured --wait
 	assert_success
 
+	# slurmctld needs some time to update its configs
+	sleep 5
+
 	run juju run "sinfo" -m $JUJU_MODEL --unit slurmctld/leader
 	assert_success
 
-	# check the node is not down anymore
-	assert_line --regexp "juju-compute-[a-zA-Z ]+up *infinite *1 *idle.*"
+	# check the node is not down anymore, therefore idle
+	assert_line --partial "idle"
 }
 
 @test "add a unit of slurmd and verify it is down" {
@@ -40,7 +43,10 @@ myjuju () {
 	old_node=$(juju run --model $JUJU_MODEL --unit slurmd/leader hostname)
 	new_node=$(juju run --model $JUJU_MODEL --unit slurmd/1 hostname)
 
-	flag=0
+	# slurmctld needs some time to update its configs
+	sleep 5
+
+	flag="Polling sinfo 5 times"
 	for i in {0..5}
 	do
 		sinfo0=$(juju run "sinfo -n $old_node" -m $JUJU_MODEL --unit slurmctld/leader)
@@ -83,13 +89,11 @@ myjuju () {
 }
 
 @test "resume a drained node" {
-	# resume slurmd
-	host=$(juju run --model $JUJU_MODEL --unit slurmd/leader hostname)
-	juju run-action -m $JUJU_MODEL slurmctld/leader drain nodename=$host reason="Unit test" --wait
-
-	# resume it
+	# slurmd/leader was drained, so resume it
 	juju run-action -m $JUJU_MODEL slurmctld/leader resume nodename=$host --wait
+	sleep 5
+
 	run juju run -m $JUJU_MODEL --unit slurmctld/leader "sinfo -n $host"
 
-	assert_line --regexp "juju-compute-[a-zA-Z ]+up *infinite *1 *idle.*"
+	assert_line --partial "idle"
 }

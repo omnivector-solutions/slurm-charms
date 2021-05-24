@@ -48,6 +48,7 @@ myjuju () {
 		if [[ "idle" == *"${sinfo0}"* && "down" == *"${sinfo1}"* ]]
 		then
 			flag="nodes are fine"
+			break
 		else
 			sleep 1
 		fi

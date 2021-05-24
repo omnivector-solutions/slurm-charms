@@ -177,7 +177,7 @@ jobs:
         if: ${{ success() }}
         shell: bash
         run: |
-          git clone https://github.com/omnivector-solutions/slurm-bundles -b 1.1.0 ../slurm-bundles
+          git clone https://github.com/omnivector-solutions/slurm-bundles -b restd ../slurm-bundles
 
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
 
@@ -186,15 +186,15 @@ jobs:
             "focal")
 
               juju deploy ./../slurm-bundles/slurm-core/bundle.yaml \
-                  --overlay ./../slurm-bundles/slurm-core/focal/bundle.yaml \
                   --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
-                  --overlay ./../slurm-bundles/slurm-core/focal/clouds/aws.yaml
+                  --overlay ./../slurm-bundles/slurm-core/series/focal.yaml
               ;;
 
             "centos7")
 
               juju deploy ./../slurm-bundles/slurm-core/bundle.yaml \
                   --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
+                  --overlay ./../slurm-bundles/slurm-core/series/centos7.yaml
               ;;
           esac
 
@@ -227,11 +227,8 @@ jobs:
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
 
           # Remove the applications and wait for the model to empty
-          juju remove-application -m $model slurmctld slurmdbd slurmd percona-cluster
+          juju remove-application -m $model slurmrestd slurmctld slurmdbd slurmd percona-cluster
 
-          if [ "${{ matrix.series}}" = "focal" ]; then
-              juju remove-application -m $model slurmrestd
-          fi
           juju-wait -m $model
 
       - name: "Grab the charm logs"
@@ -239,14 +236,10 @@ jobs:
         run: |
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
 
-          for charm in slurmd slurmctld slurmdbd slurmrestd; do
+          for charm in slurmd slurmctld slurmdbd slurmrestd slurmrestd; do
               log=$charm-$model.log
               juju debug-log --replay --include $charm > $log
           done
-
-          if [ "${{ matrix.series}}" = "focal" ]; then
-              juju debug-log --replay --include slurmrestd > slurmrestd-$model.log
-          fi
 
       - name: "Upload slurm charm logs"
         if: ${{ always() }}

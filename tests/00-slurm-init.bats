@@ -5,9 +5,8 @@ load "../node_modules/bats-assert/load"
 
 myjuju () {
 	juju "$@"
-	juju-wait -t 540 -m $JUJU_MODEL
+	juju-wait -t 540 -m "$JUJU_MODEL"
 }
-
 
 @test "test first node is down" {
 	run juju run "sinfo" -m $JUJU_MODEL --unit slurmctld/leader
@@ -46,6 +45,7 @@ myjuju () {
 	assert_line --regexp "juju-compute-[a-zA-Z ]+up *infinite *1 *idle.*"
 }
 
+
 @test "test if we have a new node" {
 	run juju run "sinfo -R" -m $JUJU_MODEL --unit slurmctld/leader
 	assert_success
@@ -70,4 +70,16 @@ myjuju () {
 	run juju run -m $JUJU_MODEL --unit slurmctld/leader "sinfo -n $host"
 
 	assert_line --regexp "juju-compute-[a-zA-Z ]+up *infinite *1 *idle.*"
+}
+
+@test "Ping slurmrestd" {
+	host=$(juju status slurmrestd --format=json | jq .applications.slurmrestd.units | grep public-address | cut -f 4 -d'"')
+	token=$(juju run --model "$JUJU_MODEL" --unit slurmctld/leader "scontrol token username=ubuntu")
+
+	run curl --request GET "$host":6820/slurm/v0.0.36/ping \
+	         --location --silent --show-error \
+	         --header "X-SLURM-USER-NAME: ubuntu" \
+	         --header "X-SLURM-USER-NAME: $token"
+
+	assert_output --partial "Auth"
 }

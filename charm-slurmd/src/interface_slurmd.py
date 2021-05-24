@@ -101,8 +101,8 @@ class Slurmd(Object):
         self.on.munge_key_available.emit()
 
         # get slurmctld's hostname and port to enable configless
-        host = event_app_data.get('slurmctld_host')
-        port = event_app_data.get('slurmctld_port')
+        host = event_app_data.get("slurmctld_host")
+        port = event_app_data.get("slurmctld_port")
         if not (host or port):
             event.defer()
         self._store_slurmctld_host_port(host, port)

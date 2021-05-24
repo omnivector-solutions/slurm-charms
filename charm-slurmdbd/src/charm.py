@@ -95,7 +95,7 @@ class SlurmdbdCharm(CharmBase):
         slurmdbd_stored_config = dict(self._stored.slurmdbd_config)
 
         # settings from the config.yaml
-        config = {'slurmdbd_debug': self.config.get('slurmdbd-debug')}
+        config = {"slurmdbd_debug": self.config.get("slurmdbd-debug")}
 
         slurmdbd_config = {
             **config,

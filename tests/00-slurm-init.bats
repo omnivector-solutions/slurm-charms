@@ -37,13 +37,34 @@ myjuju () {
 @test "add a unit of slurmd and verify it is down" {
 	myjuju add-unit slurmd -m $JUJU_MODEL
 
-	run juju run "sinfo" -m $JUJU_MODEL --unit slurmctld/leader
+	old_node=$(juju run --model $JUJU_MODEL --unit slurmd/leader hostname)
+	new_node=$(juju run --model $JUJU_MODEL --unit slurmd/1 hostname)
+
+	flag=0
+	for {0..5}
+	do
+		sinfo0=$(juju run "sinfo -n $old_node" -m $JUJU_MODEL --unit slurmctld/leader)
+		sinfo1=$(juju run "sinfo -n $new_node" -m $JUJU_MODEL --unit slurmctld/leader)
+		if [[ "idle" == *"${sinfo0}"* && "down" == *"${sinfo1}"* ]]
+		then
+			flag="nodes are fine"
+		else
+			sleep 1
+		fi
+	done
+
+	run echo "$flag"
+	assert_line "nodes are fine"
+
+	# old node should still be idle
+	run juju run "sinfo -n $old_node" -m $JUJU_MODEL --unit slurmctld/leader
 	assert_success
+	assert_line --partial "idle"
 
 	# new node in down state
-	assert_line --regexp "juju-compute-[a-zA-Z ]+up *infinite *1 *down.*"
-	# old node should still be idle
-	assert_line --regexp "juju-compute-[a-zA-Z ]+up *infinite *1 *idle.*"
+	run juju run "sinfo -n $new_node" -m $JUJU_MODEL --unit slurmctld/leader
+	assert_success
+	assert_line --partial "down"
 }
 
 @test "test if we have a new node" {
@@ -53,7 +74,7 @@ myjuju () {
 }
 
 @test "drain a node" {
-	# drain slurmd/leaer
+	# drain slurmd/leader
 	host=$(juju run --model $JUJU_MODEL --unit slurmd/leader hostname)
 	juju run-action -m $JUJU_MODEL slurmctld/leader drain nodename=$host reason="Unit test" --wait
 	run juju run -m $JUJU_MODEL --unit slurmctld/leader "sinfo -R"

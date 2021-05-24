@@ -75,15 +75,15 @@ class SlurmdCharm(CharmBase):
 
     def _check_status(self) -> bool:
         if not self._stored.slurm_installed:
-            self.unit.status = WaitingStatus('Waiting slurmd installation')
+            self.unit.status = WaitingStatus("Waiting slurmd installation")
             return False
 
         if not (self._stored.slurmctld_available and self._slurmd.is_joined):
-            self.unit.status = WaitingStatus('Waiting on slurmctld relation')
+            self.unit.status = WaitingStatus("Waiting on slurmctld relation")
             return False
 
         if not self._stored.munge_key_available:
-            self.unit.status = WaitingStatus('Waiting munge key')
+            self.unit.status = WaitingStatus("Waiting munge key")
             return False
 
         self.unit.status = ActiveStatus("Slurmd available")
@@ -91,15 +91,15 @@ class SlurmdCharm(CharmBase):
 
     def _check_slurmd(self, max_attemps=3):
         """Ensure slurmd is up and running."""
-        logger.debug('## Checking if slurmd is active')
+        logger.debug("## Checking if slurmd is active")
 
         for i in range(max_attemps):
             if self._slurm_manager.slurm_is_active():
-                logger.debug('## Slurmd running')
+                logger.debug("## Slurmd running")
                 break
             else:
-                logger.warning('## Slurmd not running, trying to start it')
-                self.unit.status = WaitingStatus('Starting slurmd')
+                logger.warning("## Slurmd not running, trying to start it")
+                self.unit.status = WaitingStatus("Starting slurmd")
                 sleep(1)
 
                 self._slurm_manager.slurm_systemctl('restart')

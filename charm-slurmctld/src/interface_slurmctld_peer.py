@@ -61,7 +61,7 @@ class SlurmctldPeer(Object):
         unit_relation_data = relation.data[self.model.unit]
 
         unit_relation_data["hostname"] = self._charm.hostname
-        unit_relation_data["port"] = str(self._charm.port)
+        unit_relation_data["port"] = self._charm.port
 
         # Call _on_relation_changed to assemble the slurmctld_info and
         # emit the slurmctld_peer_available event.

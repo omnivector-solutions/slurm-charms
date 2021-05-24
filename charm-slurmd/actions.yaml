@@ -7,26 +7,32 @@ show-nhc-config:
   description: Display the currently used nhc.conf
 
 get-infiniband-repo:
-  description: Display the currently configured repository for Infiniband drivers.
+  description: >
+    Display the currently configured repository for Infiniband drivers.
 set-infiniband-repo:
   description: Set the new infiniband repository.
   params:
     repo:
       type: string
-      description: Base64 encoded string that holds all information about the repository.
+      description: >
+        Base64 encoded string that holds all information about the repository.
   required:
     - repo
   description: >
-    Overrides the repository file with a custom repository for Infiniband installation.
+    Overrides the repository file with a custom repository for Infiniband
+    installation.
 
     Note: this file should be base64 encoded.
 
-    On CentOS, the file is placed at /etc/yum.repos.d/infiniband.repo, while on Ubuntu it is at /etc/apt/sources.list.d/infiniband.list.
+    On CentOS, the file is placed at /etc/yum.repos.d/infiniband.repo, while on
+    Ubuntu it is at /etc/apt/sources.list.d/infiniband.list.
 install-infiniband:
   description: >
-    Install Mellanox Infiniband drivers. This might take a few minutes to complete.
+    Install Mellanox Infiniband drivers. This might take a few minutes to
+    complete.
 
-    If no custom repository was specified before, this action will set the Mellanox repository as the default and install the latest drivers from it.
+    If no custom repository was specified before, this action will set the
+    Mellanox repository as the default and install the latest drivers from it.
 uninstall-infiniband:
   description: Uninstall Mellanox Infiniband drivers.
 start-infiniband:

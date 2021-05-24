@@ -165,7 +165,7 @@ class SlurmctldCharm(CharmBase):
 
         msg = ""
         if not self._stored.slurmd_available:
-            msg += "slurmd"
+            msg += " slurmd"
         if not self._stored.slurmdbd_available:
             msg += " slurmdbd"
 

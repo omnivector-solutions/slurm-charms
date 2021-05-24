@@ -2,25 +2,25 @@ options:
   cluster-name:
     type: string
     default: osd-cluster
-    description: |
+    description: >
       Name to be recorded in database for jobs from this cluster.  This is
       important if a single database is used to record information from
       multiple Slurm-managed clusters.
   default-partition:
     type: string
     default: ""
-    description: |
+    description: >
       Default Slurm partition. This is only used if defined, and must match an
       existing partition.
   custom-config:
     type: string
     default: ""
-    description: |
+    description: >
       User supplied slurm confinguration.
   proctrack-type:
     type: string
     default: proctrack/cgroup
-    description: |
+    description: >
       Identifies the plugin to be used for process tracking on a job step
       basis.
   cgroup-config:
@@ -28,7 +28,7 @@ options:
     default: |
       CgroupAutomount=yes
       ConstrainCores=yes
-    description: |
+    description: >
       Configuration content for cgroup.conf
   health-check-interval:
     default: 600

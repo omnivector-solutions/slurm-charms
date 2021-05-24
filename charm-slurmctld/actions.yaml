@@ -8,7 +8,8 @@ drain:
   description: >
     Drain specified nodes.
 
-    Example usage: juju run-action slurmctld/leader drain nodename=node-[1,2] reason="Updating kernel"
+    Example usage:
+    $ juju run-action slurmctld/leader drain nodename=node-[1,2] reason="Updating kernel"
   params:
     nodename:
       type: string
@@ -30,6 +31,7 @@ resume:
   params:
     nodename:
       type: string
-      description: The nodes to resume, using the Slurm format, e.g. node-[1,2].
+      description: >
+        The nodes to resume, using the Slurm format, e.g. node-[1,2].
   required:
     - nodename

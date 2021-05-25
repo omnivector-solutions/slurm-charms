@@ -74,6 +74,12 @@ class SlurmdCharm(CharmBase):
         self._check_status()
 
     def _check_status(self) -> bool:
+        """Check if we heve all needed components.
+
+        - slurm installed,
+        - slurmctld available and working,
+        - munge key
+        """
         if not self._stored.slurm_installed:
             self.unit.status = WaitingStatus("Waiting slurmd installation")
             return False
@@ -100,12 +106,12 @@ class SlurmdCharm(CharmBase):
             else:
                 logger.warning("## Slurmd not running, trying to start it")
                 self.unit.status = WaitingStatus("Starting slurmd")
-                sleep(1)
+                sleep(1 + i)
 
-                self._slurm_manager.slurm_systemctl('restart')
+                self._slurm_manager.restart_slurm_component()
 
         if self._slurm_manager.slurm_is_active():
-            self.unit.status = ActiveStatus("Slurmd available")
+            self._check_status()
 
     def set_slurmctld_available(self, flag: bool):
         """Change stored value for slurmctld availability."""

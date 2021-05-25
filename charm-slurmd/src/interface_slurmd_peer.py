@@ -108,6 +108,7 @@ class SlurmdPeer(Object):
             dict(self._stored.inventory)
         )
 
+        self._charm._check_slurmd()
         self.on.slurmd_peer_available.emit()
 
     def get_node_inventory(self):

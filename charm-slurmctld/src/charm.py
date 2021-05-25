@@ -135,23 +135,26 @@ class SlurmctldCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmctld."""
-        logger.debug(f"##l ON_INSTALL: {self.on.__dict__}")
+        self.unit.status = WaitingStatus("Installing slurmctld")
 
-        self._slurm_manager.install()
+        successful_installation = self._slurm_manager.install()
 
-        # Store the munge_key and jwt_rsa key in the stored state.
-        #
-        # NOTE: Use leadership settings instead of stored state when
-        # leadership settings support becomes available in the framework.
-        if self._is_leader():
-            self._stored.jwt_rsa = self._slurm_manager.generate_jwt_rsa()
-            self._stored.munge_key = self._slurm_manager.get_munge_key()
+        if successful_installation:
+            self._stored.slurm_installed = True
 
-            # NOTE the backup controller should also have the jwt and munge
-            # keys configured.
-            self._slurm_manager.configure_jwt_rsa(self.get_jwt_rsa())
+            # Store the munge_key and jwt_rsa key in the stored state.
+            # NOTE: Use leadership settings instead of stored state when
+            # leadership settings support becomes available in the framework.
+            if self._is_leader():
+                self._stored.jwt_rsa = self._slurm_manager.generate_jwt_rsa()
+                self._stored.munge_key = self._slurm_manager.get_munge_key()
 
-        self._stored.slurm_installed = True
+                # NOTE the backup controller should also have the jwt and munge
+                # keys configured.
+                self._slurm_manager.configure_jwt_rsa(self.get_jwt_rsa())
+        else:
+            self.unit.status = BlockedStatus("Error installing Slurm")
+            event.defer()
 
         self._check_status()
 
@@ -160,7 +163,7 @@ class SlurmctldCharm(CharmBase):
         # NOTE: improve this function to display joined/available
 
         if not self._stored.slurm_installed:
-            self.unit.stauts = WaitingStatus('Waiting slurm installation')
+            self.unit.stauts = BlockedStatus("Error installing Slurm")
             return False
 
         msg = ""

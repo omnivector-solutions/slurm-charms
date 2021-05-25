@@ -64,13 +64,22 @@ class SlurmdCharm(CharmBase):
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
-        self._slurm_manager.install()
+        """Perform installation operations for slurmd."""
+        self.unit.status = WaitingStatus("Installing slurmd")
 
-        if self.model.unit.is_leader():
-            self._get_set_partition_name()
-            logger.debug(f"PARTITION_NAME: {self._stored.partition_name}")
+        successful_installation = self._slurm_manager.install()
+        logger.debug(f"### slurmd installed: {successful_installation}")
 
-        self._stored.slurm_installed = True
+        if successful_installation:
+            self._stored.slurm_installed = True
+
+            if self.model.unit.is_leader():
+                self._get_set_partition_name()
+                logger.debug(f"PARTITION_NAME: {self._stored.partition_name}")
+        else:
+            self.unit.status = BlockedStatus("Error installing slurm")
+            event.defer()
+
         self._check_status()
 
     def _check_status(self) -> bool:
@@ -81,7 +90,7 @@ class SlurmdCharm(CharmBase):
         - munge key
         """
         if not self._stored.slurm_installed:
-            self.unit.status = WaitingStatus("Waiting slurmd installation")
+            self.unit.status = BlockedStatus("Error installing slurm")
             return False
 
         if not (self._stored.slurmctld_available and self._slurmd.is_joined):

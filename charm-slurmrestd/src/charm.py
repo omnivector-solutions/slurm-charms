@@ -43,11 +43,19 @@ class SlurmrestdCharm(CharmBase):
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
-        self._slurm_manager.install()
-        self.unit.status = ActiveStatus("slurm installed")
-        self._stored.slurm_installed = True
+        """Perform installation operations for slurmrestd."""
+        self.unit.status = WaitingStatus("Installing slurmrestd")
 
-        self._slurm_manager.start_munged()
+        successful_installation = self._slurm_manager.install()
+
+        if successful_installation:
+            self.unit.status = ActiveStatus("Slurm installed")
+            self._stored.slurm_installed = True
+
+            self._slurm_manager.start_munged()
+        else:
+            self.unit.status = BlockedStatus("Error installing Slurm")
+            event.defer()
 
     def _on_restart_slurmrestd(self, event):
         """Resart the slurmrestd component."""
@@ -79,6 +87,10 @@ class SlurmrestdCharm(CharmBase):
         self._stored.munge_key_available = True
 
     def _check_status(self):
+        if not self._stored.slurm_installed:
+            self.unit.status = BlockedStatus("Error installing slurm")
+            return None
+
         slurm_config = self._slurmrestd.get_stored_slurm_config()
         munge_key_available = self._stored.munge_key_available
 

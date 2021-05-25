@@ -9,7 +9,7 @@ from interface_slurmdbd_peer import SlurmdbdPeer
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 from slurm_ops_manager import SlurmManager
 
 logger = logging.getLogger()
@@ -50,11 +50,19 @@ class SlurmdbdCharm(CharmBase):
             self.framework.observe(event, handler)
 
     def _on_install(self, event):
-        self._slurm_manager.install()
-        self._stored.slurm_installed = True
-        self.unit.status = ActiveStatus("slurm successfully installed")
+        """Perform installation operations for slurmdbd."""
+        self.unit.status = WaitingStatus("Installing slurmdbd")
 
-        self._slurm_manager.start_munged()
+        successful_installation = self._slurm_manager.install()
+
+        if successful_installation:
+            self._stored.slurm_installed = True
+            self.unit.status = ActiveStatus("Slurm successfully installed")
+
+            self._slurm_manager.start_munged()
+        else:
+            self.unit.status = BlockedStatus("Error installing Slurm")
+            event.defer()
 
     def _on_slurmctld_available(self, event):
         if not self._stored.slurm_installed:
@@ -123,6 +131,10 @@ class SlurmdbdCharm(CharmBase):
         slurmctld_available = self._stored.slurmctld_available
         slurm_installed = self._stored.slurm_installed
         slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
+
+        if not self._stored.slurm_installed:
+            self.unit.status = BlockedStatus("Error installing slurm")
+            return False
 
         deps = [
             slurmdbd_info,

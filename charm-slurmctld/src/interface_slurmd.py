@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
-"""Slurmd."""
+"""Interface slurmd."""
 import copy
-import uuid
 import json
 import logging
-import socket
 
 from ops.framework import (
     EventBase, EventSource, Object, ObjectEvents, StoredState
 )
 
-from utils import get_inventory
 
 logger = logging.getLogger()
 
@@ -23,7 +20,7 @@ class SlurmdBrokenEvent(EventBase):
     """Emmited when the slurmd relation is broken."""
 
 
-class SlurmdRequiresEvents(ObjectEvents):
+class SlurmdInventoryEvents(ObjectEvents):
     """SlurmClusterProviderRelationEvents."""
 
     slurmd_available = EventSource(SlurmdAvailableEvent)
@@ -31,9 +28,9 @@ class SlurmdRequiresEvents(ObjectEvents):
 
 
 class Slurmd(Object):
-    """Slurmd."""
+    """Slurmd inventory interface."""
 
-    on = SlurmdRequiresEvents()
+    on = SlurmdInventoryEvents()
     _state = StoredState()
 
     def __init__(self, charm, relation_name):
@@ -61,28 +58,34 @@ class Slurmd(Object):
         if not self._charm.is_slurm_installed():
             event.defer()
             return
-        # Get the munge_key from the slurm_ops_manager and set it to the app
-        # data on the relation to be retrieved on the other side by slurmdbd.
+
+        # Get the munge_key from set it to the app data on the relation to be
+        # retrieved on the other side by slurmdbd.
         app_relation_data = event.relation.data[self.model.app]
         app_relation_data["munge_key"] = self._charm.get_munge_key()
 
+        # send the hostname and port to enable configless mode
+        app_relation_data["slurmctld_host"] = self._charm.hostname
+        app_relation_data["slurmctld_port"] = self._charm.port
+
     def _on_relation_changed(self, event):
         event_app_data = event.relation.data.get(event.app)
-        if event_app_data:
-            partition_info = event_app_data.get("partition_info")
-            if partition_info:
-                self._charm.set_slurmd_available(True)
-                self.on.slurmd_available.emit()
-        else:
+        if not event_app_data:
             event.defer()
             return
+
+        partition_info = event_app_data.get("partition_info")
+        if partition_info:
+            self._charm.set_slurmd_available(True)
+            self.on.slurmd_available.emit()
+        else:
+            event.defer()
 
     def _on_relation_broken(self, event):
         if self.framework.model.unit.is_leader():
             event.relation.data[self.model.app]["munge_key"] = ""
-            self.set_slurm_config_on_app_relation_data("")
-        self._charm.set_slurmd_available(False)
         self.on.slurmd_unavailable.emit()
+        self._charm.set_slurmd_available(False)
 
     @property
     def _num_relations(self):
@@ -92,18 +95,6 @@ class Slurmd(Object):
     def is_joined(self):
         """Return True if self._relation is not None."""
         return self._num_relations > 0
-
-    def _assemble_slurm_configurator_inventory(self):
-        """Assemble the slurm-configurator partition."""
-        hostname = socket.gethostname()
-        inventory = get_inventory(hostname, hostname)
-
-        return {
-            "inventory": [inventory],
-            "partition_name": "configurator",
-            "partition_state": "INACTIVE",
-            "partition_config": "",
-        }
 
     def get_slurmd_info(self):
         """Return the node info for units of applications on the relation."""
@@ -121,34 +112,7 @@ class Slurmd(Object):
                     else:
                         logger.warning(f"### interface slurmd - get_slurmd_info - no partition_info for {relation}")
 
-        slurm_configurator = self._assemble_slurm_configurator_inventory()
-        partitions.append(slurm_configurator)
         return ensure_unique_partitions(partitions)
-
-    def set_slurm_config_on_app_relation_data(
-        self,
-        slurm_config,
-    ):
-        """Set the slurm_conifg to the app data on the relation.
-
-        Setting data on the relation forces the units of related applications
-        to observe the relation-changed event so they can acquire and
-        render the updated slurm_config.
-        """
-        relations = self._charm.framework.model.relations["slurmd"]
-        for relation in relations:
-            app_relation_data = relation.data[self.model.app]
-            if slurm_config != "":
-                app_relation_data["slurm_config"] = json.dumps(slurm_config)
-            else:
-                app_relation_data["slurm_config"] = slurm_config
-
-    def restart_slurmd(self):
-        """Send a restart signal to related slurmd applications."""
-        relations = self._charm.framework.model.relations["slurmd"]
-        for relation in relations:
-            app_relation_data = relation.data[self.model.app]
-            app_relation_data["restart_slurmd_uuid"] = str(uuid.uuid4())
 
 
 def ensure_unique_partitions(partitions):

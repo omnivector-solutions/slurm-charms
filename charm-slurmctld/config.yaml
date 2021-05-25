@@ -1,17 +1,40 @@
 options:
-  nagios_context:
-    default: "juju"
+  cluster-name:
     type: string
-    description: |
-      Used by the nrpe subordinate charms.
-      A string that will be prepended to instance name to set the host name
-      in nagios. So for instance the hostname would be something like:
-          juju-myservice-0
-      If you're running multiple environments with the same services in them
-      this allows you to differentiate between them.
-  nagios_servicegroups:
+    default: osd-cluster
+    description: >
+      Name to be recorded in database for jobs from this cluster.  This is
+      important if a single database is used to record information from
+      multiple Slurm-managed clusters.
+  default-partition:
+    type: string
     default: ""
+    description: >
+      Default Slurm partition. This is only used if defined, and must match an
+      existing partition.
+  custom-config:
     type: string
-    description: |
-      A comma-separated list of nagios servicegroups.
-      If left empty, the nagios_context will be used as the servicegroup
+    default: ""
+    description: >
+      User supplied slurm confinguration.
+  proctrack-type:
+    type: string
+    default: proctrack/cgroup
+    description: >
+      Identifies the plugin to be used for process tracking on a job step
+      basis.
+  cgroup-config:
+    type: string
+    default: |
+      CgroupAutomount=yes
+      ConstrainCores=yes
+    description: >
+      Configuration content for cgroup.conf
+  health-check-interval:
+    default: 600
+    type: int
+    description: Interval in seconds between executions of the Health Check.
+  health-check-state:
+    default: "ANY,CYCLE"
+    type: string
+    description: Only run the Health Check on nodes in this state.

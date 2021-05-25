@@ -13,7 +13,7 @@ class SlurmdbdAvailableEvent(EventBase):
     """Emits slurmdbd_available."""
 
 
-class SlurmdbdUnAvailableEvent(EventBase):
+class SlurmdbdUnavailableEvent(EventBase):
     """Emits slurmdbd_unavailable."""
 
 
@@ -21,7 +21,7 @@ class SlurmdbdAvailableEvents(ObjectEvents):
     """SlurmdbdAvailableEvents."""
 
     slurmdbd_available = EventSource(SlurmdbdAvailableEvent)
-    slurmdbd_unavailable = EventSource(SlurmdbdUnAvailableEvent)
+    slurmdbd_unavailable = EventSource(SlurmdbdUnavailableEvent)
 
 
 class Slurmdbd(Object):
@@ -81,9 +81,10 @@ class Slurmdbd(Object):
             if slurmdbd_info:
                 self._charm.set_slurmdbd_available(True)
                 self.on.slurmdbd_available.emit()
+            else:
+                event.defer()
         else:
             event.defer()
-            return
 
     def _on_relation_departed(self, event):
         self.on.slurmdbd_unavailable.emit()
@@ -91,6 +92,7 @@ class Slurmdbd(Object):
     def _on_relation_broken(self, event):
         if self.framework.model.unit.is_leader():
             event.relation.data[self.model.app]["munge_key"] = ""
+            event.relation.data[self.model.app]["jwt_rsa"] = ""
         self._charm.set_slurmdbd_available(False)
         self.on.slurmdbd_unavailable.emit()
 
@@ -98,14 +100,10 @@ class Slurmdbd(Object):
     def _relation(self):
         return self.framework.model.get_relation(self._relation_name)
 
-    @property
-    def is_joined(self):
-        """Return True if self._relation is not None."""
-        return self._relation is not None
-
     def get_slurmdbd_info(self):
         """Return the slurmdbd_info."""
         relation = self._relation
+        # NOTE: clean up these dangling statements
         if relation:
             app = relation.app
             if app:

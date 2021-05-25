@@ -19,13 +19,10 @@ slurmctld: ## Build slurmctld
 slurmdbd: ## Build slurmdbd
 	@charmcraft build --from charm-slurmdbd
 
-slurm-configurator: ## Build slurm-configurator
-	@charmcraft build --from charm-slurm-configurator
-
 slurmrestd: ## Build slurmrestd
 	@charmcraft build --from charm-slurmrestd
 
-charms: slurmd slurmdbd slurmctld slurmrestd slurm-configurator ## Build all charms
+charms: slurmd slurmdbd slurmctld slurmrestd ## Build all charms
 
 pull-classic-snap: ## Pull the classic slurm snap from github
 	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource
@@ -40,8 +37,8 @@ pull-charms-from-edge: clean ## pull charms from edge s3
 	@./scripts/pull_charms.sh edge
 
 format: # reformat source python files
-	isort charm-slurmd charm-slurmdbd charm-slurmctld charm-slurm-configurator --skip-glob '*/[0-9][0-9][0-9][0-9]*.py'
-	black charm-slurmd charm-slurmdbd charm-slurmctld charm-slurm-configurator --exclude '\d{4}.*\.py'
+	isort charm-slurmd charm-slurmdbd charm-slurmctld --skip-glob '*/[0-9][0-9][0-9][0-9]*.py'
+	black charm-slurmd charm-slurmdbd charm-slurmctld --exclude '\d{4}.*\.py'
 
 # Display target comments in 'make help'
 help: 

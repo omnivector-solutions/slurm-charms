@@ -1,8 +1,15 @@
+show-current-config:
+  description: >
+    Display the currently used slurm.conf.
+
+    This action is best visualized with:
+    $ juju run-action slurmctld/leader --format=json --wait | jq .[].results.slurm.conf | xargs -I % -0 python3 -c 'print(%)'
 drain:
   description: >
     Drain specified nodes.
 
-    Example usage: juju run-action slurmctld/leader drain nodename=node-[1,2] reason="Updating kernel"
+    Example usage:
+    $ juju run-action slurmctld/leader drain nodename=node-[1,2] reason="Updating kernel"
   params:
     nodename:
       type: string
@@ -24,6 +31,7 @@ resume:
   params:
     nodename:
       type: string
-      description: The nodes to resume, Using the Slurm format, e.g. node-[1,2].
+      description: >
+        The nodes to resume, using the Slurm format, e.g. node-[1,2].
   required:
     - nodename

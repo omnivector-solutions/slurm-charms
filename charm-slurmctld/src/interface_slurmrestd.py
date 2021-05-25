@@ -49,10 +49,12 @@ class Slurmrestd(Object):
         if not self._charm.is_slurm_installed():
             event.defer()
             return
+
         # Get the munge_key from the slurm_ops_manager and set it to the app
         # data on the relation to be retrieved on the other side by slurmdbd.
         app_relation_data = event.relation.data[self.model.app]
         app_relation_data["munge_key"] = self._charm.get_munge_key()
+        app_relation_data["jwt_rsa"] = self._charm.get_jwt_rsa()
         self._charm.set_slurmrestd_available(True)
         self.on.slurmrestd_available.emit()
 

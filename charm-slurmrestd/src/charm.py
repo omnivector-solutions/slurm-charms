@@ -33,17 +33,11 @@ class SlurmrestdCharm(CharmBase):
         self._slurmrestd = SlurmrestdRequires(self, 'slurmrestd')
 
         event_handler_bindings = {
-            self.on.install:
-            self._on_install,
-
-            self._slurmrestd.on.config_available:
-            self._on_check_status_and_write_config,
-
-            self._slurmrestd.on.munge_key_available:
-            self._on_configure_munge_key,
-
-            self._slurmrestd.on.restart_slurmrestd:
-            self._on_restart_slurmrestd,
+            self.on.install: self._on_install,
+            self._slurmrestd.on.config_available: self._on_check_status_and_write_config,
+            self._slurmrestd.on.munge_key_available: self._on_configure_munge_key,
+            self._slurmrestd.on.jwt_rsa_available: self._on_configure_jwt_rsa,
+            self._slurmrestd.on.restart_slurmrestd: self._on_restart_slurmrestd,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -75,22 +69,27 @@ class SlurmrestdCharm(CharmBase):
         self._slurm_manager.restart_munged()
         self._stored.munge_key_available = True
 
+    def _on_configure_jwt_rsa(self, event):
+        if not self._stored.slurm_installed:
+            event.defer()
+            return
+
+        jwt_rsa = self._slurmrestd.get_stored_jwt_rsa()
+        self._slurm_manager.configure_jwt_rsa(jwt_rsa)
+        self._stored.munge_key_available = True
+
     def _check_status(self):
         slurm_config = self._slurmrestd.get_stored_slurm_config()
         munge_key_available = self._stored.munge_key_available
 
-        slurm_configurator_joined = self._slurmrestd.is_joined
+        slurmctld_joined = self._slurmrestd.is_joined
 
         # Check and see if we have what we need for operation.
-        if not slurm_configurator_joined:
-            self.unit.status = BlockedStatus(
-                "Needed relations: slurm-configurator"
-            )
+        if not slurmctld_joined:
+            self.unit.status = BlockedStatus("Needed relations: slurmctld")
             return None
         elif not (munge_key_available and slurm_config):
-            self.unit.status = WaitingStatus(
-                "Waiting on: configuration"
-            )
+            self.unit.status = WaitingStatus("Waiting on: configuration")
             return None
 
         return dict(slurm_config)

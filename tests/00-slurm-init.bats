@@ -60,9 +60,6 @@ myjuju () {
 		fi
 	done
 
-	run echo "$flag"
-	assert_line "nodes are fine"
-
 	# old node should still be idle
 	run juju run "sinfo -n $old_node" -m $JUJU_MODEL --unit slurmctld/leader
 	assert_success

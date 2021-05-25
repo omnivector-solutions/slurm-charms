@@ -28,7 +28,7 @@ myjuju () {
 	assert_success
 
 	# slurmctld needs some time to update its configs
-	sleep 5
+	juju-wait -t 60 -m "$JUJU_MODEL"
 
 	run juju run "sinfo" -m $JUJU_MODEL --unit slurmctld/leader
 	assert_success
@@ -41,17 +41,17 @@ myjuju () {
 	myjuju add-unit slurmd -m $JUJU_MODEL
 
 	old_node=$(juju run --model $JUJU_MODEL --unit slurmd/leader hostname)
-	new_node=$(juju run --model $JUJU_MODEL --unit slurmd/1 hostname)
 
 	# slurmctld needs some time to update its configs
-	sleep 5
+	juju-wait -t 60 -m "$JUJU_MODEL"
 
+	# attempt to give some time to juju and slurm to clam down
 	flag="Polling sinfo 5 times"
 	for i in {0..5}
 	do
-		sinfo0=$(juju run "sinfo -n $old_node" -m $JUJU_MODEL --unit slurmctld/leader)
-		sinfo1=$(juju run "sinfo -n $new_node" -m $JUJU_MODEL --unit slurmctld/leader)
-		if [[ "idle" == *"${sinfo0}"* && "down" == *"${sinfo1}"* ]]
+		sinfo_old=$(juju run "sinfo -n $old_node" -m $JUJU_MODEL --unit slurmctld/leader)
+		sinfo=$(juju run "sinfo" -m $JUJU_MODEL --unit slurmctld/leader)
+		if [[ "idle" == *"${sinfo_old}"* && "down" == *"${sinfo}"* ]]
 		then
 			flag="nodes are fine"
 			break
@@ -69,7 +69,7 @@ myjuju () {
 	assert_line --partial "idle"
 
 	# new node in down state
-	run juju run "sinfo -n $new_node" -m $JUJU_MODEL --unit slurmctld/leader
+	run juju run "sinfo" -m $JUJU_MODEL --unit slurmctld/leader
 	assert_success
 	assert_line --partial "down"
 }
@@ -80,20 +80,20 @@ myjuju () {
 	assert_output --partial "New node"
 }
 
-@test "drain a node" {
+@test "test we can drain a node" {
 	# drain slurmd/leader
 	host=$(juju run --model $JUJU_MODEL --unit slurmd/leader hostname)
 	juju run-action -m $JUJU_MODEL slurmctld/leader drain nodename=$host reason="Unit test" --wait
+
 	run juju run -m $JUJU_MODEL --unit slurmctld/leader "sinfo -R"
 	assert_output --partial "Unit test"
 }
 
-@test "resume a drained node" {
+@test "test we can resume a drained node" {
 	# slurmd/leader was drained, so resume it
+	host=$(juju run --model $JUJU_MODEL --unit slurmd/leader hostname)
 	juju run-action -m $JUJU_MODEL slurmctld/leader resume nodename=$host --wait
-	sleep 5
 
 	run juju run -m $JUJU_MODEL --unit slurmctld/leader "sinfo -n $host"
-
 	assert_line --partial "idle"
 }

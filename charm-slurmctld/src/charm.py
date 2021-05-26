@@ -4,6 +4,7 @@ import copy
 import logging
 import shlex
 import subprocess
+from pathlib import Path
 
 from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
@@ -135,6 +136,8 @@ class SlurmctldCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmctld."""
+        self.unit.set_workload_version(Path("VERSION").read_text().strip())
+
         self.unit.status = WaitingStatus("Installing slurmctld")
 
         successful_installation = self._slurm_manager.install()

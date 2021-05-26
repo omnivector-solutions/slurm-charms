@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Slurmdbd Operator Charm."""
 import logging
+from pathlib import Path
 
 from interface_mysql import MySQLClient
 from interface_slurmdbd import Slurmdbd
@@ -51,6 +52,8 @@ class SlurmdbdCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmdbd."""
+        self.unit.set_workload_version(Path("VERSION").read_text().strip())
+
         self.unit.status = WaitingStatus("Installing slurmdbd")
 
         successful_installation = self._slurm_manager.install()

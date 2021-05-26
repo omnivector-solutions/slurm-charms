@@ -2,6 +2,7 @@
 """SlurmdCharm."""
 import base64
 import logging
+from pathlib import Path
 from time import sleep
 
 from ops.charm import CharmBase
@@ -65,6 +66,8 @@ class SlurmdCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmd."""
+        self.unit.set_workload_version(Path("VERSION").read_text().strip())
+
         self.unit.status = WaitingStatus("Installing slurmd")
 
         successful_installation = self._slurm_manager.install()

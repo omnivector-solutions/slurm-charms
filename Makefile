@@ -4,22 +4,31 @@ export PATH := /snap/bin:$(PATH)
 lint: ## Run linter
 	tox -e lint
 
+.PHONY: version
+version: ## Create/update VERSION file
+	@git describe --tags > VERSION
+
 clean: ## Remove .tox, build dirs, and charms
 	rm -rf .tox/
 	rm -rf venv/
 	rm -rf *.charm
 	rm -rf charm-slurm*/build
+	rm -rf charm-slurm*/VERSION
 
-slurmd: ## Build slurmd
+slurmd: version ## Build slurmd
+	@cp VERSION charm-slurmd/
 	@charmcraft build --from charm-slurmd
 
-slurmctld: ## Build slurmctld
+slurmctld: version ## Build slurmctld
+	@cp VERSION charm-slurmctld/
 	@charmcraft build --from charm-slurmctld
 
-slurmdbd: ## Build slurmdbd
+slurmdbd: version ## Build slurmdbd
+	@cp VERSION charm-slurmdbd/
 	@charmcraft build --from charm-slurmdbd
 
-slurmrestd: ## Build slurmrestd
+slurmrestd: version ## Build slurmrestd
+	@cp VERSION charm-slurmrestd/
 	@charmcraft build --from charm-slurmrestd
 
 charms: slurmd slurmdbd slurmctld slurmrestd ## Build all charms

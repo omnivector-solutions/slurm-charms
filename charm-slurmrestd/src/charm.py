@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """SlurmrestdCharm."""
 import logging
+from pathlib import Path
 
 from ops.charm import CharmBase
 from ops.framework import StoredState
@@ -44,6 +45,8 @@ class SlurmrestdCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmrestd."""
+        self.unit.set_workload_version(Path("VERSION").read_text())
+
         self.unit.status = WaitingStatus("Installing slurmrestd")
 
         successful_installation = self._slurm_manager.install()

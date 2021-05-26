@@ -1,5 +1,5 @@
 name: "release"
-  
+
 on:
   release:
     types: [published]
@@ -29,10 +29,8 @@ jobs:
           pip install charmcraft
       - name: Build charms
         run: |
-          for charm in slurmd slurmdbd slurmctld slurm-configurator; do
-              charmcraft build --from charm-$charm/
-          done
-          tar -czvf slurm-charms.tar.gz slurmd.charm slurmctld.charm slurmdbd.charm slurm-configurator.charm
+          make charms
+          tar -czvf slurm-charms.tar.gz slurmd.charm slurmctld.charm slurmdbd.charm
           ls -la
       - name: "Upload binaries to release"
         uses: svenstaro/upload-release-action@v2

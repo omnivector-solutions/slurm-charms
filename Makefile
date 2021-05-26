@@ -1,6 +1,7 @@
 export PATH := /snap/bin:$(PATH)
 
 # TARGETS
+.PHONY: lint
 lint: ## Run linter
 	tox -e lint
 
@@ -8,6 +9,7 @@ lint: ## Run linter
 version: ## Create/update VERSION file
 	@git describe --tags > VERSION
 
+.PHONY: clean
 clean: ## Remove .tox, build dirs, and charms
 	rm -rf .tox/
 	rm -rf venv/
@@ -15,42 +17,37 @@ clean: ## Remove .tox, build dirs, and charms
 	rm -rf charm-slurm*/build
 	rm -rf charm-slurm*/VERSION
 
+.PHONY: slurmd
 slurmd: version ## Build slurmd
 	@cp VERSION charm-slurmd/
-	@charmcraft build --from charm-slurmd
+	@charmcraft pack --project-dir charm-slurmd
 
-slurmctld: version ## Build slurmctld
+.PHONY: slurmctld
+slurmctld: version ## pack slurmctld
 	@cp VERSION charm-slurmctld/
-	@charmcraft build --from charm-slurmctld
+	@charmcraft pack --project-dir charm-slurmctld
 
-slurmdbd: version ## Build slurmdbd
+.PHONY: slurmdbd
+slurmdbd: version ## pack slurmdbd
 	@cp VERSION charm-slurmdbd/
-	@charmcraft build --from charm-slurmdbd
+	@charmcraft pack --project-dir charm-slurmdbd
 
-slurmrestd: version ## Build slurmrestd
+.PHONY: slurmrestd
+slurmrestd: version ## pack slurmrestd
 	@cp VERSION charm-slurmrestd/
-	@charmcraft build --from charm-slurmrestd
+	@charmcraft pack --project-dir charm-slurmrestd
 
+.PHONY: charms
 charms: slurmd slurmdbd slurmctld slurmrestd ## Build all charms
 
-pull-classic-snap: ## Pull the classic slurm snap from github
-	@wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource
-
-pull-slurm-tar: ## Pull the slurm tar resource from s3
-	@wget https://omnivector-public-assets.s3-us-west-2.amazonaws.com/resources/slurm-tar/20.02.3/slurm.tar.gz -O slurm.resource
-
-push-charms-to-edge: ## Push charms to edge s3
-	@./scripts/push_charms.sh edge
-
-pull-charms-from-edge: clean ## pull charms from edge s3
-	@./scripts/pull_charms.sh edge
-
+.PHONY: format
 format: # reformat source python files
 	isort charm-slurmd charm-slurmdbd charm-slurmctld --skip-glob '*/[0-9][0-9][0-9][0-9]*.py'
 	black charm-slurmd charm-slurmdbd charm-slurmctld --exclude '\d{4}.*\.py'
 
 # Display target comments in 'make help'
-help: 
+.PHONY: help
+help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # SETTINGS
@@ -58,5 +55,5 @@ help:
 .ONESHELL:
 # Set default goal
 .DEFAULT_GOAL := help
-# Use bash shell in Make instead of sh 
+# Use bash shell in Make instead of sh
 SHELL := /bin/bash

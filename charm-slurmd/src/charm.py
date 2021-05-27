@@ -48,6 +48,7 @@ class SlurmdCharm(CharmBase):
             self._slurmd_peer.on.slurmd_peer_departed: self._on_set_partition_info_on_app_relation_data,
             self._slurmd.on.slurmctld_available: self._on_slurmctld_available,
             # actions
+            self.on.version_action: self._on_version_action,
             self.on.node_configured_action: self._on_node_configured_action,
             self.on.get_node_inventory_action: self._on_get_node_inventory_action,
             self.on.show_nhc_config_action: self._on_show_nhc_config,
@@ -168,6 +169,22 @@ class SlurmdCharm(CharmBase):
         )
         self._slurm_manager.restart_munged()
         self._stored.munge_key_available = True
+
+    def _on_version_action(self, event):
+        """Return version of installed components.
+
+        - Slurm
+        - munge
+        - NHC
+        - infiniband
+        """
+        version = {}
+        version['slurm'] = self._slurm_manager.slurm_version()
+        version['munge'] = self._slurm_manager.munge_version()
+        version['nhc'] = self._slurm_manager.nhc_version()
+        version['infiniband'] = self._slurm_manager.infiniband_version()
+
+        event.set_results(version)
 
     def _on_node_configured_action(self, event):
         """Remove node from DownNodes."""

@@ -155,6 +155,8 @@ class SlurmctldCharm(CharmBase):
                 # NOTE the backup controller should also have the jwt and munge
                 # keys configured.
                 self._slurm_manager.configure_jwt_rsa(self.get_jwt_rsa())
+
+            self._slurm_manager.restart_munged()
         else:
             self.unit.status = BlockedStatus("Error installing Slurm")
             event.defer()

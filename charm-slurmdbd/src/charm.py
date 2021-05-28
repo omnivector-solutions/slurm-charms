@@ -66,6 +66,9 @@ class SlurmdbdCharm(CharmBase):
         else:
             self.unit.status = BlockedStatus("Error installing Slurm")
             event.defer()
+            return
+
+        self._check_status()
 
     def _on_slurmctld_available(self, event):
         if not self._stored.slurm_installed:
@@ -130,31 +133,26 @@ class SlurmdbdCharm(CharmBase):
 
     def _check_status(self) -> bool:
         """Check that we have the things we need."""
-        db_info = self._stored.db_info
-        slurmctld_available = self._stored.slurmctld_available
         slurm_installed = self._stored.slurm_installed
-        slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
-
-        if not self._stored.slurm_installed:
+        if not slurm_installed:
             self.unit.status = BlockedStatus("Error installing slurm")
             return False
 
-        deps = [
-            slurmdbd_info,
-            db_info,
-            slurm_installed,
-            slurmctld_available,
-        ]
+        # we must be sure to initialize the charms correctly. Slurmdbd must
+        # first connect to the db to be able to connect to slurmctld correctly
+        db_info = self._stored.db_info
+        if not db_info:
+            self.unit.status = BlockedStatus("Need relation to MySQL.")
+            return False
 
-        if not all(deps):
-            if not db_info:
-                self.unit.status = BlockedStatus(
-                    "Need relation to MySQL."
-                )
-            elif not slurmctld_available:
-                self.unit.status = BlockedStatus(
-                    "Need relation to slurmctld."
-                )
+        slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
+        if not slurmdbd_info:
+            self.unit.status = WaitingStatus("Slurmdbd starting")
+            return False
+
+        slurmctld_available = self._stored.slurmctld_available
+        if not slurmctld_available:
+            self.unit.status = BlockedStatus("Need relation to slurmctld.")
             return False
 
         self.unit.status = ActiveStatus('Slurmdbd ready.')

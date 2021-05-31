@@ -1,3 +1,5 @@
+# Use bash shell in Make instead of sh
+SHELL := /bin/bash
 export PATH := /snap/bin:$(PATH)
 
 # TARGETS
@@ -9,6 +11,13 @@ lint: ## Run linter
 version: ## Create/update VERSION file
 	@git describe --tags > VERSION
 
+.PHONY: readme
+readme: ## create charms' README.md
+	@for charm in slurmd slurmdbd slurmctld slurmrestd; do \
+		cp README.md charm-$${charm}/README.md ;\
+		sed -i -e "s|Welcome to the Omnivector Slurm Distribution!|$${charm} charm|g" charm-$${charm}/README.md
+	done
+
 .PHONY: clean
 clean: ## Remove .tox, build dirs, and charms
 	rm -rf .tox/
@@ -16,6 +25,7 @@ clean: ## Remove .tox, build dirs, and charms
 	rm -rf *.charm
 	rm -rf charm-slurm*/build
 	rm -rf charm-slurm*/VERSION
+	rm -rf charm-slurm*/README.md
 
 .PHONY: slurmd
 slurmd: version ## Build slurmd
@@ -38,7 +48,7 @@ slurmrestd: version ## pack slurmrestd
 	@charmcraft pack --project-dir charm-slurmrestd
 
 .PHONY: charms
-charms: slurmd slurmdbd slurmctld slurmrestd ## Build all charms
+charms: readme slurmd slurmdbd slurmctld slurmrestd ## Build all charms
 
 .PHONY: format
 format: # reformat source python files
@@ -55,5 +65,3 @@ help:
 .ONESHELL:
 # Set default goal
 .DEFAULT_GOAL := help
-# Use bash shell in Make instead of sh
-SHELL := /bin/bash

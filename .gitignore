@@ -10,3 +10,4 @@ node_modules/
 .env
 VERSION
 charm-slurm*/VERSION
+charm-slurm*/README.md

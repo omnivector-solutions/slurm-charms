@@ -59,6 +59,11 @@ class Slurmd(Object):
             event.defer()
             return
 
+        # make sure slurmdbd started before sending signal to slurmd
+        if not self._charm.slurmdbd_info:
+            event.defer()
+            return
+
         # Get the munge_key from set it to the app data on the relation to be
         # retrieved on the other side by slurmdbd.
         app_relation_data = event.relation.data[self.model.app]

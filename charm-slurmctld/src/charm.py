@@ -78,7 +78,8 @@ class SlurmctldCharm(CharmBase):
         return self._slurmctld_peer.get_slurmctld_info()
 
     @property
-    def _slurmdbd_info(self):
+    def slurmdbd_info(self):
+        """Return slurmdbd_info from relation."""
         return self._slurmdbd.get_slurmdbd_info()
 
     @property
@@ -181,9 +182,9 @@ class SlurmctldCharm(CharmBase):
             msg = 'Wating on' + msg
             self.unit.status = BlockedStatus(msg)
             return False
-        else:
-            self.unit.status = ActiveStatus("slurmctld available")
-            return True
+
+        self.unit.status = ActiveStatus("slurmctld available")
+        return True
 
     def get_munge_key(self):
         """Get the stored munge key."""
@@ -228,7 +229,7 @@ class SlurmctldCharm(CharmBase):
         logger.debug('## Assembling new slurm.conf')
 
         slurmctld_info = self._slurmctld_info
-        slurmdbd_info = self._slurmdbd_info
+        slurmdbd_info = self.slurmdbd_info
         slurmd_info = self._slurmd_info
         cluster_info = self._cluster_info
 

@@ -164,6 +164,7 @@ jobs:
       - name: "Login to juju controller as cicd user"
         run: |
           echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju login --user circleci
+          juju whoami
 
       - name: "Add models to house charms for testing"
         if: ${{ success() }}
@@ -185,22 +186,28 @@ jobs:
         run: |
           git clone https://github.com/omnivector-solutions/slurm-bundles -b 1.1.0 ../slurm-bundles
 
+          juju whoami
+          juju list-models
+
           model=${{ steps.vars.outputs.sha_short }}-${{ matrix.series }}
 
           case ${{ matrix.series }} in
 
             "focal")
 
-              juju deploy ./../slurm-bundles/slurm-core/bundle.yaml \
-                  --overlay ./../slurm-bundles/slurm-core/focal/bundle.yaml \
-                  --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
-                  --overlay ./../slurm-bundles/slurm-core/focal/clouds/aws.yaml
+              juju deploy --verbose --debug \
+                          ./../slurm-bundles/slurm-core/bundle.yaml \
+                          --overlay ./../slurm-bundles/slurm-core/focal/bundle.yaml \
+                          --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
+                          --overlay ./../slurm-bundles/slurm-core/focal/clouds/aws.yaml
               ;;
 
             "centos7")
 
-              juju deploy ./../slurm-bundles/slurm-core/bundle.yaml \
-                  --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
+              juju deploy --verbose --debug \
+                          ./../slurm-bundles/slurm-core/bundle.yaml \
+                          --overlay ./../slurm-bundles/slurm-core/centos7/bundle.yaml \
+                          --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml
               ;;
           esac
 

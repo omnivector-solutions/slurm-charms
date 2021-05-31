@@ -1,72 +1,43 @@
-[contributors-url]: https://github.com/omnivector-solutions/slurm-charms/graphs/contributors
-[forks-url]: https://github.com/omnivector-solutions/slurm-charms/network/members
-[stars-url]: https://github.com/omnivector-solutions/slurm-charms/stargazers
-[issues-url]: https://github.com/omnivector-solutions/slurm-charms/issues
-[license-url]: https://github.com/omnivector-solutions/slurm-charms/blob/master/LICENSE
-[website]: https://www.omnivector.solutions
-
-[Contributors][contributors-url] •
-[Forks][forks-url] •
-[Stargazers][stars-url] •
-[Issues][issues-url] •
-[MIT License][license-url] •
-[Website][website]
-
-<!-- PROJECT LOGO -->
-<br />
 <p align="center">
-  <a href="https://github.com/omnivector-solutions/slurm-charms">
-    <img src=".images/logo.png" alt="Logo" width="80" height="80">
-  </a>
+<img width="200px" height="200px" src="https://raw.githubusercontent.com/omnivector-solutions/osd-documentation/master/images/logo.png"/>
+<p>
 
-  <h3 align="center">slurm-charms</h3>
+<h1 align="center">Welcome to the Omnivector Slurm Distribution!</h1>
 
-  <p align="center">
-    Lifecycle management and operations software for slurm.
-    <br />
-    <a href="https://github.com/omnivector-solutions/slurm-charms/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/omnivector-solutions/slurm-charms/issues">Request Feature</a>
-  </p>
-</p>
+The slurm charms are a custom curated suite of tools and automation
+that facilitate the lifecycle events and continuous operation of a
+slurm cluster.
 
-[![](https://github.com/omnivector-solutions/slurm-charms/workflows/TestBuildReleaseEdge/badge.svg)](https://github.com/omnivector-solutions/license-manager-simulator/actions?query=workflow%3ATestBuildReleaseEdge)
+<h2 align="center" id="quickstart">Quickstart</h2>
 
-<!-- TABLE OF CONTENTS  -->
+Assuming you have Juju installed and bootstrapped, deploying a slurm
+cluster involves running only a single command.
+```bash
+juju deploy slurm
+```
 
-## Table of Contents
+<h2 align="center" id="documentation">Documentation</h2>
 
-- [Table of Contents](#table-of-contents)
-- [About The Project](#about-the-project)
-- [Prerequisites](#prerequisites)
-- [Build](#build)
-- [Installation](#installation)
-- [Usage](#usage)
-- [License](#license)
-- [Contact](#contact)
-
-<!-- ABOUT THE PROJECT -->
-
-## About The Project
-
-## Building slurm-charms
-To build the slurm-charms snap, install [charmcraft](https://github.com/canonical/charmcraft).
-
-    sudo snap install charmcraft --classic
-
-And run `make charms` to build the charms.
-
-    make charms
+Please visit the [OSD documentation](https://omnivector-solutions.github.io/osd-documentation/master/)
+for extended details on how to operate slurm using OSD.
 
 
-## Usage
+<h2 align="center" id="contact">Contact</h2>
+
+**We want to hear from you!**
+
+Email us @ <a href="mailto:info@omnivector.solutions">info@omnivector.solutions</a>
 
 
-## License
-Distributed under the MIT License. See `LICENSE` for more information.
+<h2 align="center" id="bugs">Bugs</h2>
+
+In the case things aren't working as expected, please [file a bug](https://github.com/omnivector-solutions/slurm-charms/issues).
 
 
-## Contact
-Omnivector Solutions - [www.omnivector.solutions][website] - <info@omnivector.solutions>
+<h2 align="center" id="license">License</h2>
 
-Project Link: [https://github.com/omnivector-solutions/slurm-charms](https://github.com/omnivector-solutions/license-manager)
+The slurm charms are maintained under the MIT license. See `LICENSE` file in this directory for full preamble.
+
+<h2 align="center" id="copyright">Copyright</h2>
+Copyright &copy; Omnivector Solutions 2021 
+

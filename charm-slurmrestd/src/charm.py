@@ -52,12 +52,12 @@ class SlurmrestdCharm(CharmBase):
         successful_installation = self._slurm_manager.install()
 
         if successful_installation:
-            self.unit.status = ActiveStatus("Slurm installed")
+            self.unit.status = ActiveStatus("slurmrestd installed")
             self._stored.slurm_installed = True
 
             self._slurm_manager.start_munged()
         else:
-            self.unit.status = BlockedStatus("Error installing Slurm")
+            self.unit.status = BlockedStatus("Error installing slurmrestd")
             event.defer()
 
     def _on_restart_slurmrestd(self, event):
@@ -91,7 +91,7 @@ class SlurmrestdCharm(CharmBase):
 
     def _check_status(self):
         if not self._stored.slurm_installed:
-            self.unit.status = BlockedStatus("Error installing slurm")
+            self.unit.status = BlockedStatus("Error installing slurmrestd")
             return None
 
         slurm_config = self._slurmrestd.get_stored_slurm_config()

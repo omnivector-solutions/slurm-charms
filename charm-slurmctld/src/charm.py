@@ -159,7 +159,7 @@ class SlurmctldCharm(CharmBase):
 
             self._slurm_manager.restart_munged()
         else:
-            self.unit.status = BlockedStatus("Error installing Slurm")
+            self.unit.status = BlockedStatus("Error installing slurmctld")
             event.defer()
 
         self._check_status()
@@ -169,7 +169,7 @@ class SlurmctldCharm(CharmBase):
         # NOTE: improve this function to display joined/available
 
         if not self._stored.slurm_installed:
-            self.unit.stauts = BlockedStatus("Error installing Slurm")
+            self.unit.stauts = BlockedStatus("Error installing slurmctld")
             return False
 
         msg = ""

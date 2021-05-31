@@ -60,11 +60,11 @@ class SlurmdbdCharm(CharmBase):
 
         if successful_installation:
             self._stored.slurm_installed = True
-            self.unit.status = ActiveStatus("Slurm successfully installed")
+            self.unit.status = ActiveStatus("slurmdbd successfully installed")
 
             self._slurm_manager.start_munged()
         else:
-            self.unit.status = BlockedStatus("Error installing Slurm")
+            self.unit.status = BlockedStatus("Error installing slurmdbd")
             event.defer()
             return
 
@@ -142,20 +142,20 @@ class SlurmdbdCharm(CharmBase):
         # first connect to the db to be able to connect to slurmctld correctly
         db_info = self._stored.db_info
         if not db_info:
-            self.unit.status = BlockedStatus("Need relation to MySQL.")
+            self.unit.status = BlockedStatus("Need relation to MySQL")
             return False
 
         slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
         if not slurmdbd_info:
-            self.unit.status = WaitingStatus("Slurmdbd starting")
+            self.unit.status = WaitingStatus("slurmdbd starting")
             return False
 
         slurmctld_available = self._stored.slurmctld_available
         if not slurmctld_available:
-            self.unit.status = BlockedStatus("Need relation to slurmctld.")
+            self.unit.status = BlockedStatus("Need relation to slurmctld")
             return False
 
-        self.unit.status = ActiveStatus('Slurmdbd ready.')
+        self.unit.status = ActiveStatus("slurmdbd ready")
         return True
 
     def get_port(self):

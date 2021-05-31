@@ -81,7 +81,7 @@ class SlurmdCharm(CharmBase):
                 self._get_set_partition_name()
                 logger.debug(f"PARTITION_NAME: {self._stored.partition_name}")
         else:
-            self.unit.status = BlockedStatus("Error installing slurm")
+            self.unit.status = BlockedStatus("Error installing slurmd")
             event.defer()
 
         self._check_status()
@@ -94,7 +94,7 @@ class SlurmdCharm(CharmBase):
         - munge key
         """
         if not self._stored.slurm_installed:
-            self.unit.status = BlockedStatus("Error installing slurm")
+            self.unit.status = BlockedStatus("Error installing slurmd")
             return False
 
         if not (self._stored.slurmctld_available and self._slurmd.is_joined):
@@ -105,7 +105,7 @@ class SlurmdCharm(CharmBase):
             self.unit.status = WaitingStatus("Waiting munge key")
             return False
 
-        self.unit.status = ActiveStatus("Slurmd available")
+        self.unit.status = ActiveStatus("slurmd available")
         return True
 
     def _check_slurmd(self, max_attemps=3):

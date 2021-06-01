@@ -47,6 +47,7 @@ class SlurmctldCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
+            self.on.upgrade_charm: self._on_upgrade,
             self.on.config_changed: self._on_write_slurm_config,
             self._slurmdbd.on.slurmdbd_available: self._on_write_slurm_config,
             self._slurmdbd.on.slurmdbd_unavailable: self._on_write_slurm_config,
@@ -163,6 +164,10 @@ class SlurmctldCharm(CharmBase):
             event.defer()
 
         self._check_status()
+
+    def _on_upgrade(self, event):
+        """Perform upgrade operations."""
+        self.unit.set_workload_version(Path("VERSION").read_text().strip())
 
     def _check_status(self):
         """Check for all relations and set appropriate status."""

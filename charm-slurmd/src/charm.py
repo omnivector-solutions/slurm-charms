@@ -41,6 +41,7 @@ class SlurmdCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
+            self.on.upgrade_charm: self._on_upgrade,
             self.on.config_changed: self._on_config_changed,
             self._slurmd_peer.on.slurmd_peer_available: self._on_set_partition_info_on_app_relation_data,
             self._slurmd_peer.on.slurmd_peer_departed: self._on_set_partition_info_on_app_relation_data,
@@ -83,6 +84,10 @@ class SlurmdCharm(CharmBase):
             event.defer()
 
         self._check_status()
+
+    def _on_upgrade(self, event):
+        """Perform upgrade operations."""
+        self.unit.set_workload_version(Path("VERSION").read_text().strip())
 
     def _check_status(self) -> bool:
         """Check if we heve all needed components.

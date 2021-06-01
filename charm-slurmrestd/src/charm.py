@@ -35,6 +35,7 @@ class SlurmrestdCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
+            self.on.upgrade_charm: self._on_upgrade,
             self._slurmrestd.on.config_available: self._on_check_status_and_write_config,
             self._slurmrestd.on.munge_key_available: self._on_configure_munge_key,
             self._slurmrestd.on.jwt_rsa_available: self._on_configure_jwt_rsa,
@@ -59,6 +60,10 @@ class SlurmrestdCharm(CharmBase):
         else:
             self.unit.status = BlockedStatus("Error installing slurmrestd")
             event.defer()
+
+    def _on_upgrade(self, event):
+        """Perform upgrade operations."""
+        self.unit.set_workload_version(Path("VERSION").read_text().strip())
 
     def _on_restart_slurmrestd(self, event):
         """Resart the slurmrestd component."""

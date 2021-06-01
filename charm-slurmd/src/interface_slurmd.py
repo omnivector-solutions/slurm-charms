@@ -18,14 +18,9 @@ class SlurmctldUnavailableEvent(EventBase):
     """Emit when the relation to slurmctld is broken."""
 
 
-class MungeKeyAvailableEvent(EventBase):
-    """Emit when the munge key has been acquired and set to the charm state."""
-
-
 class SlurmdEvents(ObjectEvents):
     """Slurmd emitted events."""
 
-    munge_key_available = EventSource(MungeKeyAvailableEvent)
     slurmctld_available = EventSource(SlurmctldAvailableEvent)
     slurmctld_unavailable = EventSource(SlurmctldUnavailableEvent)
 
@@ -98,7 +93,6 @@ class Slurmd(Object):
 
         # Store the munge_key in the charm's state
         self._store_munge_key(munge_key)
-        self.on.munge_key_available.emit()
 
         # get slurmctld's hostname and port to enable configless
         host = event_app_data.get("slurmctld_host")

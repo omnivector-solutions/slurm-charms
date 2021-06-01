@@ -28,7 +28,6 @@ class SlurmdCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
-            munge_key_available=False,
             partition_name=str(),
             nhc_conf=str(),
             slurm_installed=False,
@@ -43,7 +42,6 @@ class SlurmdCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
             self.on.config_changed: self._on_config_changed,
-            self._slurmd.on.munge_key_available: self._on_write_munge_key,
             self._slurmd_peer.on.slurmd_peer_available: self._on_set_partition_info_on_app_relation_data,
             self._slurmd_peer.on.slurmd_peer_departed: self._on_set_partition_info_on_app_relation_data,
             self._slurmd.on.slurmctld_available: self._on_slurmctld_available,
@@ -101,14 +99,10 @@ class SlurmdCharm(CharmBase):
             self.unit.status = WaitingStatus("Waiting on slurmctld relation")
             return False
 
-        if not self._stored.munge_key_available:
-            self.unit.status = WaitingStatus("Waiting munge key")
-            return False
-
         self.unit.status = ActiveStatus("slurmd available")
         return True
 
-    def _check_slurmd(self, max_attemps=3):
+    def _check_slurmd(self, max_attemps=3) -> None:
         """Ensure slurmd is up and running."""
         logger.debug("## Checking if slurmd is active")
 
@@ -125,6 +119,8 @@ class SlurmdCharm(CharmBase):
 
         if self._slurm_manager.slurm_is_active():
             self._check_status()
+        else:
+            self.unit.status = BlockedStatus("Cannot start slurmd")
 
     def set_slurmctld_available(self, flag: bool):
         """Change stored value for slurmctld availability."""
@@ -139,6 +135,8 @@ class SlurmdCharm(CharmBase):
         # get slurmctld host:port from relation and override systemd services
         host = self._slurmd.slurmctld_hostname
         port = self._slurmd.slurmctld_port
+
+        self._write_munge_key()
 
         self._slurm_manager.create_configless_systemd_override(host, port)
         self._slurm_manager.daemon_reload()
@@ -158,17 +156,17 @@ class SlurmdCharm(CharmBase):
                 self._stored.nhc_conf = nhc_conf
                 self._slurm_manager.render_nhc_config(nhc_conf)
 
-    def _on_write_munge_key(self, event):
-        if not self._stored.slurm_installed:
-            event.defer()
-            return
-
+    def _write_munge_key(self):
         logger.debug('#### slurmd charm - writting munge key')
+
         self._slurm_manager.configure_munge_key(
             self._slurmd.get_stored_munge_key()
         )
-        self._slurm_manager.restart_munged()
-        self._stored.munge_key_available = True
+
+        if self._slurm_manager.restart_munged():
+            logger.debug("## Munge restarted succesfully")
+        else:
+            logger.error("## Unable to restart munge")
 
     def _on_version_action(self, event):
         """Return version of installed components.

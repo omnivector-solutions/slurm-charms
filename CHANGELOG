@@ -7,6 +7,11 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- improve juju status' message to display failure when munge/slurm does not
+  start correctly
+- fix slurmd initialization when slurm.conf is present
+- enable munge system service, so it always start when the machine boots
+
 0.6.1
 -----
 

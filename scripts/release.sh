@@ -16,18 +16,23 @@ then
 	exit 1
 fi
 
-# update CHANGELOG
-version_string="${new_version}\n$(echo $new_version | sed -e 's|.|-|g')\n"
-sed -i -e 9a$version_string CHANGELOG
+echo -e "Updating CHANGELOG."
+version_date="${new_version} - $(date +%F)"
+version_string="${version_date}\n$(echo $version_date | sed -e 's|.|-|g')\n"
+sed -i -e 9a"$version_string" CHANGELOG
 
-# get changes
+echo -e "Creating commit and tag:"
 changes=$(tail -n +13 CHANGELOG | sed -e "/-----/,999999d" | head -n -1)
 echo -e "Release $new_version"
 echo -e "$changes"
 
 # commit CHANGELOG
 git add CHANGELOG
-git commit --message "Release $new_version" --message "$changes"
+git commit --gpg-sign --message "Release $new_version" --message "$changes"
 
 # create signed tag
-git tag --annotate --sign $new_version --message="$changes"
+git tag --annotate --sign "$new_version" \
+        --message="Release $new_version" \
+        --message="$changes"
+
+echo -e "\n\nReady to 'git push'."

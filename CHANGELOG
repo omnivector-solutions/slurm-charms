@@ -13,8 +13,8 @@ Unreleased
 - fix slurmd initialization when slurm.conf is present
 - enable munge system service, so it always start when the machine boots
 
-0.6.1
------
+0.6.1 - 2021-05-31
+------------------
 
 - changed charm's status message to have consistent capitalization.
 - fixed initialization order of the charms, to ensure database and controller

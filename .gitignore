@@ -11,3 +11,5 @@ node_modules/
 VERSION
 charm-slurm*/VERSION
 charm-slurm*/README.md
+charm-slurm*/icon.svg
+charm-slurm*/LICENSE

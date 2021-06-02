@@ -89,9 +89,15 @@ class SlurmdbdCharm(CharmBase):
         self._slurm_manager.configure_jwt_rsa(jwt_rsa)
 
         # Restart munged and set slurmctld_available = True.
-        self._slurm_manager.restart_munged()
-        self._stored.slurmctld_available = True
-        self._check_status()
+        if self._slurm_manager.restart_munged():
+            logger.debug("## Munge restarted succesfully")
+            self._stored.slurmctld_available = True
+        else:
+            logger.error("## Unable to restart munge")
+            self.unit.status = BlockedStatus("Error restarting munge")
+            event.defer()
+
+        self._write_config_and_restart_slurmdbd(event)
 
     def _on_slurmctld_unavailable(self, event):
         """Reset state and charm status when slurmctld broken."""

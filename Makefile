@@ -29,22 +29,22 @@ clean: ## Remove .tox, build dirs, and charms
 
 .PHONY: slurmd
 slurmd: version ## Build slurmd
-	@cp VERSION charm-slurmd/
+	@cp VERSION LICENSE icon.svg charm-slurmd/
 	@charmcraft pack --project-dir charm-slurmd
 
 .PHONY: slurmctld
 slurmctld: version ## pack slurmctld
-	@cp VERSION charm-slurmctld/
+	@cp VERSION LICENSE icon.svg charm-slurmctld/
 	@charmcraft pack --project-dir charm-slurmctld
 
 .PHONY: slurmdbd
 slurmdbd: version ## pack slurmdbd
-	@cp VERSION charm-slurmdbd/
+	@cp VERSION LICENSE icon.svg charm-slurmdbd/
 	@charmcraft pack --project-dir charm-slurmdbd
 
 .PHONY: slurmrestd
 slurmrestd: version ## pack slurmrestd
-	@cp VERSION charm-slurmrestd/
+	@cp VERSION LICENSE icon.svg charm-slurmrestd/
 	@charmcraft pack --project-dir charm-slurmrestd
 
 .PHONY: charms

@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+0.6.3 - 2021-06-02
+------------------
+
 - fix systemd command to restart munge
 - improve slurmdbd logs when restarting munge
 

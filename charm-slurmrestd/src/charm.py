@@ -46,7 +46,7 @@ class SlurmrestdCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmrestd."""
-        self.unit.set_workload_version(Path("VERSION").read_text())
+        self.unit.set_workload_version(Path("version").read_text().strip())
 
         self.unit.status = WaitingStatus("Installing slurmrestd")
 
@@ -63,7 +63,7 @@ class SlurmrestdCharm(CharmBase):
 
     def _on_upgrade(self, event):
         """Perform upgrade operations."""
-        self.unit.set_workload_version(Path("VERSION").read_text().strip())
+        self.unit.set_workload_version(Path("version").read_text().strip())
 
     def _on_restart_slurmrestd(self, event):
         """Resart the slurmrestd component."""

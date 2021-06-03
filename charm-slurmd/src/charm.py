@@ -66,7 +66,7 @@ class SlurmdCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmd."""
-        self.unit.set_workload_version(Path("VERSION").read_text().strip())
+        self.unit.set_workload_version(Path("version").read_text().strip())
 
         self.unit.status = WaitingStatus("Installing slurmd")
 
@@ -87,7 +87,7 @@ class SlurmdCharm(CharmBase):
 
     def _on_upgrade(self, event):
         """Perform upgrade operations."""
-        self.unit.set_workload_version(Path("VERSION").read_text().strip())
+        self.unit.set_workload_version(Path("version").read_text().strip())
 
     def _check_status(self) -> bool:
         """Check if we heve all needed components.

@@ -8,8 +8,8 @@ lint: ## Run linter
 	tox -e lint
 
 .PHONY: version
-version: ## Create/update VERSION file
-	@git describe --tags > VERSION
+version: ## Create/update version file
+	@git describe --tags > version
 
 .PHONY: readme
 readme: ## create charms' README.md
@@ -24,27 +24,27 @@ clean: ## Remove .tox, build dirs, and charms
 	rm -rf venv/
 	rm -rf *.charm
 	rm -rf charm-slurm*/build
-	rm -rf charm-slurm*/VERSION
+	rm -rf charm-slurm*/version
 	rm -rf charm-slurm*/README.md
 
 .PHONY: slurmd
 slurmd: version ## Build slurmd
-	@cp VERSION LICENSE icon.svg charm-slurmd/
+	@cp version LICENSE icon.svg charm-slurmd/
 	@charmcraft pack --project-dir charm-slurmd
 
 .PHONY: slurmctld
 slurmctld: version ## pack slurmctld
-	@cp VERSION LICENSE icon.svg charm-slurmctld/
+	@cp version LICENSE icon.svg charm-slurmctld/
 	@charmcraft pack --project-dir charm-slurmctld
 
 .PHONY: slurmdbd
 slurmdbd: version ## pack slurmdbd
-	@cp VERSION LICENSE icon.svg charm-slurmdbd/
+	@cp version LICENSE icon.svg charm-slurmdbd/
 	@charmcraft pack --project-dir charm-slurmdbd
 
 .PHONY: slurmrestd
 slurmrestd: version ## pack slurmrestd
-	@cp VERSION LICENSE icon.svg charm-slurmrestd/
+	@cp version LICENSE icon.svg charm-slurmrestd/
 	@charmcraft pack --project-dir charm-slurmrestd
 
 .PHONY: charms

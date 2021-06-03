@@ -53,7 +53,7 @@ class SlurmdbdCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmdbd."""
-        self.unit.set_workload_version(Path("VERSION").read_text().strip())
+        self.unit.set_workload_version(Path("version").read_text().strip())
 
         self.unit.status = WaitingStatus("Installing slurmdbd")
 
@@ -73,7 +73,7 @@ class SlurmdbdCharm(CharmBase):
 
     def _on_upgrade(self, event):
         """Perform upgrade operations."""
-        self.unit.set_workload_version(Path("VERSION").read_text().strip())
+        self.unit.set_workload_version(Path("version").read_text().strip())
 
     def _on_slurmctld_available(self, event):
         if not self._stored.slurm_installed:

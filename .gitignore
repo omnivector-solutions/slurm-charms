@@ -8,8 +8,8 @@ build
 tmp
 node_modules/
 .env
-VERSION
-charm-slurm*/VERSION
+version
+charm-slurm*/version
 charm-slurm*/README.md
 charm-slurm*/icon.svg
 charm-slurm*/LICENSE

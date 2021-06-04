@@ -4,6 +4,9 @@ options:
     default:
     description: >
       Name by which the partition may be referenced (e.g. `Interactive`).
+
+      Note: the partition name should only contain letters, numbers, and
+      hyphens. Spaces are not allowed.
   partition-config:
     type: string
     default: ""

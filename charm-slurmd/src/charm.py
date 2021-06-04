@@ -253,7 +253,7 @@ class SlurmdCharm(CharmBase):
     def _on_set_partition_info_on_app_relation_data(self, event):
         """Set the slurm partition info on the application relation data."""
         # Only the leader can set data on the relation.
-        if self.framework.model.unit.is_leader():
+        if self.model.unit.is_leader():
             # If the relation with slurmctld exists then set our
             # partition info on the application relation data.
             # This handler shouldn't fire if the relation isn't made,
@@ -271,6 +271,7 @@ class SlurmdCharm(CharmBase):
 
     def _assemble_partition(self):
         """Assemble the partition info."""
+        self._get_set_partition_name()
         partition_name = self._stored.partition_name
         partition_config = self.config.get("partition-config")
         partition_state = self.config.get("partition-state")
@@ -294,11 +295,12 @@ class SlurmdCharm(CharmBase):
         # If no partition name has been specified then generate one.
         partition_name = self.config.get("partition-name")
         if partition_name:
+            partition_name = partition_name.replace(' ', '-')
             if partition_name != self._stored.partition_name:
                 self._stored.partition_name = partition_name
-        elif not self._stored.partition_name:
-            self._stored.partition_name = f"juju-compute-{random_string()}"
-        return
+        else:
+            if not self._stored.partition_name:
+                self._stored.partition_name = f"juju-compute-{random_string()}"
 
     def get_partition_name(self):
         """Return the partition_name."""

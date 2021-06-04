@@ -216,11 +216,7 @@ class SlurmctldCharm(CharmBase):
             # If the user hasn't provided a default partition, then we infer
             # the partition_default by defaulting to the "configurator"
             # partition.
-            # FIXME: we don't have a configurator partition anymore
-            if not default_partition_from_config:
-                if partition["partition_name"] == "configurator":
-                    partition_tmp["partition_default"] = "YES"
-            else:
+            if default_partition_from_config:
                 if default_partition_from_config == partition_name:
                     partition_tmp["partition_default"] = "YES"
 

@@ -3,8 +3,9 @@ options:
     type: string
     default: osd-cluster
     description: >
-      Name to be recorded in database for jobs from this cluster.  This is
-      important if a single database is used to record information from
+      Name to be recorded in database for jobs from this cluster.
+
+      This is important if a single database is used to record information from
       multiple Slurm-managed clusters.
   default-partition:
     type: string
@@ -16,7 +17,13 @@ options:
     type: string
     default: ""
     description: >
-      User supplied slurm confinguration.
+      User supplied Slurm configuration.
+
+      This value supplements the charm supplied `slurm.conf` that is used for
+      Slurm Controller and Compute nodes.
+
+      Example usage:
+      $ juju config slurmcltd custom-config="FirstJobId=1234"
   proctrack-type:
     type: string
     default: proctrack/cgroup
@@ -29,7 +36,7 @@ options:
       CgroupAutomount=yes
       ConstrainCores=yes
     description: >
-      Configuration content for cgroup.conf
+      Configuration content for `cgroup.conf`.
   health-check-interval:
     default: 600
     type: int

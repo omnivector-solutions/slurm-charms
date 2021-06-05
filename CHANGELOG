@@ -7,6 +7,7 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- fix possible breakage in Slurm configuration due to spaces in partition names
 - improve description of configurations and actions.
 - fix slurmrestd version in Juju status breaking the line.
 

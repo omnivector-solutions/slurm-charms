@@ -1,8 +1,11 @@
 show-current-config:
   description: >
-    Display the currently used slurm.conf.
+    Display the currently used `slurm.conf`.
 
-    This action is best visualized with:
+    Note: this file only exists in `slurmctld` charm and is automatically
+    distributed to all compute nodes by Slurm.
+
+    Example usage:
     $ juju run-action slurmctld/leader --format=json --wait | jq .[].results.slurm.conf | xargs -I % -0 python3 -c 'print(%)'
 drain:
   description: >
@@ -13,7 +16,7 @@ drain:
   params:
     nodename:
       type: string
-      description: The nodes to drain, Using the Slurm format, e.g. node-[1,2].
+      description: The nodes to drain, using the Slurm format, e.g. `node-[1,2]`.
     reason:
       type: string
       description: Reason to drain the nodes.
@@ -24,14 +27,14 @@ resume:
   description: >
     Resume specified nodes.
 
-    Note: newly added nodes will remain in the "down" state until configured,
-    with the node-configured action.
+    Note: newly added nodes will remain in the `down` state until configured,
+    with the `node-configured` action.
 
-    Example usage: juju run-action slurmctld/leader resume nodename=node-[1,2]
+    Example usage: $ juju run-action slurmctld/leader resume nodename=node-[1,2]
   params:
     nodename:
       type: string
       description: >
-        The nodes to resume, using the Slurm format, e.g. node-[1,2].
+        The nodes to resume, using the Slurm format, e.g. `node-[1,2]`.
   required:
     - nodename

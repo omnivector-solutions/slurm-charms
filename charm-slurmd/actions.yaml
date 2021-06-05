@@ -1,18 +1,24 @@
 version:
-  description: Return version of installed software
+  description: Return version of installed software.
 node-configured:
-  description: Remove a nove from DownNodes when the reason is "New node".
+  description: Remove a nove from DownNodes when the reason is `New node`.
 get-node-inventory:
   description: Return node inventory.
 
 show-nhc-config:
-  description: Display the currently used nhc.conf
+  description: Display the currently used `nhc.conf`.
 
 get-infiniband-repo:
   description: >
     Display the currently configured repository for Infiniband drivers.
 set-infiniband-repo:
-  description: Set the new infiniband repository.
+  description: >
+    Set the new infiniband repository.
+
+    Note: the repository file must be base64 encoded when using this action.
+
+    Example usage:
+    $ juju run-action slurmd/leader set-infiniband-repo repo="$(cat repo.file | base64)"
   params:
     repo:
       type: string
@@ -26,8 +32,8 @@ set-infiniband-repo:
 
     Note: this file should be base64 encoded.
 
-    On CentOS, the file is placed at /etc/yum.repos.d/infiniband.repo, while on
-    Ubuntu it is at /etc/apt/sources.list.d/infiniband.list.
+    On CentOS, the file is placed at `/etc/yum.repos.d/infiniband.repo`, while
+    on Ubuntu it is at `/etc/apt/sources.list.d/infiniband.list`.
 install-infiniband:
   description: >
     Install Mellanox Infiniband drivers. This might take a few minutes to

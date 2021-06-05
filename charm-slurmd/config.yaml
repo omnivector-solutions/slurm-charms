@@ -3,30 +3,24 @@ options:
     type: string
     default:
     description: >
-      Name by which the partition may be referenced (e.g. "Interactive"). This
-      name can be specified by users when submitting jobs. If the PartitionName
-      is "DEFAULT", the values specified with that record will apply to
-      subsequent partition specifications unless explicitly set to other values
-      in that partition record or replaced with a different set of default
-      values. Each line where PartitionName is "DEFAULT" will replace or add to
-      previous default values and not a reinitialize the default values.
+      Name by which the partition may be referenced (e.g. `Interactive`).
   partition-config:
     type: string
     default: ""
     description: >
-      Extra partition configuration specified as a space separated key=value
+      Extra partition configuration specified as a space separated `key=value`
       single line.
   partition-state:
     type: string
     default: "UP"
     description: >
-      State of partition or availability for use. Possible values are "UP",
-      "DOWN", "DRAIN" and "INACTIVE". The default value is "UP". See also the
-      related "Alternate" keyword.
+      State of partition or availability for use. Possible values are `UP`,
+      `DOWN`, `DRAIN` and `INACTIVE`. The default value is `UP`. See also the
+      related `Alternate` keyword.
   nhc-conf:
     default: ""
     type: string
     description: >
       Custom extra configuration to use for Node Health Check.
 
-      These lines are appended to a basic nhc.conf provided by the charm.
+      These lines are appended to a basic `nhc.conf` provided by the charm.

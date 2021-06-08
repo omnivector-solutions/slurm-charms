@@ -16,8 +16,18 @@ myjuju () {
 	assert_output --partial "$partition "
 }
 
+@test "test partition name does not have spaces" {
+	partition="There are spaces here"
+	myjuju config slurmd partition-name="$partition"
+
+	run juju run --unit slurmctld/leader -m "$JUJU_MODEL" "sinfo"
+	refute_output --partial "$partition "
+	assert_output --partial "${partition// /-} "
+}
+
 @test "test we can set a default partition" {
 	partition="Unit-test-partition"
+	myjuju config slurmd partition-name="$partition"
 	myjuju config slurmctld default-partition="$partition"
 
 	run juju run --unit slurmctld/leader -m "$JUJU_MODEL" "sinfo"

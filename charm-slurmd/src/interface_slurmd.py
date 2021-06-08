@@ -139,6 +139,7 @@ class Slurmd(Object):
         slurmctld application(s) to observe the relation-changed
         event so they can acquire and redistribute the updated slurm config.
         """
+        # there is only one slurmctld, so there should be only one relation here
         relations = self._charm.framework.model.relations["slurmd"]
         for relation in relations:
             relation.data[self.model.app]["partition_info"] = json.dumps(

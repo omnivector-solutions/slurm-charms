@@ -27,7 +27,7 @@ class PeerRelationEvents(ObjectEvents):
 
 
 class SlurmdPeer(Object):
-    """TestingPeerRelation."""
+    """SlurmdPeerRelation."""
 
     on = PeerRelationEvents()
     _stored = StoredState()
@@ -75,8 +75,7 @@ class SlurmdPeer(Object):
 
     def get_slurmd_inventory(self):
         """Return slurmd inventory."""
-        relation = self.framework.model.get_relation(self._relation_name)
-
+        relation = self._relation
         # Comprise slurmd_info with the inventory of the active slurmd_peers
         # plus our own inventory.
         slurmd_peers = get_active_units(self._relation_name)
@@ -99,6 +98,16 @@ class SlurmdPeer(Object):
     @property
     def _relation(self):
         return self.framework.model.get_relation(self._relation_name)
+
+    @property
+    def partition_name(self):
+        """Get partition name."""
+        return self._relation.data[self.model.app].get('partition-name')
+
+    @partition_name.setter
+    def partition_name(self, name: str):
+        """Set the partition name."""
+        self._relation.data[self.model.app]['partition-name'] = name
 
     def configure_new_node(self):
         """Set this node as not new and trigger a reconfiguration."""

@@ -28,7 +28,6 @@ class SlurmdCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
-            partition_name=str(),
             nhc_conf=str(),
             slurm_installed=False,
             slurmctld_available=False,
@@ -36,6 +35,7 @@ class SlurmdCharm(CharmBase):
 
         self._slurm_manager = SlurmManager(self, "slurmd")
 
+        # interface to slurmctld, should only have one slurmctld per slurmd app
         self._slurmd = Slurmd(self, "slurmd")
         self._slurmd_peer = SlurmdPeer(self, "slurmd-peer")
 
@@ -75,10 +75,6 @@ class SlurmdCharm(CharmBase):
 
         if successful_installation:
             self._stored.slurm_installed = True
-
-            if self.model.unit.is_leader():
-                self._get_set_partition_name()
-                logger.debug(f"PARTITION_NAME: {self._stored.partition_name}")
         else:
             self.unit.status = BlockedStatus("Error installing slurmd")
             event.defer()
@@ -135,6 +131,10 @@ class SlurmdCharm(CharmBase):
         if not self._check_status():
             event.defer()
             return
+
+        if self.model.unit.is_leader():
+            self._get_set_partition_name()
+        logger.debug(f"## partition_name: {self.get_partition_name()}")
 
         logger.debug('#### Slurmctld available - setting overrides for configless')
         # get slurmctld host:port from relation and override systemd services
@@ -272,7 +272,7 @@ class SlurmdCharm(CharmBase):
     def _assemble_partition(self):
         """Assemble the partition info."""
         self._get_set_partition_name()
-        partition_name = self._stored.partition_name
+        partition_name = self.get_partition_name()
         partition_config = self.config.get("partition-config")
         partition_state = self.config.get("partition-state")
 
@@ -289,22 +289,24 @@ class SlurmdCharm(CharmBase):
 
     def _get_set_partition_name(self):
         """Set the partition name."""
-        # Determine if a partition-name config exists, if so
-        # ensure the self._stored.partition_name is consistent with the
-        # supplied config.
+        # Determine if a user-supplied partition-name config exists, if so
+        # ensure the partition_name is consistent with the supplied config.
         # If no partition name has been specified then generate one.
         partition_name = self.config.get("partition-name")
         if partition_name:
             partition_name = partition_name.replace(' ', '-')
-            if partition_name != self._stored.partition_name:
-                self._stored.partition_name = partition_name
+            self._set_partition_name(partition_name)
         else:
-            if not self._stored.partition_name:
-                self._stored.partition_name = f"juju-compute-{random_string()}"
+            if not self.get_partition_name():
+                self._set_partition_name(f"juju-compute-{random_string()}")
 
-    def get_partition_name(self):
-        """Return the partition_name."""
-        return self._stored.partition_name
+    def get_partition_name(self) -> str:
+        """Return the partition_name from the peer relation."""
+        return self._slurmd_peer.partition_name
+
+    def _set_partition_name(self, name: str):
+        """Set the partition_name in the peer relation."""
+        self._slurmd_peer.partition_name = name
 
     @property
     def hostname(self):

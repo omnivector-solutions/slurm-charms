@@ -90,14 +90,18 @@ class SlurmdCharm(CharmBase):
 
         - slurm installed,
         - slurmctld available and working,
-        - munge key
+        - munge key configured and working
         """
         if not self._stored.slurm_installed:
             self.unit.status = BlockedStatus("Error installing slurmd")
             return False
 
         if not (self._stored.slurmctld_available and self._slurmd.is_joined):
-            self.unit.status = WaitingStatus("Waiting on slurmctld relation")
+            self.unit.status = BlockedStatus("Waiting on slurmctld relation")
+            return False
+
+        if not self._slurm_manager.check_munged():
+            self.unit.stauts = BlockedStatus("Error configuring munge key")
             return False
 
         self.unit.status = ActiveStatus("slurmd available")
@@ -114,9 +118,8 @@ class SlurmdCharm(CharmBase):
             else:
                 logger.warning("## Slurmd not running, trying to start it")
                 self.unit.status = WaitingStatus("Starting slurmd")
-                sleep(1 + i)
-
                 self._slurm_manager.restart_slurm_component()
+                sleep(1 + i)
 
         if self._slurm_manager.slurm_is_active():
             self._check_status()
@@ -128,7 +131,7 @@ class SlurmdCharm(CharmBase):
         self._stored.slurmctld_available = flag
 
     def _on_slurmctld_available(self, event):
-        if not self._check_status():
+        if not self._stored.slurm_installed:
             event.defer()
             return
 
@@ -143,11 +146,16 @@ class SlurmdCharm(CharmBase):
 
         self._write_munge_key()
 
+        # if slurmctld is running, and we have munge working, we can proceed.
+        if not self._check_status():
+            event.defer()
+            return
+
         self._slurm_manager.create_configless_systemd_override(host, port)
         self._slurm_manager.daemon_reload()
 
         self._on_set_partition_info_on_app_relation_data(event)
-        self._slurm_manager.slurm_systemctl('restart')
+        self._slurm_manager.slurm_systemctl('stop')
         self._check_slurmd()
 
     def _on_config_changed(self, event):

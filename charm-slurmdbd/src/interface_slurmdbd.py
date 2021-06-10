@@ -98,11 +98,12 @@ class Slurmdbd(Object):
     def _on_relation_broken(self, event):
         """Clear the application relation data and emit the event."""
         self.set_slurmdbd_info_on_app_relation_data("")
+        self._charm._stored.slurmctld_available = False
         self.on.slurmctld_unavailable.emit()
 
     def set_slurmdbd_info_on_app_relation_data(self, slurmdbd_info):
         """Send slurmdbd_info to slurmctld."""
-        logger.debug('## Setting info in app relation data: {slurmdbd_info}')
+        logger.debug(f"## Setting info in app relation data: {slurmdbd_info}")
         relations = self.framework.model.relations["slurmdbd"]
         # Iterate over each of the relations setting the relation data.
         for relation in relations:

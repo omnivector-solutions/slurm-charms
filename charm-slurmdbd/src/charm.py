@@ -2,6 +2,7 @@
 """Slurmdbd Operator Charm."""
 import logging
 from pathlib import Path
+from time import sleep
 
 from interface_mysql import MySQLClient
 from interface_slurmdbd import Slurmdbd
@@ -62,8 +63,6 @@ class SlurmdbdCharm(CharmBase):
         if successful_installation:
             self._stored.slurm_installed = True
             self.unit.status = ActiveStatus("slurmdbd successfully installed")
-
-            self._slurm_manager.start_munged()
         else:
             self.unit.status = BlockedStatus("Error installing slurmdbd")
             event.defer()
@@ -130,8 +129,13 @@ class SlurmdbdCharm(CharmBase):
 
         if slurmdbd_config != slurmdbd_stored_config:
             self._stored.slurmdbd_config = slurmdbd_config
+            self._slurm_manager.slurm_systemctl("stop")
             self._slurm_manager.render_slurm_configs(slurmdbd_config)
-            self._slurm_manager.restart_slurm_component()
+
+            # At this point, we must guarantee that slurmdbd is correctly
+            # initialized. Its startup might take a while, so we have to wait
+            # for it.
+            self._check_slurmdbd()
 
             # Only the leader can set relation data on the application.
             # Enforce that no one other then the leader trys to set
@@ -140,7 +144,27 @@ class SlurmdbdCharm(CharmBase):
                 self._slurmdbd.set_slurmdbd_info_on_app_relation_data(
                     slurmdbd_config,
                 )
-        self.unit.status = ActiveStatus("slurmdbd available")
+
+        self._check_status()
+
+    def _check_slurmdbd(self, max_attemps=3) -> None:
+        """Ensure slurmdbd is up and running."""
+        logger.debug("## Checking if slurmdbd is active")
+
+        for i in range(max_attemps):
+            if self._slurm_manager.slurm_is_active():
+                logger.debug("## Slurmdbd running")
+                break
+            else:
+                logger.warning("## Slurmdbd not running, trying to start it")
+                self.unit.status = WaitingStatus("Starting slurmdbd")
+                self._slurm_manager.restart_slurm_component()
+                sleep(1 + i)
+
+        if self._slurm_manager.slurm_is_active():
+            self._check_status()
+        else:
+            self.unit.status = BlockedStatus("Cannot start slurmdbd")
 
     def _check_status(self) -> bool:
         """Check that we have the things we need."""
@@ -164,6 +188,10 @@ class SlurmdbdCharm(CharmBase):
         slurmctld_available = self._stored.slurmctld_available
         if not slurmctld_available:
             self.unit.status = BlockedStatus("Need relation to slurmctld")
+            return False
+
+        if not self._slurm_manager.check_munged():
+            self.unit.status = WaitingStatus("Need munge key")
             return False
 
         self.unit.status = ActiveStatus("slurmdbd ready")

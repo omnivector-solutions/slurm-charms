@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- improve checks on Systemd commands to start/restart daemons, as to guarantee
+  correct Charm initialization
+- check for munge keys before starting Slurm daemons, to avoid a race condition
 - fix possible breakage in Slurm configuration due to spaces in partition names
 - improve description of configurations and actions.
 - fix slurmrestd version in Juju status breaking the line.

@@ -151,13 +151,19 @@ class SlurmctldCharm(CharmBase):
             # NOTE: Use leadership settings instead of stored state when
             # leadership settings support becomes available in the framework.
             if self._is_leader():
+                # NOTE the backup controller should also have the jwt and munge
+                #      keys configured. We should move these information to the
+                #      peer relation.
                 self._stored.jwt_rsa = self._slurm_manager.generate_jwt_rsa()
                 self._stored.munge_key = self._slurm_manager.get_munge_key()
-
-                # NOTE the backup controller should also have the jwt and munge
-                # keys configured.
                 self._slurm_manager.configure_jwt_rsa(self.get_jwt_rsa())
+            else:
+                # NOTE: the secondary slurmctld should get the jwt and munge
+                #       keys from the peer relation here
+                logger.debug("secondary slurmctld")
 
+            # all slurmctld should restart munged here, as it would assure
+            # munge is working
             self._slurm_manager.restart_munged()
         else:
             self.unit.status = BlockedStatus("Error installing slurmctld")
@@ -170,22 +176,33 @@ class SlurmctldCharm(CharmBase):
         self.unit.set_workload_version(Path("version").read_text().strip())
 
     def _check_status(self):
-        """Check for all relations and set appropriate status."""
+        """Check for all relations and set appropriate status.
+
+        This charm needs these conditions to be satified in order to be ready:
+        - Slurm components installed.
+        - Munge running.
+        - slurmdbd node running.
+        - slurmd inventory.
+        """
         # NOTE: improve this function to display joined/available
+        # NOTE: slurmd and slurmrestd are not needed for slurmctld to work,
+        #       only for the cluster to operate. But we need slurmd inventory
+        #       to assemble slurm.conf
 
         if not self._stored.slurm_installed:
             self.unit.stauts = BlockedStatus("Error installing slurmctld")
             return False
 
-        msg = ""
-        if not self._stored.slurmd_available:
-            msg += " slurmd"
-        if not self._stored.slurmdbd_available:
-            msg += " slurmdbd"
+        if not self._slurm_manager.check_munged():
+            self.unit.stauts = BlockedStatus("Error configuring munge key")
+            return False
 
-        if msg != "":
-            msg = 'Wating on' + msg
-            self.unit.status = BlockedStatus(msg)
+        if not self._stored.slurmdbd_available:
+            self.unit.status = BlockedStatus("Waiting on slurmdbd")
+            return False
+
+        if not self._stored.slurmd_available:
+            self.unit.status = BlockedStatus("Waiting on slurmd")
             return False
 
         self.unit.status = ActiveStatus("slurmctld available")
@@ -293,23 +310,29 @@ class SlurmctldCharm(CharmBase):
         slurm_config = self._assemble_slurm_config()
         if slurm_config:
             self._slurm_manager.render_slurm_configs(slurm_config)
+
+            # restart is needed if nodes are added/removed from the cluster
             self._slurm_manager.slurm_systemctl('restart')
             self._slurm_manager.slurm_cmd('scontrol', 'reconfigure')
 
             # check for "not new anymore" nodes, i.e., nodes that runned the
-            # node-configured action
+            # node-configured action. Those nodes are not anymore in the
+            # DownNodes section in the slurm.conf, but we need to resume them
+            # manually and update the internal cache
             down_nodes = slurm_config['down_nodes']
             configured_nodes = self._assemble_configured_nodes(down_nodes)
             logger.debug(f"### configured nodes: {configured_nodes}")
             self._resume_nodes(configured_nodes)
-            # update down nodes cache
             self._stored.down_nodes = down_nodes.copy()
 
+            # NOTE: does it make sense to do this here?
             # slurmrestd needs the slurm.conf file, so send it
             if self._stored.slurmrestd_available:
                 self._slurmrestd.set_slurm_config_on_app_relation_data(
                     slurm_config
                 )
+                # NOTE: check if we really need to restart slurmrestd. scontrol
+                #       reconfigure might be enough
                 self._slurmrestd.restart_slurmrestd()
         else:
             logger.debug("## Should rewrite slurm.conf, but we don't have it. "

@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+0.6.4 - 2021-06-11
+------------------
+
 - improve checks on Systemd commands to start/restart daemons, as to guarantee
   correct Charm initialization
 - check for munge keys before starting Slurm daemons, to avoid a race condition

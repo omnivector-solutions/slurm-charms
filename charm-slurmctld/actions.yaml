@@ -13,6 +13,9 @@ drain:
 
     Example usage:
     $ juju run-action slurmctld/leader drain nodename=node-[1,2] reason="Updating kernel"
+
+    Note: to drain a partition, use the `state` configuration for the `slurmd`
+    charm.
   params:
     nodename:
       type: string

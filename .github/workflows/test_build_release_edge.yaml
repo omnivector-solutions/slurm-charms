@@ -59,12 +59,12 @@ jobs:
           architecture: 'x64'
       - name: "Install charmcraft"
         run: |
-          pip install charmcraft
+          sudo snap install charmcraft --channel=latest/stable
       - name: "Build the charms"
         shell: bash
         run: |
           make charms
-          echo "charm version: $(cat VERSION)"
+          echo "charm version: $(cat version)"
 
       - name: "Store charm hash filename for later use"
         if: ${{ success() }}

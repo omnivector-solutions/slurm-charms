@@ -48,11 +48,16 @@ class Slurmd(Object):
             self._on_relation_changed,
         )
         self.framework.observe(
+            self._charm.on[self._relation_name].relation_departed,
+            self._on_relation_changed,
+        )
+        self.framework.observe(
             self._charm.on[self._relation_name].relation_broken,
             self._on_relation_broken,
         )
 
     def _on_relation_created(self, event):
+        """Set our data on the relation."""
         # Check that slurm has been installed so that we know the munge key is
         # available. Defer if slurm has not been installed yet.
         if not self._charm.is_slurm_installed():
@@ -74,26 +79,23 @@ class Slurmd(Object):
         app_relation_data["slurmctld_port"] = self._charm.port
 
     def _on_relation_changed(self, event):
-        event_app_data = event.relation.data.get(event.app)
-        if not event_app_data:
-            event.defer()
-            return
-
-        partition_info = event_app_data.get("partition_info")
-        if partition_info:
+        """Emit slurmd available event."""
+        if event.relation.data[event.app].get("partition_info"):
             self._charm.set_slurmd_available(True)
             self.on.slurmd_available.emit()
         else:
             event.defer()
 
     def _on_relation_broken(self, event):
+        """Clear the munge key and emit the event if the relation is broken."""
         if self.framework.model.unit.is_leader():
             event.relation.data[self.model.app]["munge_key"] = ""
-        self.on.slurmd_unavailable.emit()
         self._charm.set_slurmd_available(False)
+        self.on.slurmd_unavailable.emit()
 
     @property
     def _num_relations(self):
+        """Return the number of relations."""
         return len(self._charm.framework.model.relations["slurmd"])
 
     @property
@@ -103,19 +105,23 @@ class Slurmd(Object):
 
     def get_slurmd_info(self):
         """Return the node info for units of applications on the relation."""
-        partitions = []
+        partitions = list()
         relations = self.framework.model.relations["slurmd"]
 
         for relation in relations:
+            inventory = list()
+
             app = relation.app
-            if app:
-                app_data = relation.data.get(app)
-                if app_data:
-                    partition_info = app_data.get("partition_info")
-                    if partition_info:
-                        partitions.append(json.loads(partition_info))
-                    else:
-                        logger.warning(f"### interface slurmd - get_slurmd_info - no partition_info for {relation}")
+            units = relation.units
+
+            partition_info = json.loads(relation.data[app]["partition_info"])
+
+            for unit in units:
+                inv = json.loads(relation.data[unit]["inventory"])
+                inventory.append(inv)
+
+            partition_info["inventory"] = inventory.copy()
+            partitions.append(partition_info)
 
         return ensure_unique_partitions(partitions)
 

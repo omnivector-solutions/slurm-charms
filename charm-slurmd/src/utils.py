@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """utils.py module for slurmd charm."""
-import json
 import os
 import random
 import subprocess
@@ -90,27 +89,6 @@ def get_inventory(node_name, node_addr):
     if gpus > 0:
         inventory["gres"] = gpus
     return inventory
-
-
-def _related_units(relid):
-    """List of related units."""
-    units_cmd_line = ["relation-list", "--format=json", "-r", relid]
-    return json.loads(subprocess.check_output(units_cmd_line).decode("UTF-8")) or []
-
-
-def _relation_ids(reltype):
-    """List of relation_ids."""
-    relid_cmd_line = ["relation-ids", "--format=json", reltype]
-    return json.loads(subprocess.check_output(relid_cmd_line).decode("UTF-8")) or []
-
-
-def get_active_units(relation_name):
-    """Return the active_units."""
-    active_units = []
-    for rel_id in _relation_ids(relation_name):
-        for unit in _related_units(rel_id):
-            active_units.append(unit)
-    return active_units
 
 
 def random_string(length=4):

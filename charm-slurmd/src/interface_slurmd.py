@@ -7,6 +7,9 @@ from ops.framework import (
     EventBase, EventSource, Object, ObjectEvents, StoredState,
 )
 
+from utils import get_inventory
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -62,14 +65,23 @@ class Slurmd(Object):
     def _on_relation_created(self, event):
         """Handle the relation-created event.
 
-        Set the partition_name on the application relation data.
+        Set the node inventory and partition_name on the relation data.
         """
-        partition_name = self._charm.get_partition_name()
-        if not partition_name:
-            event.defer()
-            return
+        # Generate the inventory and set it on the relation data.
+        node_name = self._charm.hostname
+        node_addr = event.relation.data[self.model.unit]["ingress-address"]
+
+        inv = get_inventory(node_name, node_addr)
+        inv["new_node"] = True
+        self.node_inventory = inv
 
         if self.framework.model.unit.is_leader():
+            # Set the partition name on the application data.
+            partition_name = self._charm.get_partition_name()
+            if not partition_name:
+                event.defer()
+                return
+
             event.relation.data[self.model.app]["partition_name"] = \
                 partition_name
 
@@ -132,6 +144,27 @@ class Slurmd(Object):
         """Get slurmctld port."""
         return self._stored.slurmctld_port
 
+    @property
+    def node_inventory(self):
+        """Return unit inventory."""
+        return json.loads(self._relation.data[self.model.unit].get("inventory"))
+
+    @node_inventory.setter
+    def node_inventory(self, inventory: dict):
+        """Set unit inventory."""
+        self._relation.data[self.model.unit]["inventory"] = \
+            json.dumps(inventory)
+
+    @property
+    def partition_name(self):
+        """Get partition name."""
+        return self._relation.data[self.model.app].get('partition-name')
+
+    @partition_name.setter
+    def partition_name(self, name: str):
+        """Set the partition name."""
+        self._relation.data[self.model.app]['partition-name'] = name
+
     def set_partition_info_on_app_relation_data(self, partition_info):
         """Set the slurmd partition on the app relation data.
 
@@ -158,12 +191,28 @@ class Slurmd(Object):
         if port != self._stored.slurmctld_port:
             self._stored.slurmctld_port = port
 
-    def get_stored_munge_key(self):
-        """Retrieve the munge_key from the StoredState."""
-        return self._stored.munge_key
-
     def _store_slurmd_restart_uuid(self, restart_slurmd_uuid):
         self._stored.restart_slurmd_uuid = restart_slurmd_uuid
 
     def _get_slurmd_restart_uuid(self):
         return self._stored.restart_slurmd_uuid
+
+    def get_stored_munge_key(self):
+        """Retrieve the munge_key from the StoredState."""
+        return self._stored.munge_key
+
+    def get_node_inventory(self):
+        """Retrieve the node inventory from the relation."""
+        return self._relation.data[self.model.unit].get("inventory")
+
+    def configure_new_node(self):
+        """Set this node as not new and trigger a reconfiguration."""
+        inv = self._relation.data[self.model.unit].get("inventory")
+        inv = json.loads(inv)
+        inv["new_node"] = False
+
+        self._relation.data[self.model.unit]['inventory'] = json.dumps(
+            inv
+        )
+
+        self._charm._check_slurmd()

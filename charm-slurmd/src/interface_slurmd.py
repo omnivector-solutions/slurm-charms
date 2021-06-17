@@ -100,9 +100,9 @@ class Slurmd(Object):
         # at this point so retrieve them from the relation data and store
         # them in the charm's stored state.
         self._store_munge_key(app_data["munge_key"])
-        self._store_slurmctld_host_port(
-            app_data["slurmctld_host"], app_data["slurmctld_port"]
-        )
+        self._store_slurmctld_host_port(app_data["slurmctld_host"], 
+                                        app_data["slurmctld_port"])
+
         # Set slurmctld_available to true and emit the slurmctld_available event.
         self._charm.set_slurmctld_available(True)
         self.on.slurmctld_available.emit()

@@ -138,7 +138,7 @@ class Slurmd(Object):
         return self._stored.slurmctld_port
 
     @property
-    def node_inventory(self):
+    def node_inventory(self) -> dict:
         """Return unit inventory."""
         return json.loads(self._relation.data[self.model.unit]["inventory"])
 

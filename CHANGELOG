@@ -9,11 +9,6 @@ Unreleased
 
 - fix breakage in charms when the slurmd leader is removed
 - remove slurmd peer relation in favor of the slurmd relation
-- slurmd units set their own inventory on the slurmd relation unit data 
-
-Unreleased
-----------
-
 - fix slurmd action to query infiniband version
 - add slurmrestd to CentOS7
 - fix slurmrestd Systemd environment variables to enable jwt auth

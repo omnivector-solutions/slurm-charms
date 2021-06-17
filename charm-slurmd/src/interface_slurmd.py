@@ -197,5 +197,5 @@ class Slurmd(Object):
         """Set this node as not new and trigger a reconfiguration."""
         inv = self.node_inventory
         inv["new_node"] = False
-        self._relation.data[self.model.unit]['inventory'] = json.dumps(inv)
+        self.node_inventory = inv
         self._charm._check_slurmd()

@@ -148,7 +148,7 @@ class Slurmd(Object):
         self._relation.data[self.model.unit]["inventory"] = json.dumps(inventory)
 
     @property
-    def partition_name(self):
+    def partition_name(self) -> str:
         """Get partition name."""
         return self._relation.data[self.model.app].get('partition-name')
 

@@ -55,7 +55,7 @@ jobs:
           fetch-depth: 0
       - name: "Install charmcraft"
         run: |
-          sudo snap install charmcraft --channel=latest/stable
+          sudo snap install charmcraft --channel=latest/edge --classic
       - name: "Build the charms"
         shell: bash
         run: |
@@ -156,12 +156,12 @@ jobs:
 
       - name: "Install juju and jq snaps"
         run: |
-          sudo snap install juju --classic
+          sudo snap install juju --channel 2.9/stable --classic
           sudo snap install jq
 
       - name: "Login to juju controller as cicd user"
         run: |
-          echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju login --user circleci
+          echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju login -B --user circleci
           juju whoami
 
       - name: "Add models to house charms for testing"
@@ -182,7 +182,7 @@ jobs:
         if: ${{ success() }}
         shell: bash
         run: |
-          git clone https://github.com/omnivector-solutions/slurm-bundles -b 1.2.0 ../slurm-bundles
+          git clone https://github.com/omnivector-solutions/slurm-bundles -b 1.3.0 ../slurm-bundles
 
           juju whoami
           juju list-models
@@ -196,7 +196,8 @@ jobs:
               juju deploy --verbose --debug \
                           ./../slurm-bundles/slurm-core/bundle.yaml \
                           --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
-                          --overlay ./../slurm-bundles/slurm-core/series/focal.yaml
+                          --overlay ./../slurm-bundles/slurm-core/series/focal.yaml \
+                          --overlay ./../slurm-bundles/slurm-core/charms/local-development.yaml
               ;;
 
             "centos7")
@@ -204,7 +205,8 @@ jobs:
               juju deploy --verbose --debug \
                           ./../slurm-bundles/slurm-core/bundle.yaml \
                           --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
-                          --overlay ./../slurm-bundles/slurm-core/series/centos7.yaml
+                          --overlay ./../slurm-bundles/slurm-core/series/centos7.yaml \
+                          --overlay ./../slurm-bundles/slurm-core/charms/local-development.yaml
               ;;
           esac
 

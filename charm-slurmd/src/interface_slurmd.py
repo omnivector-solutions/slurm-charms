@@ -66,7 +66,7 @@ class Slurmd(Object):
         """
         Handle the relation-created event.
 
-        Set the node inventory and partition_name on the relation data.
+        Set the node inventory on the relation data.
         """
         # Generate the inventory and set it on the relation data.
         node_name = self._charm.hostname
@@ -76,18 +76,9 @@ class Slurmd(Object):
         inv["new_node"] = True
         self.node_inventory = inv
 
-        if self.framework.model.unit.is_leader():
-            # Set the partition name on the application data.
-            partition_name = self._charm.get_partition_name()
-            if not partition_name:
-                event.defer()
-                return
-
-            event.relation.data[self.model.app]["partition_name"] = \
-                partition_name
-
     def _on_relation_joined(self, event):
-        """Handle the relation-joined event.
+        """
+        Handle the relation-joined event.
 
         Get the munge_key, slurmctld_host and slurmctld_port from slurmctld
         and save it to the charm stored state.
@@ -100,7 +91,7 @@ class Slurmd(Object):
         # at this point so retrieve them from the relation data and store
         # them in the charm's stored state.
         self._store_munge_key(app_data["munge_key"])
-        self._store_slurmctld_host_port(app_data["slurmctld_host"], 
+        self._store_slurmctld_host_port(app_data["slurmctld_host"],
                                         app_data["slurmctld_port"])
 
         # Set slurmctld_available to true and emit the slurmctld_available event.
@@ -146,16 +137,6 @@ class Slurmd(Object):
     def node_inventory(self, inventory: dict):
         """Set unit inventory."""
         self._relation.data[self.model.unit]["inventory"] = json.dumps(inventory)
-
-    @property
-    def partition_name(self) -> str:
-        """Get partition name."""
-        return self._relation.data[self.model.app].get('partition-name')
-
-    @partition_name.setter
-    def partition_name(self, name: str):
-        """Set the partition name."""
-        self._relation.data[self.model.app]['partition-name'] = name
 
     def set_partition_info_on_app_relation_data(self, partition_info):
         """Set the slurmd partition on the app relation data.

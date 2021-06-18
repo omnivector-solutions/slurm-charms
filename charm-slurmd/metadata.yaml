@@ -24,3 +24,7 @@ series:
 provides:
   slurmd:
     interface: slurmd
+
+peers:
+  slurmd-peer:
+    interface: slurmd-peer

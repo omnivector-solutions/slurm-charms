@@ -7,6 +7,8 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- fix breakage in charms when the slurmd leader is removed
+- remove unused code in slurmd peer relation
 - fix slurmd action to query infiniband version
 - add slurmrestd to CentOS7
 - fix slurmrestd Systemd environment variables to enable jwt auth

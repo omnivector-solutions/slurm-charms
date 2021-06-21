@@ -87,6 +87,7 @@ class Slurmdbd(Object):
             event.defer()
 
     def _on_relation_departed(self, event):
+        self._charm.set_slurmdbd_available(False)
         self.on.slurmdbd_unavailable.emit()
 
     def _on_relation_broken(self, event):

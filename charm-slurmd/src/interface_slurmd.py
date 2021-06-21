@@ -6,6 +6,9 @@ import logging
 from ops.framework import (
     EventBase, EventSource, Object, ObjectEvents, StoredState,
 )
+from ops.model import Relation
+from utils import get_inventory
+
 
 logger = logging.getLogger(__name__)
 
@@ -60,77 +63,83 @@ class Slurmd(Object):
         )
 
     def _on_relation_created(self, event):
-        """Handle the relation-created event.
-
-        Set the partition_name on the application relation data.
         """
-        partition_name = self._charm.get_partition_name()
-        if not partition_name:
-            event.defer()
-            return
+        Handle the relation-created event.
 
-        if self.framework.model.unit.is_leader():
-            event.relation.data[self.model.app]["partition_name"] = \
-                partition_name
+        Set the node inventory on the relation data.
+        """
+        # Generate the inventory and set it on the relation data.
+        node_name = self._charm.hostname
+        node_addr = event.relation.data[self.model.unit]["ingress-address"]
+
+        inv = get_inventory(node_name, node_addr)
+        inv["new_node"] = True
+        self.node_inventory = inv
 
     def _on_relation_joined(self, event):
-        """Handle the relation-joined event.
-
-        Get the munge_key from slurmctld and save it to the charm stored state.
         """
-        event_app_data = event.relation.data.get(event.app)
-        if not event_app_data:
+        Handle the relation-joined event.
+
+        Get the munge_key, slurmctld_host and slurmctld_port from slurmctld
+        and save it to the charm stored state.
+        """
+        app_data = event.relation.data[event.app]
+        if not app_data.get("munge_key"):
             event.defer()
             return
 
         # slurmctld sets the munge_key on the relation-created event
-        # which happens before relation-joined. We can almost guarantee that
-        # the munge key will exist at this point, but check for it just incase.
-        munge_key = event_app_data.get("munge_key")
-        if not munge_key:
-            event.defer()
-            return
+        # which happens before relation-joined. We can guarantee that
+        # the munge_key, slurmctld_host and slurmctld_port will exist
+        # at this point so retrieve them from the relation data and store
+        # them in the charm's stored state.
+        self._store_munge_key(app_data["munge_key"])
+        self._store_slurmctld_host_port(app_data["slurmctld_host"],
+                                        app_data["slurmctld_port"])
 
-        # Store the munge_key in the charm's state
-        self._store_munge_key(munge_key)
-
-        # get slurmctld's hostname and port to enable configless
-        host = event_app_data.get("slurmctld_host")
-        port = event_app_data.get("slurmctld_port")
-        if not (host or port):
-            event.defer()
-        self._store_slurmctld_host_port(host, port)
-
+        # Set slurmctld_available to true and emit the slurmctld_available event.
         self._charm.set_slurmctld_available(True)
         self.on.slurmctld_available.emit()
 
     def _on_relation_broken(self, event):
+        """Perform relation broken operations."""
         self._charm.set_slurmctld_available(False)
         self.on.slurmctld_unavailable.emit()
 
     @property
-    def _relation(self):
+    def _relation(self) -> Relation:
+        """Return the relation."""
         return self.framework.model.get_relation(self._relation_name)
 
     @property
-    def num_relations(self):
+    def num_relations(self) -> int:
         """Return the number of relations."""
         return len(self._charm.framework.model.relations["slurmd"])
 
     @property
-    def is_joined(self):
+    def is_joined(self) -> bool:
         """Return True if relation is joined."""
         return self.num_relations > 0
 
     @property
-    def slurmctld_hostname(self):
+    def slurmctld_hostname(self) -> str:
         """Get slurmctld hostname."""
         return self._stored.slurmctld_hostname
 
     @property
-    def slurmctld_port(self):
+    def slurmctld_port(self) -> str:
         """Get slurmctld port."""
         return self._stored.slurmctld_port
+
+    @property
+    def node_inventory(self) -> dict:
+        """Return unit inventory."""
+        return json.loads(self._relation.data[self.model.unit]["inventory"])
+
+    @node_inventory.setter
+    def node_inventory(self, inventory: dict):
+        """Set unit inventory."""
+        self._relation.data[self.model.unit]["inventory"] = json.dumps(inventory)
 
     def set_partition_info_on_app_relation_data(self, partition_info):
         """Set the slurmd partition on the app relation data.
@@ -146,11 +155,11 @@ class Slurmd(Object):
                 partition_info
             )
 
-    def _store_munge_key(self, munge_key):
+    def _store_munge_key(self, munge_key: str):
         """Store the munge_key in the StoredState."""
         self._stored.munge_key = munge_key
 
-    def _store_slurmctld_host_port(self, host, port):
+    def _store_slurmctld_host_port(self, host: str, port: str):
         """Store the hostname and port of slurmctld in StoredState."""
         if host != self._stored.slurmctld_hostname:
             self._stored.slurmctld_hostname = host
@@ -158,12 +167,19 @@ class Slurmd(Object):
         if port != self._stored.slurmctld_port:
             self._stored.slurmctld_port = port
 
-    def get_stored_munge_key(self):
+    def _store_slurmd_restart_uuid(self, restart_slurmd_uuid: str):
+        self._stored.restart_slurmd_uuid = restart_slurmd_uuid
+
+    def _get_slurmd_restart_uuid(self) -> str:
+        return self._stored.restart_slurmd_uuid
+
+    def get_stored_munge_key(self) -> str:
         """Retrieve the munge_key from the StoredState."""
         return self._stored.munge_key
 
-    def _store_slurmd_restart_uuid(self, restart_slurmd_uuid):
-        self._stored.restart_slurmd_uuid = restart_slurmd_uuid
-
-    def _get_slurmd_restart_uuid(self):
-        return self._stored.restart_slurmd_uuid
+    def configure_new_node(self):
+        """Set this node as not new and trigger a reconfiguration."""
+        inv = self.node_inventory
+        inv["new_node"] = False
+        self.node_inventory = inv
+        self._charm._check_slurmd()

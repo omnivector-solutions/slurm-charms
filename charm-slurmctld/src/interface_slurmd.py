@@ -117,8 +117,9 @@ class Slurmd(Object):
             partition_info = json.loads(relation.data[app]["partition_info"])
 
             for unit in units:
-                inv = json.loads(relation.data[unit]["inventory"])
-                inventory.append(inv)
+                inv = relation.data[unit].get("inventory")
+                if inv:
+                    inventory.append(json.loads(inv))
 
             partition_info["inventory"] = inventory.copy()
             partitions.append(partition_info)

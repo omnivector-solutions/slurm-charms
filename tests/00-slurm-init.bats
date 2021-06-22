@@ -96,14 +96,14 @@ myjuju () {
 }
 
 @test "Ping slurmrestd" {
-	host=$(juju status slurmrestd --format=json | jq .applications.slurmrestd.units | grep public-address | cut -f 4 -d'"')
 	user="ubuntu"
 	token=$(juju run --model "$JUJU_MODEL" --unit slurmctld/leader "scontrol token username=$user" | cut -d"=" -f 2)
 
-	run curl --request GET "$host":6820/slurm/v0.0.36/ping \
-	         --location --silent --show-error \
-	         --header "X-SLURM-USER-NAME: $user" \
-	         --header "X-SLURM-USER-TOKEN: $token"
+	run juju run "curl --request GET localhost:6820/slurm/v0.0.36/ping \
+	                   --location --silent --show-error \
+	                   --header 'X-SLURM-USER-NAME: $user' \
+	                   --header 'X-SLURM-USER-TOKEN: $token'" \
+                     --unit slurmrestd/leader
 
 	assert_output --partial "\"ping\": \"UP\","
 }

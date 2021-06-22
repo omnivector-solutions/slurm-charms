@@ -193,7 +193,7 @@ jobs:
 
             "focal")
 
-              juju deploy --verbose --debug \
+              echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju deploy --verbose --debug \
                           ./../slurm-bundles/slurm-core/bundle.yaml \
                           --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
                           --overlay ./../slurm-bundles/slurm-core/series/focal.yaml \
@@ -202,7 +202,7 @@ jobs:
 
             "centos7")
 
-              juju deploy --verbose --debug \
+              echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju deploy --verbose --debug \
                           ./../slurm-bundles/slurm-core/bundle.yaml \
                           --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
                           --overlay ./../slurm-bundles/slurm-core/series/centos7.yaml \

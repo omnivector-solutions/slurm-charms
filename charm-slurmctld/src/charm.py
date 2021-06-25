@@ -5,6 +5,7 @@ import logging
 import shlex
 import subprocess
 from pathlib import Path
+from typing import List
 
 from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
@@ -303,6 +304,10 @@ class SlurmctldCharm(CharmBase):
         """Check that we have what we need before we proceed."""
         logger.debug("### Slurmctld - _on_write_slurm_config()")
 
+        # only the leader should write the config, restart, and scontrol reconf
+        if not self._is_leader():
+            return
+
         if not self._check_status():
             event.defer()
             return
@@ -314,6 +319,10 @@ class SlurmctldCharm(CharmBase):
             # restart is needed if nodes are added/removed from the cluster
             self._slurm_manager.slurm_systemctl('restart')
             self._slurm_manager.slurm_cmd('scontrol', 'reconfigure')
+
+            # send the list of hostnames to slurmd relation data
+            accounted_nodes = self._assemble_all_nodes(slurm_config["partitions"])
+            self._slurmd.set_list_of_accounted_nodes(accounted_nodes)
 
             # check for "not new anymore" nodes, i.e., nodes that runned the
             # node-configured action. Those nodes are not anymore in the
@@ -338,6 +347,15 @@ class SlurmctldCharm(CharmBase):
             logger.debug("## Should rewrite slurm.conf, but we don't have it. "
                          "Deferring.")
             event.defer()
+
+    @staticmethod
+    def _assemble_all_nodes(slurmd_info: list) -> List[str]:
+        """Parse slurmd_info and return a list with all hostnames."""
+        nodes = list()
+        for partition in slurmd_info:
+            for node in partition["inventory"]:
+                nodes.append(node["node_name"])
+        return nodes
 
     @staticmethod
     def _assemble_down_nodes(slurmd_info):

@@ -19,7 +19,10 @@ class SlurmdPeer(Object):
     @property
     def partition_name(self) -> str:
         """Return the partition name from the application data."""
-        return self._relation.data[self.model.app].get("partition_name")
+        if self._relation:
+            if self._relation.data.get(self.model.app):
+                return self._relation.data[self.model.app].get("partition_name")
+        return ""
 
     @partition_name.setter
     def partition_name(self, partition_name: str):

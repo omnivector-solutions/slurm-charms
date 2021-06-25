@@ -5,8 +5,8 @@ import logging
 from pathlib import Path
 from time import sleep
 
-from ops.charm import CharmBase
-from ops.framework import StoredState
+from ops.charm import CharmBase, CharmEvents
+from ops.framework import EventBase, EventSource, StoredState
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 from slurm_ops_manager import SlurmManager
@@ -18,10 +18,20 @@ from utils import random_string
 logger = logging.getLogger()
 
 
+class SlurmdStart(EventBase):
+    """Emitted when slurmd should start."""
+
+
+class SlurmdCharmEvents(CharmEvents):
+    """Slurmd emitted events."""
+    slurmd_start = EventSource(SlurmdStart)
+
+
 class SlurmdCharm(CharmBase):
     """Slurmd lifecycle events."""
 
     _stored = StoredState()
+    on = SlurmdCharmEvents()
 
     def __init__(self, *args):
         """Init _stored attributes and interfaces, observe events."""
@@ -31,6 +41,7 @@ class SlurmdCharm(CharmBase):
             nhc_conf=str(),
             slurm_installed=False,
             slurmctld_available=False,
+            slurmctld_started=False,
         )
 
         self._slurm_manager = SlurmManager(self, "slurmd")
@@ -43,7 +54,10 @@ class SlurmdCharm(CharmBase):
             self.on.install: self._on_install,
             self.on.upgrade_charm: self._on_upgrade,
             self.on.config_changed: self._on_config_changed,
+            self.on.slurmd_start: self._on_slurmd_start,
             self._slurmd.on.slurmctld_available: self._on_slurmctld_available,
+            self._slurmd.on.slurmctld_unavailable: self._on_slurmctld_unavailable,
+            self._slurmd.on.slurmctld_started: self._on_slurmctld_started,
             # actions
             self.on.version_action: self._on_version_action,
             self.on.node_configured_action: self._on_node_configured_action,
@@ -64,12 +78,7 @@ class SlurmdCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmd."""
-        if not self._slurmd_peer.available:
-            event.defer()
-            return
-
         self.unit.set_workload_version(Path("version").read_text().strip())
-
         self.unit.status = WaitingStatus("Installing slurmd")
 
         successful_installation = self._slurm_manager.install()
@@ -96,7 +105,7 @@ class SlurmdCharm(CharmBase):
         - munge key configured and working
         """
         if not self.get_partition_name():
-            self.unit.status = WaitingStatus("Waiting on charm configuration.")
+            self.unit.status = WaitingStatus("Waiting on charm configuration")
             return False
 
         if not self._stored.slurm_installed:
@@ -111,12 +120,17 @@ class SlurmdCharm(CharmBase):
             self.unit.stauts = BlockedStatus("Error configuring munge key")
             return False
 
+        if not self._stored.slurmctld_started:
+            self.unit.status = WaitingStatus("Waiting on slurmctld to start")
+            return False
+
         self.unit.status = ActiveStatus("slurmd available")
         return True
 
-    def _check_slurmd(self, max_attemps=10) -> None:
+    def ensure_slurmd_starts(self, max_attemps=10) -> bool:
         """Ensure slurmd is up and running."""
-        logger.debug("## Checking if slurmd is active")
+        logger.debug("## Stoping slurmd")
+        self._slurm_manager.slurm_systemctl('stop')
 
         for i in range(max_attemps):
             if self._slurm_manager.slurm_is_active():
@@ -129,15 +143,21 @@ class SlurmdCharm(CharmBase):
                 sleep(2 + i)
 
         if self._slurm_manager.slurm_is_active():
-            self._check_status()
+            return True
         else:
             self.unit.status = BlockedStatus("Cannot start slurmd")
+            return False
 
-    def set_slurmctld_available(self, flag: bool):
+    def _set_slurmctld_available(self, flag: bool):
         """Change stored value for slurmctld availability."""
         self._stored.slurmctld_available = flag
 
+    def _set_slurmctld_started(self, flag: bool):
+        """Change stored value for slurmctld started."""
+        self._stored.slurmctld_started = flag
+
     def _on_slurmctld_available(self, event):
+        """Get data from slurmctld and send inventory."""
         if not self._stored.slurm_installed:
             event.defer()
             return
@@ -146,20 +166,38 @@ class SlurmdCharm(CharmBase):
         # get slurmctld host:port from relation and override systemd services
         host = self._slurmd.slurmctld_hostname
         port = self._slurmd.slurmctld_port
+        self._slurm_manager.create_configless_systemd_override(host, port)
+        self._slurm_manager.daemon_reload()
 
-        self._write_munge_key()
+        self._write_munge_key_and_restart_munge()
 
-        # if slurmctld is running, and we have munge working, we can proceed.
+        self._set_slurmctld_available(True)
+        self._on_set_partition_info_on_app_relation_data(event)
+        self._check_status()
+
+    def _on_slurmctld_unavailable(self, event):
+        logger.debug("## Slurmctld unavailable")
+        self._set_slurmctld_available(False)
+        self._set_slurmctld_started(False)
+        self._check_status()
+
+    def _on_slurmctld_started(self, event):
+        """Set flag to True and emit slurm_start event."""
+        self._set_slurmctld_started(True)
+        self.on.slurmd_start.emit()
+
+    def _on_slurmd_start(self, event):
         if not self._check_status():
             event.defer()
             return
 
-        self._slurm_manager.create_configless_systemd_override(host, port)
-        self._slurm_manager.daemon_reload()
-
-        self._on_set_partition_info_on_app_relation_data(event)
-        self._slurm_manager.slurm_systemctl('stop')
-        self._check_slurmd()
+        # at this point, we have slurm installed, munge configured, and we know
+        # slurmctld accounted for this node. It should be safe to start slurmd
+        if self.ensure_slurmd_starts():
+            logger.debug("## slurmctld started and slurmd is running")
+        else:
+            event.defer()
+        self._check_status()
 
     def _on_config_changed(self, event):
         """Handle charm configuration changes."""
@@ -190,7 +228,7 @@ class SlurmdCharm(CharmBase):
                 self._stored.nhc_conf = nhc_conf
                 self._slurm_manager.render_nhc_config(nhc_conf)
 
-    def _write_munge_key(self):
+    def _write_munge_key_and_restart_munge(self):
         logger.debug('#### slurmd charm - writting munge key')
 
         self._slurm_manager.configure_munge_key(

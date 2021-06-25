@@ -21,11 +21,16 @@ class SlurmctldUnavailableEvent(EventBase):
     """Emit when the relation to slurmctld is broken."""
 
 
+class SlurmctldStartedEvent(EventBase):
+    """Emitted when slurmctld starts."""
+
+
 class SlurmdEvents(ObjectEvents):
     """Slurmd emitted events."""
 
     slurmctld_available = EventSource(SlurmctldAvailableEvent)
     slurmctld_unavailable = EventSource(SlurmctldUnavailableEvent)
+    slurmctld_started = EventSource(SlurmctldStartedEvent)
 
 
 class Slurmd(Object):
@@ -42,7 +47,6 @@ class Slurmd(Object):
 
         self._stored.set_default(
             munge_key=str(),
-            restart_slurmd_uuid=str(),
             slurmctld_hostname=str(),
             slurmctld_port=str(),
         )
@@ -55,6 +59,11 @@ class Slurmd(Object):
         self.framework.observe(
             self._charm.on[self._relation_name].relation_joined,
             self._on_relation_joined,
+        )
+
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_changed,
+            self._on_relation_changed,
         )
 
         self.framework.observe(
@@ -97,13 +106,28 @@ class Slurmd(Object):
         self._store_slurmctld_host_port(app_data["slurmctld_host"],
                                         app_data["slurmctld_port"])
 
-        # Set slurmctld_available to true and emit the slurmctld_available event.
-        self._charm.set_slurmctld_available(True)
         self.on.slurmctld_available.emit()
+
+    def _on_relation_changed(self, event):
+        """Handle relation changed event.
+
+        Check if slurmctld accounted for this node's inventory for the first
+        time, if so, emit slurmctld_available event, so the node can start the
+        daemon.
+        """
+
+        if self._charm._slurm_manager.slurm_is_active():
+            logger.debug("## slurmd running - nothing to do")
+        else:
+            hostnames = event.relation.data[event.app].get("unit_hostnames")
+            if hostnames:
+                hostnames = json.loads(hostnames)
+
+                if self._charm.hostname in hostnames:
+                    self.on.slurmctld_started.emit()
 
     def _on_relation_broken(self, event):
         """Perform relation broken operations."""
-        self._charm.set_slurmctld_available(False)
         self.on.slurmctld_unavailable.emit()
 
     @property
@@ -167,12 +191,6 @@ class Slurmd(Object):
         if port != self._stored.slurmctld_port:
             self._stored.slurmctld_port = port
 
-    def _store_slurmd_restart_uuid(self, restart_slurmd_uuid: str):
-        self._stored.restart_slurmd_uuid = restart_slurmd_uuid
-
-    def _get_slurmd_restart_uuid(self) -> str:
-        return self._stored.restart_slurmd_uuid
-
     def get_stored_munge_key(self) -> str:
         """Retrieve the munge_key from the StoredState."""
         return self._stored.munge_key
@@ -182,4 +200,5 @@ class Slurmd(Object):
         inv = self.node_inventory
         inv["new_node"] = False
         self.node_inventory = inv
-        self._charm._check_slurmd()
+        self._charm.ensure_slurmd_starts()
+        self._charm._check_status()

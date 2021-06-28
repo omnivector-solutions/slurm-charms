@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+0.6.5 - 2021-06-28
+------------------
+
 - fix race condition on inventory synchronization between slurmd and slurmctld
   before starting slurmd
 - fix breakage in charms when the slurmd leader is removed

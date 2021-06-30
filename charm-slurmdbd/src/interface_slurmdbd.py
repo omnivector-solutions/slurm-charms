@@ -59,6 +59,15 @@ class Slurmdbd(Object):
             self._on_relation_broken,
         )
 
+    @property
+    def _relation(self):
+        return self.framework.model.get_relation(self._relation_name)
+
+    @property
+    def is_joined(self):
+        """Return True if juju related slurmdbd <-> slurmctld."""
+        return self._relation is not None
+
     def _on_relation_joined(self, event):
         """Handle the relation-joined event.
 
@@ -98,7 +107,6 @@ class Slurmdbd(Object):
     def _on_relation_broken(self, event):
         """Clear the application relation data and emit the event."""
         self.set_slurmdbd_info_on_app_relation_data("")
-        self._charm._stored.slurmctld_available = False
         self.on.slurmctld_unavailable.emit()
 
     def set_slurmdbd_info_on_app_relation_data(self, slurmdbd_info):

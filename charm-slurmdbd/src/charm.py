@@ -8,8 +8,8 @@ from interface_mysql import MySQLClient
 from interface_slurmdbd import Slurmdbd
 from interface_slurmdbd_peer import SlurmdbdPeer
 # from nrpe_external_master import Nrpe
-from ops.charm import CharmBase
-from ops.framework import StoredState
+from ops.charm import CharmBase, CharmEvents
+from ops.framework import EventBase, EventSource, StoredState
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 from slurm_ops_manager import SlurmManager
@@ -17,10 +17,30 @@ from slurm_ops_manager import SlurmManager
 logger = logging.getLogger()
 
 
+class JwtAvailable(EventBase):
+    """Emitted when JWT RSA is available."""
+
+
+class MungeAvailable(EventBase):
+    """Emitted when JWT RSA is available."""
+
+
+class WriteConfigAndRestartSlurmdbd(EventBase):
+    """Emitted when config needs to be written."""
+
+
+class SlurmdbdCharmEvents(CharmEvents):
+    """Slurmdbd emitted events."""
+    jwt_available = EventSource(JwtAvailable)
+    munge_available = EventSource(MungeAvailable)
+    write_config = EventSource(WriteConfigAndRestartSlurmdbd)
+
+
 class SlurmdbdCharm(CharmBase):
     """Slurmdbd Charm."""
 
     _stored = StoredState()
+    on = SlurmdbdCharmEvents()
 
     def __init__(self, *args):
         """Set the default class attributes."""
@@ -28,8 +48,8 @@ class SlurmdbdCharm(CharmBase):
 
         self._stored.set_default(
             db_info=dict(),
-            slurmdbd_config=dict(),
-            slurmctld_available=False,
+            jwt_available=False,
+            munge_available=False,
             slurm_installed=False,
         )
 
@@ -43,6 +63,9 @@ class SlurmdbdCharm(CharmBase):
             self.on.install: self._on_install,
             self.on.upgrade_charm: self._on_upgrade,
             self.on.config_changed: self._write_config_and_restart_slurmdbd,
+            self.on.jwt_available: self._on_jwt_available,
+            self.on.munge_available: self._on_munge_available,
+            self.on.write_config: self._write_config_and_restart_slurmdbd,
             self._db.on.database_available: self._write_config_and_restart_slurmdbd,
             self._slurmdbd_peer.on.slurmdbd_peer_available: self._write_config_and_restart_slurmdbd,
             self._slurmdbd.on.slurmdbd_available: self._write_config_and_restart_slurmdbd,
@@ -74,33 +97,45 @@ class SlurmdbdCharm(CharmBase):
         """Perform upgrade operations."""
         self.unit.set_workload_version(Path("version").read_text().strip())
 
-    def _on_slurmctld_available(self, event):
+    def _on_jwt_available(self, event):
+        """Retrieve and configure the jwt_rsa key."""
+        # jwt rsa lives in slurm spool dir, it is created when slurm is installed
         if not self._stored.slurm_installed:
             event.defer()
             return
 
-        # Retrieve and configure the munge_key.
+        jwt_rsa = self._slurmdbd.get_jwt_rsa()
+        self._slurm_manager.configure_jwt_rsa(jwt_rsa)
+        self._stored.jwt_available = True
+
+    def _on_munge_available(self, event):
+        """Retrieve munge key and start munged."""
+        # munge is installed together with slurm
+        if not self._stored.slurm_installed:
+            event.defer()
+            return
+
         munge_key = self._slurmdbd.get_munge_key()
         self._slurm_manager.configure_munge_key(munge_key)
 
-        # Retrieve and configure the jwt_rsa key.
-        jwt_rsa = self._slurmdbd.get_jwt_rsa()
-        self._slurm_manager.configure_jwt_rsa(jwt_rsa)
-
-        # Restart munged and set slurmctld_available = True.
         if self._slurm_manager.restart_munged():
             logger.debug("## Munge restarted succesfully")
-            self._stored.slurmctld_available = True
+            self._stored.munge_available = True
         else:
             logger.error("## Unable to restart munge")
             self.unit.status = BlockedStatus("Error restarting munge")
             event.defer()
 
-        self._write_config_and_restart_slurmdbd(event)
+    def _on_slurmctld_available(self, event):
+        self.on.jwt_available.emit()
+        self.on.munge_available.emit()
+
+        self.on.write_config.emit()
 
     def _on_slurmctld_unavailable(self, event):
         """Reset state and charm status when slurmctld broken."""
-        self._stored.slurmctld_available = False
+        self._stored.jwt_available = False
+        self._stored.munge_available = False
         self._check_status()
 
     def _is_leader(self):
@@ -116,7 +151,6 @@ class SlurmdbdCharm(CharmBase):
 
         db_info = self._stored.db_info
         slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
-        slurmdbd_stored_config = dict(self._stored.slurmdbd_config)
 
         # settings from the config.yaml
         config = {"slurmdbd_debug": self.config.get("slurmdbd-debug")}
@@ -127,23 +161,21 @@ class SlurmdbdCharm(CharmBase):
             **db_info,
         }
 
-        if slurmdbd_config != slurmdbd_stored_config:
-            self._stored.slurmdbd_config = slurmdbd_config
-            self._slurm_manager.slurm_systemctl("stop")
-            self._slurm_manager.render_slurm_configs(slurmdbd_config)
+        self._slurm_manager.slurm_systemctl("stop")
+        self._slurm_manager.render_slurm_configs(slurmdbd_config)
 
-            # At this point, we must guarantee that slurmdbd is correctly
-            # initialized. Its startup might take a while, so we have to wait
-            # for it.
-            self._check_slurmdbd()
+        # At this point, we must guarantee that slurmdbd is correctly
+        # initialized. Its startup might take a while, so we have to wait
+        # for it.
+        self._check_slurmdbd()
 
-            # Only the leader can set relation data on the application.
-            # Enforce that no one other then the leader trys to set
-            # application relation data.
-            if self.model.unit.is_leader():
-                self._slurmdbd.set_slurmdbd_info_on_app_relation_data(
-                    slurmdbd_config,
-                )
+        # Only the leader can set relation data on the application.
+        # Enforce that no one other then the leader trys to set
+        # application relation data.
+        if self.model.unit.is_leader():
+            self._slurmdbd.set_slurmdbd_info_on_app_relation_data(
+                slurmdbd_config,
+            )
 
         self._check_status()
 
@@ -180,21 +212,24 @@ class SlurmdbdCharm(CharmBase):
             self.unit.status = BlockedStatus("Need relation to MySQL")
             return False
 
+        if not self._slurmdbd.is_joined:
+            self.unit.status = BlockedStatus("Need relation to slurmctld")
+            return False
+
         slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
         if not slurmdbd_info:
             self.unit.status = WaitingStatus("slurmdbd starting")
             return False
 
-        slurmctld_available = self._stored.slurmctld_available
-        if not slurmctld_available:
-            self.unit.status = BlockedStatus("Need relation to slurmctld")
+        if not (self._stored.jwt_available and self._stored.munge_available):
+            self.unit.status = WaitingStatus("Waiting on slurmctld")
             return False
 
         if not self._slurm_manager.check_munged():
             self.unit.status = WaitingStatus("Need munge key")
             return False
 
-        self.unit.status = ActiveStatus("slurmdbd ready")
+        self.unit.status = ActiveStatus("slurmdbd available")
         return True
 
     def get_port(self):

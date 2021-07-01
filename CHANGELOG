@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+0.6.6 - 2021-07-01
+------------------
+
 - fix checks for munge when the code can't run subprocess as another UID
 
 0.6.5 - 2021-06-28

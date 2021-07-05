@@ -4,11 +4,14 @@ summary: |
     Slurm DBD accounting daemon
 
 maintainers:
-    - OmniVector Solutions <info@omnivector.solutions>
+    - OmniVector Solutions <admin@omnivector.solutions>
 
 description: |
-    slurmdbd provides a secure enterprise-wide interface to a database for Slurm.
-    This is particularly useful for archiving accounting records.
+    This charm provides slurmdbd, munged, and the bindings to other utilities
+    that make lifecycle operations a breeze.
+
+    slurmdbd provides a secure enterprise-wide interface to a database for
+    SLURM. This is particularly useful for archiving accounting records.
 
 tags:
   - slurm

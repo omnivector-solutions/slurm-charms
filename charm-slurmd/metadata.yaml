@@ -10,8 +10,9 @@ description: |
     This charm provides slurmd, munged, and the bindings to other utilities
     that make lifecycle operations a breeze.
 
-    slurmd is the compute node daemon of Slurm. It monitors all tasks running
-    on the compute node , accepts work (tasks), launches tasks, and kills running tasks upon request.
+    slurmd is the compute node daemon of SLURM. It monitors all tasks running
+    on the compute node, accepts work (tasks), launches tasks, and kills
+    running tasks upon request.
 
 tags:
     - slurm

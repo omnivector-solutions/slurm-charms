@@ -7,10 +7,10 @@ maintainers:
     - OmniVector Solutions <admin@omnivector.solutions>
 
 description: |
-    This charm provides slurmrestd, munged, and the bindings to
-    other utilities that make lifecycle operations a breeze.
+    This charm provides slurmrestd, munged, and the bindings to other utilities
+    that make lifecycle operations a breeze.
 
-    slurmrestd is REST API interface for Slurm.
+    slurmrestd is a REST API interface for SLURM.
 
 tags:
     - hpc

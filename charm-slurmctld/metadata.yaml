@@ -1,4 +1,5 @@
 name: slurmctld
+
 summary: |
     Slurmctld, the central management daemon of Slurm.
 
@@ -9,10 +10,11 @@ description: |
     This charm provides slurmctld, munged, and the bindings to other utilities
     that make lifecycle operations a breeze.
 
-    slurmctld is the central management daemon of Slurm. It monitors all other Slurm
-    daemons and resources, accepts work (jobs), and allocates resources to those jobs.
-    Given the critical functionality of slurmctld, there may be a backup server to assume
-    these functions in the event that the primary server fails.
+    slurmctld is the central management daemon of SLURM. It monitors all other
+    SLURM daemons and resources, accepts work (jobs), and allocates resources
+    to those jobs.  Given the critical functionality of slurmctld, there may be
+    a backup server to assume these functions in the event that the primary
+    server fails.
 
 tags:
     - slurm

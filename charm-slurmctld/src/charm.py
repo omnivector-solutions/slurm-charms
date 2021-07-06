@@ -54,6 +54,7 @@ class SlurmctldCharm(CharmBase):
             self._slurmdbd.on.slurmdbd_unavailable: self._on_write_slurm_config,
             self._slurmd.on.slurmd_available: self._on_write_slurm_config,
             self._slurmd.on.slurmd_unavailable: self._on_write_slurm_config,
+            self._slurmd.on.slurmd_departed: self._on_write_slurm_config,
             self._slurmrestd.on.slurmrestd_available: self._on_slurmrestd_available,
             self._slurmrestd.on.slurmrestd_unavailable: self._on_write_slurm_config,
             self._slurmctld_peer.on.slurmctld_peer_available: self._on_write_slurm_config, # NOTE: a second slurmctld should get the jwt/munge keys and configure them

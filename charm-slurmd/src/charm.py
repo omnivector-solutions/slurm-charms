@@ -179,6 +179,7 @@ class SlurmdCharm(CharmBase):
         logger.debug("## Slurmctld unavailable")
         self._set_slurmctld_available(False)
         self._set_slurmctld_started(False)
+        self._slurm_manager.slurm_systemctl('stop')
         self._check_status()
 
     def _on_slurmctld_started(self, event):

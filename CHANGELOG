@@ -10,6 +10,7 @@ Unreleased
 0.6.6 - 2021-07-01
 ------------------
 
+- fix slurmctld crashing when removing a slurmd application
 - fix checks for munge when the code can't run subprocess as another UID
 
 0.6.5 - 2021-06-28

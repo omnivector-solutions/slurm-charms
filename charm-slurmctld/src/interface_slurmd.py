@@ -21,11 +21,16 @@ class SlurmdBrokenEvent(EventBase):
     """Emmited when the slurmd relation is broken."""
 
 
+class SlurmdDepartedEvent(EventBase):
+    """Emmited when one slurmd departs."""
+
+
 class SlurmdInventoryEvents(ObjectEvents):
     """SlurmClusterProviderRelationEvents."""
 
     slurmd_available = EventSource(SlurmdAvailableEvent)
     slurmd_unavailable = EventSource(SlurmdBrokenEvent)
+    slurmd_departed = EventSource(SlurmdDepartedEvent)
 
 
 class Slurmd(Object):
@@ -50,7 +55,7 @@ class Slurmd(Object):
         )
         self.framework.observe(
             self._charm.on[self._relation_name].relation_departed,
-            self._on_relation_changed,
+            self._on_relation_departed,
         )
         self.framework.observe(
             self._charm.on[self._relation_name].relation_broken,
@@ -92,16 +97,27 @@ class Slurmd(Object):
         else:
             event.defer()
 
+    def _on_relation_departed(self, event):
+        """Handle hook when 1 unit departs."""
+        self.on.slurmd_departed.emit()
+
     def _on_relation_broken(self, event):
         """Clear the munge key and emit the event if the relation is broken."""
         if self.framework.model.unit.is_leader():
             event.relation.data[self.model.app]["munge_key"] = ""
-        self._charm.set_slurmd_available(False)
-        self.on.slurmd_unavailable.emit()
+
+        # if there are other partitions, slurmctld needs to update the config
+        # only. If there are no other partitions, we set slurmd_available to
+        # False as well
+        if self._num_relations:
+            self.on.slurmd_available.emit()
+        else:
+            self._charm.set_slurmd_available(False)
+            self.on.slurmd_unavailable.emit()
 
     @property
     def _num_relations(self):
-        """Return the number of relations."""
+        """Return the number of relations (number of slurmd applications)."""
         return len(self._charm.framework.model.relations["slurmd"])
 
     @property
@@ -119,16 +135,18 @@ class Slurmd(Object):
 
             app = relation.app
             units = relation.units
+            # check if this partition has at least one node before adding it to
+            # the list
+            if units:
+                partition_info = json.loads(relation.data[app]["partition_info"])
 
-            partition_info = json.loads(relation.data[app]["partition_info"])
+                for unit in units:
+                    inv = relation.data[unit].get("inventory")
+                    if inv:
+                        inventory.append(json.loads(inv))
 
-            for unit in units:
-                inv = relation.data[unit].get("inventory")
-                if inv:
-                    inventory.append(json.loads(inv))
-
-            partition_info["inventory"] = inventory.copy()
-            partitions.append(partition_info)
+                partition_info["inventory"] = inventory.copy()
+                partitions.append(partition_info)
 
         return ensure_unique_partitions(partitions)
 

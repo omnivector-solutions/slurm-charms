@@ -27,7 +27,8 @@ class SlurmdPeer(Object):
     @partition_name.setter
     def partition_name(self, partition_name: str):
         """Set the partition name on the application data."""
-        self._relation.data[self.model.app]["partition_name"] = partition_name
+        if self._relation:
+            self._relation.data[self.model.app]["partition_name"] = partition_name
 
     @property
     def available(self) -> bool:

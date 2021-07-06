@@ -13,7 +13,6 @@ from slurm_ops_manager import SlurmManager
 
 from interface_slurmd import Slurmd
 from interface_slurmd_peer import SlurmdPeer
-from utils import random_string
 
 logger = logging.getLogger()
 
@@ -202,25 +201,7 @@ class SlurmdCharm(CharmBase):
 
     def _on_config_changed(self, event):
         """Handle charm configuration changes."""
-        # Determine if a user-supplied partition-name config exists, if so
-        # ensure the partition_name is consistent with the supplied config.
-        # If no partition name has been specified then generate one.
         if self.model.unit.is_leader():
-            partition_name = self.get_partition_name()
-            if partition_name:
-                partition_name_from_config = self.config.get("partition-name")
-                if partition_name_from_config:
-                    if partition_name != partition_name_from_config:
-                        self._set_partition_name(partition_name_from_config.replace(' ', '-'))
-                    else:
-                        logger.debug("Partition name unchanged.")
-                else:
-                    logger.debug("Partition name unchanged.")
-            else:
-                generated_partition_name = f"juju-compute-{random_string()}"
-                logger.debug(f"Partition name: {generated_partition_name}")
-                self._set_partition_name(generated_partition_name)
-
             self._on_set_partition_info_on_app_relation_data(event)
 
         nhc_conf = self.model.config.get('nhc-conf')
@@ -228,6 +209,34 @@ class SlurmdCharm(CharmBase):
             if nhc_conf != self._stored.nhc_conf:
                 self._stored.nhc_conf = nhc_conf
                 self._slurm_manager.render_nhc_config(nhc_conf)
+
+    def get_partition_name(self) -> str:
+        """Return the partition_name in the slurmd relation."""
+        # Determine if a user-supplied partition-name config exists, if so
+        # ensure the partition_name is consistent with the supplied config.
+        # If no partition name has been specified then generate one.
+        partition_name = self._slurmd_peer.partition_name
+        partition_name_from_config = self.config.get("partition-name")
+        if partition_name:
+            if partition_name_from_config:
+                partition_name_from_config = partition_name_from_config.replace(' ', '-')
+                if partition_name != partition_name_from_config:
+                    self._set_partition_name(partition_name_from_config)
+                else:
+                    logger.debug("Partition name unchanged.")
+            else:
+                logger.debug("Partition name unchanged.")
+        else:
+            partition_name = f"osd-{self.app.name}"
+            logger.debug(f"Partition name: {partition_name}")
+            self._set_partition_name(partition_name)
+
+        return partition_name
+
+    def _set_partition_name(self, name: str):
+        """Set the partition_name in the slurmd relation."""
+        if self.model.unit.is_leader():
+            self._slurmd_peer.partition_name = name
 
     def _write_munge_key_and_restart_munge(self):
         logger.debug('#### slurmd charm - writting munge key')
@@ -348,14 +357,6 @@ class SlurmdCharm(CharmBase):
             "partition_state": partition_state,
             "partition_config": partition_config,
         }
-
-    def get_partition_name(self) -> str:
-        """Return the partition_name in the slurmd relation."""
-        return self._slurmd_peer.partition_name
-
-    def _set_partition_name(self, name: str):
-        """Set the partition_name in the slurmd relation."""
-        self._slurmd_peer.partition_name = name
 
     @property
     def hostname(self) -> str:

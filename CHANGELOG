@@ -10,6 +10,7 @@ Unreleased
 0.6.6 - 2021-07-01
 ------------------
 
+- change default partition name from juju-compute-random to osd-appname
 - fix slurmctld crashing when removing a slurmd application
 - fix checks for munge when the code can't run subprocess as another UID
 

@@ -14,7 +14,7 @@ myjuju () {
 	assert_success
 
 	# slurmd node in down state
-	assert_line --regexp "juju-compute-[a-zA-Z ]+up *infinite *1 *down.*"
+	assert_line --regexp "osd-slurmd +up *infinite *1 *down.*"
 }
 
 @test "test first node is down because it is new" {

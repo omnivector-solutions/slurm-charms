@@ -86,7 +86,7 @@ class SlurmctldCharm(CharmBase):
         return self._slurmdbd.get_slurmdbd_info()
 
     @property
-    def _slurmd_info(self):
+    def _slurmd_info(self) -> list:
         return self._slurmd.get_slurmd_info()
 
     @property

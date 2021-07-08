@@ -125,7 +125,7 @@ class Slurmd(Object):
         """Return True if self._relation is not None."""
         return self._num_relations > 0
 
-    def get_slurmd_info(self):
+    def get_slurmd_info(self) -> list:
         """Return the node info for units of applications on the relation."""
         partitions = list()
         relations = self.framework.model.relations["slurmd"]
@@ -138,7 +138,14 @@ class Slurmd(Object):
             # check if this partition has at least one node before adding it to
             # the list
             if units:
-                partition_info = json.loads(relation.data[app]["partition_info"])
+                if not relation.data.get(app):
+                    logger.debug(f"## Not app data in relation with {app}")
+                    return []
+                if not relation.data[app].get("partition_info"):
+                    logger.debug("## Not partition info data in relation")
+                    return []
+
+                partition_info = json.loads(relation.data[app].get("partition_info"))
 
                 for unit in units:
                     inv = relation.data[unit].get("inventory")

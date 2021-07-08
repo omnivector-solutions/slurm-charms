@@ -43,6 +43,14 @@ class Slurmrestd(Object):
             self._on_relation_broken
         )
 
+    @property
+    def is_joined(self):
+        """Return True if relation is joined."""
+        if self._charm.framework.model.relations.get(self._relation_name):
+            return True
+        else:
+            return False
+
     def _on_relation_created(self, event):
         # Check that slurm has been installed so that we know the munge key is
         # available. Defer if slurm has not been installed yet.

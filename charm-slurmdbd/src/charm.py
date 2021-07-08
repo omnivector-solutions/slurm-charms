@@ -67,8 +67,8 @@ class SlurmdbdCharm(CharmBase):
             self.on.munge_available: self._on_munge_available,
             self.on.write_config: self._write_config_and_restart_slurmdbd,
             self._db.on.database_available: self._write_config_and_restart_slurmdbd,
+            self._db.on.database_unavailable: self._on_db_unavailable,
             self._slurmdbd_peer.on.slurmdbd_peer_available: self._write_config_and_restart_slurmdbd,
-            self._slurmdbd.on.slurmdbd_available: self._write_config_and_restart_slurmdbd,
             self._slurmdbd.on.slurmctld_available: self._on_slurmctld_available,
             self._slurmdbd.on.slurmctld_unavailable: self._on_slurmctld_unavailable,
         }
@@ -125,6 +125,11 @@ class SlurmdbdCharm(CharmBase):
             logger.error("## Unable to restart munge")
             self.unit.status = BlockedStatus("Error restarting munge")
             event.defer()
+
+    def _on_db_unavailable(self, event):
+        self._stored.db_info = dict()
+        # TODO tell slurmctld that slurmdbd left?
+        self._check_status()
 
     def _on_slurmctld_available(self, event):
         self.on.jwt_available.emit()
@@ -207,13 +212,29 @@ class SlurmdbdCharm(CharmBase):
 
         # we must be sure to initialize the charms correctly. Slurmdbd must
         # first connect to the db to be able to connect to slurmctld correctly
-        db_info = self._stored.db_info
-        if not db_info:
-            self.unit.status = BlockedStatus("Need relation to MySQL")
+        slurmctld_available = (self._stored.jwt_available
+                               and self._stored.munge_available)
+        statuses = {"MySQL": {"available": self._stored.db_info != dict(),
+                              "joined": self._db.is_joined},
+                    "slurcmtld": {"available": slurmctld_available,
+                                  "joined": self._slurmdbd.is_joined}}
+
+        relations_needed = list()
+        waiting_on = list()
+        for component in statuses.keys():
+            if not statuses[component]["joined"]:
+                relations_needed.append(component)
+            if not statuses[component]["available"]:
+                waiting_on.append(component)
+
+        if len(relations_needed):
+            msg = f"Need relations: {','.join(relations_needed)}"
+            self.unit.status = BlockedStatus(msg)
             return False
 
-        if not self._slurmdbd.is_joined:
-            self.unit.status = BlockedStatus("Need relation to slurmctld")
+        if len(waiting_on):
+            msg = f"Wating on: {','.join(waiting_on)}"
+            self.unit.status = WaitingStatus(msg)
             return False
 
         slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
@@ -221,12 +242,8 @@ class SlurmdbdCharm(CharmBase):
             self.unit.status = WaitingStatus("slurmdbd starting")
             return False
 
-        if not (self._stored.jwt_available and self._stored.munge_available):
-            self.unit.status = WaitingStatus("Waiting on slurmctld")
-            return False
-
         if not self._slurm_manager.check_munged():
-            self.unit.status = WaitingStatus("Need munge key")
+            self.unit.status = WaitingStatus("munged starting")
             return False
 
         self.unit.status = ActiveStatus("slurmdbd available")

@@ -50,8 +50,8 @@ class SlurmctldCharm(CharmBase):
             self.on.install: self._on_install,
             self.on.upgrade_charm: self._on_upgrade,
             self.on.config_changed: self._on_write_slurm_config,
-            self._slurmdbd.on.slurmdbd_available: self._on_write_slurm_config,
-            self._slurmdbd.on.slurmdbd_unavailable: self._on_write_slurm_config,
+            self._slurmdbd.on.slurmdbd_available: self._on_slurmdbd_available,
+            self._slurmdbd.on.slurmdbd_unavailable: self._on_slurmdbd_unavailable,
             self._slurmd.on.slurmd_available: self._on_write_slurm_config,
             self._slurmd.on.slurmd_unavailable: self._on_write_slurm_config,
             self._slurmd.on.slurmd_departed: self._on_write_slurm_config,
@@ -118,7 +118,7 @@ class SlurmctldCharm(CharmBase):
         """Set stored value of slurmd available."""
         self._stored.slurmd_available = flag
 
-    def set_slurmdbd_available(self, flag: bool):
+    def _set_slurmdbd_available(self, flag: bool):
         """Set stored value of slurmdbd available."""
         self._stored.slurmdbd_available = flag
 
@@ -186,7 +186,6 @@ class SlurmctldCharm(CharmBase):
         - slurmdbd node running.
         - slurmd inventory.
         """
-        # NOTE: improve this function to display joined/available
         # NOTE: slurmd and slurmrestd are not needed for slurmctld to work,
         #       only for the cluster to operate. But we need slurmd inventory
         #       to assemble slurm.conf
@@ -199,12 +198,32 @@ class SlurmctldCharm(CharmBase):
             self.unit.stauts = BlockedStatus("Error configuring munge key")
             return False
 
-        if not self._stored.slurmdbd_available:
-            self.unit.status = BlockedStatus("Waiting on slurmdbd")
+        # statuses of mandatory components:
+        # - joined: someone executed juju relate slurmctld foo
+        # - available: the units exchanged data through the relation
+        # NOTE: slurmrestd is not mandatory for the cluster to work, that's why
+        #       it is not acounted for in here
+        statuses = {"slurmd": {"available": self._stored.slurmd_available,
+                               "joined": self._slurmd.is_joined},
+                    "slurmdbd": {"available": self._stored.slurmdbd_available,
+                                 "joined": self._slurmdbd.is_joined}}
+
+        relations_needed = list()
+        waiting_on = list()
+        for component in statuses.keys():
+            if not statuses[component]["joined"]:
+                relations_needed.append(component)
+            if not statuses[component]["available"]:
+                waiting_on.append(component)
+
+        if len(relations_needed):
+            msg = f"Need relations: {','.join(relations_needed)}"
+            self.unit.status = BlockedStatus(msg)
             return False
 
-        if not self._stored.slurmd_available:
-            self.unit.status = BlockedStatus("Waiting on slurmd")
+        if len(waiting_on):
+            msg = f"Wating on: {','.join(waiting_on)}"
+            self.unit.status = WaitingStatus(msg)
             return False
 
         self.unit.status = ActiveStatus("slurmctld available")
@@ -300,6 +319,14 @@ class SlurmctldCharm(CharmBase):
                 slurm_config,
             )
             self._slurmrestd.restart_slurmrestd()
+
+    def _on_slurmdbd_available(self, event):
+        self._set_slurmdbd_available(True)
+        self._on_write_slurm_config(event)
+
+    def _on_slurmdbd_unavailable(self, event):
+        self._set_slurmdbd_available(False)
+        self._check_status()
 
     def _on_write_slurm_config(self, event):
         """Check that we have what we need before we proceed."""

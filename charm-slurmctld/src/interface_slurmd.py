@@ -70,11 +70,6 @@ class Slurmd(Object):
             event.defer()
             return
 
-        # make sure slurmdbd started before sending signal to slurmd
-        if not self._charm.slurmdbd_info:
-            event.defer()
-            return
-
         # Get the munge_key from set it to the app data on the relation to be
         # retrieved on the other side by slurmdbd.
         app_relation_data = event.relation.data[self.model.app]
@@ -118,12 +113,15 @@ class Slurmd(Object):
     @property
     def _num_relations(self):
         """Return the number of relations (number of slurmd applications)."""
-        return len(self._charm.framework.model.relations["slurmd"])
+        return len(self._charm.framework.model.relations[self._relation_name])
 
     @property
     def is_joined(self):
         """Return True if self._relation is not None."""
-        return self._num_relations > 0
+        if self._charm.framework.model.relations.get(self._relation_name):
+            return True
+        else:
+            return False
 
     def get_slurmd_info(self) -> list:
         """Return the node info for units of applications on the relation."""

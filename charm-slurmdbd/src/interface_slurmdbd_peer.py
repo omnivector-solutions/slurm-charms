@@ -160,7 +160,7 @@ class SlurmdbdPeer(Object):
     def _relation(self):
         return self.framework.model.get_relation(self._relation_name)
 
-    def get_slurmdbd_info(self):
+    def get_slurmdbd_info(self) -> dict:
         """Return slurmdbd info."""
         relation = self._relation
         if relation:
@@ -169,7 +169,7 @@ class SlurmdbdPeer(Object):
                 slurmdbd_info = relation.data[app].get("slurmdbd_info")
                 if slurmdbd_info:
                     return json.loads(slurmdbd_info)
-        return None
+        return {}
 
 
 def _related_units(relid):

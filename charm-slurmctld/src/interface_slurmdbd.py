@@ -79,7 +79,6 @@ class Slurmdbd(Object):
         if event_app_data:
             slurmdbd_info = event_app_data.get("slurmdbd_info")
             if slurmdbd_info:
-                self._charm.set_slurmdbd_available(True)
                 self.on.slurmdbd_available.emit()
             else:
                 event.defer()
@@ -87,19 +86,25 @@ class Slurmdbd(Object):
             event.defer()
 
     def _on_relation_departed(self, event):
-        self._charm.set_slurmdbd_available(False)
         self.on.slurmdbd_unavailable.emit()
 
     def _on_relation_broken(self, event):
         if self.framework.model.unit.is_leader():
             event.relation.data[self.model.app]["munge_key"] = ""
             event.relation.data[self.model.app]["jwt_rsa"] = ""
-        self._charm.set_slurmdbd_available(False)
         self.on.slurmdbd_unavailable.emit()
 
     @property
     def _relation(self):
         return self.framework.model.get_relation(self._relation_name)
+
+    @property
+    def is_joined(self):
+        """Return True if the relation to slurmdbd exists."""
+        if self._charm.framework.model.relations.get(self._relation_name):
+            return True
+        else:
+            return False
 
     def get_slurmdbd_info(self):
         """Return the slurmdbd_info."""

@@ -167,7 +167,10 @@ class SlurmrestdRequires(Object):
     @property
     def is_joined(self):
         """Return True if relation is joined."""
-        return self._relation is not None
+        if self._charm.framework.model.relations.get(self._relation_name):
+            return True
+        else:
+            return False
 
     def _store_restart_slurmrestd_uuid(self, restart_slurmrestd_uuid):
         self._stored.restart_slurmrestd_uuid = restart_slurmrestd_uuid

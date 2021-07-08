@@ -136,14 +136,12 @@ class Slurmd(Object):
         return self.framework.model.get_relation(self._relation_name)
 
     @property
-    def num_relations(self) -> int:
-        """Return the number of relations."""
-        return len(self._charm.framework.model.relations["slurmd"])
-
-    @property
     def is_joined(self) -> bool:
         """Return True if relation is joined."""
-        return self.num_relations > 0
+        if self._charm.framework.model.relations.get(self._relation_name):
+            return True
+        else:
+            return False
 
     @property
     def slurmctld_hostname(self) -> str:

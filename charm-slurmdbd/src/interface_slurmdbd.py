@@ -11,10 +11,6 @@ from ops.framework import (
 logger = logging.getLogger()
 
 
-class SlurmdbdAvailableEvent(EventBase):
-    """Emitted when slurmdbd is available."""
-
-
 class SlurmctldUnAvailableEvent(EventBase):
     """Emitted when slurmctld is unavailable."""
 
@@ -28,7 +24,6 @@ class SlurmdbdEvents(ObjectEvents):
 
     slurmctld_available = EventSource(SlurmctldAvailableEvent)
     slurmctld_unavailable = EventSource(SlurmctldUnAvailableEvent)
-    slurmdbd_available = EventSource(SlurmdbdAvailableEvent)
 
 
 class Slurmdbd(Object):
@@ -47,6 +42,12 @@ class Slurmdbd(Object):
         self._stored.set_default(
             munge_key=str(),
             jwt_key=str(),
+            slurmctld_joined=False,
+        )
+
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_created,
+            self._on_relation_created,
         )
 
         self.framework.observe(
@@ -60,13 +61,18 @@ class Slurmdbd(Object):
         )
 
     @property
-    def _relation(self):
-        return self.framework.model.get_relation(self._relation_name)
-
-    @property
     def is_joined(self):
         """Return True if juju related slurmdbd <-> slurmctld."""
-        return self._relation is not None
+        return self._stored.slurmctld_joined
+
+    @is_joined.setter
+    def is_joined(self, flag):
+        """Set the is_joined property."""
+        self._stored.slurmctld_joined = flag
+
+    def _on_relation_created(self, event):
+        """Handle the relation-created event."""
+        self.is_joined = True
 
     def _on_relation_joined(self, event):
         """Handle the relation-joined event.
@@ -107,6 +113,7 @@ class Slurmdbd(Object):
     def _on_relation_broken(self, event):
         """Clear the application relation data and emit the event."""
         self.set_slurmdbd_info_on_app_relation_data("")
+        self.is_joined = False
         self.on.slurmctld_unavailable.emit()
 
     def set_slurmdbd_info_on_app_relation_data(self, slurmdbd_info):

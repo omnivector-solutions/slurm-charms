@@ -11,10 +11,15 @@ class DatabaseAvailableEvent(EventBase):
     """DatabaseAvailableEvent."""
 
 
+class DatabaseUnavailableEvent(EventBase):
+    """DatabaseAvailableEvent."""
+
+
 class DatabaseEvents(ObjectEvents):
     """Slurmdbd database events."""
 
     database_available = EventSource(DatabaseAvailableEvent)
+    database_unavailable = EventSource(DatabaseUnavailableEvent)
 
 
 class MySQLClient(Object):
@@ -33,6 +38,18 @@ class MySQLClient(Object):
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed,
         )
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_departed,
+            self._on_relation_departed,
+        )
+
+    @property
+    def is_joined(self) -> bool:
+        """Return wether the relation was created."""
+        if self._charm.framework.model.relations.get(self._relation_name):
+            return True
+        else:
+            return False
 
     def _on_relation_changed(self, event):
         event_unit_data = event.relation.data.get(event.unit)
@@ -60,3 +77,6 @@ class MySQLClient(Object):
             logger.info("DB INFO NOT AVAILABLE")
             event.defer()
             return
+
+    def _on_relation_departed(self, event):
+        self.on.database_unavailable.emit()

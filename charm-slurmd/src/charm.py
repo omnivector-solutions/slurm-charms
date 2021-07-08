@@ -111,8 +111,12 @@ class SlurmdCharm(CharmBase):
             self.unit.status = BlockedStatus("Error installing slurmd")
             return False
 
-        if not (self._stored.slurmctld_available and self._slurmd.is_joined):
-            self.unit.status = BlockedStatus("Waiting on slurmctld relation")
+        if not self._slurmd.is_joined:
+            self.unit.status = BlockedStatus("Need relations: slurmctld")
+            return False
+
+        if not self._stored.slurmctld_available:
+            self.unit.status = WaitingStatus("Waiting on: slurmctld")
             return False
 
         if not self._slurm_manager.check_munged():
@@ -120,7 +124,7 @@ class SlurmdCharm(CharmBase):
             return False
 
         if not self._stored.slurmctld_started:
-            self.unit.status = WaitingStatus("Waiting on slurmctld to start")
+            self.unit.status = WaitingStatus("Waiting slurmctld to start")
             return False
 
         self.unit.status = ActiveStatus("slurmd available")

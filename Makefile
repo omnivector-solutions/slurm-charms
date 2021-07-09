@@ -31,25 +31,25 @@ clean: ## Remove .tox, build dirs, and charms
 slurmd: version ## Build slurmd
 	@cp version LICENSE icon.svg charm-slurmd/
 	@charmcraft pack --project-dir charm-slurmd
-	@cp charm-slurmd/slurmd_ubuntu-20.04-amd64_centos-7-amd64.charm slurmd.charm
+	@cp slurmd_ubuntu-20.04-amd64_centos-7-amd64.charm slurmd.charm
 
 .PHONY: slurmctld
 slurmctld: version ## pack slurmctld
 	@cp version LICENSE icon.svg charm-slurmctld/
 	@charmcraft pack --project-dir charm-slurmctld
-	@cp charm-slurmctld/slurmctld_ubuntu-20.04-amd64_centos-7-amd64.charm slurmctld.charm
+	@cp slurmctld_ubuntu-20.04-amd64_centos-7-amd64.charm slurmctld.charm
 
 .PHONY: slurmdbd
 slurmdbd: version ## pack slurmdbd
 	@cp version LICENSE icon.svg charm-slurmdbd/
 	@charmcraft pack --project-dir charm-slurmdbd
-	@cp charm-slurmdbd/slurmdbd_ubuntu-20.04-amd64_centos-7-amd64.charm slurmdbd.charm
+	@cp slurmdbd_ubuntu-20.04-amd64_centos-7-amd64.charm slurmdbd.charm
 
 .PHONY: slurmrestd
 slurmrestd: version ## pack slurmrestd
 	@cp version LICENSE icon.svg charm-slurmrestd/
 	@charmcraft pack --project-dir charm-slurmrestd
-	@cp charm-slurmrestd/slurmrestd_ubuntu-20.04-amd64_centos-7-amd64.charm slurmrestd.charm
+	@cp slurmrestd_ubuntu-20.04-amd64_centos-7-amd64.charm slurmrestd.charm
 
 .PHONY: charms
 charms: readme slurmd slurmdbd slurmctld slurmrestd ## Build all charms

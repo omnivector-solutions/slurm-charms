@@ -206,6 +206,7 @@ class SlurmdCharm(CharmBase):
     def _on_config_changed(self, event):
         """Handle charm configuration changes."""
         if self.model.unit.is_leader():
+            logger.debug("## slurmd config changed - leader")
             self._on_set_partition_info_on_app_relation_data(event)
 
         nhc_conf = self.model.config.get('nhc-conf')
@@ -226,6 +227,7 @@ class SlurmdCharm(CharmBase):
                 partition_name_from_config = partition_name_from_config.replace(' ', '-')
                 if partition_name != partition_name_from_config:
                     self._set_partition_name(partition_name_from_config)
+                    partition_name = partition_name_from_config
                 else:
                     logger.debug("Partition name unchanged.")
             else:
@@ -355,6 +357,7 @@ class SlurmdCharm(CharmBase):
         partition_name = self.get_partition_name()
         partition_config = self.config.get("partition-config")
         partition_state = self.config.get("partition-state")
+        logger.debug(f"## partition_name: {partition_name}")
 
         return {
             "partition_name": partition_name,

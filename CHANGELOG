@@ -7,6 +7,7 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- fix cache of partition_name in slurmd charm
 - improve description of charm's state in juju status
 - fix race condition on relation data exchange between slurmctld and slurmdbd
 - change default partition name from juju-compute-random to osd-appname

@@ -26,10 +26,12 @@ class SlurmrestdCharm(CharmBase):
     def __init__(self, *args):
         """Initialize charm and configure states and events to observe."""
         super().__init__(*args)
+
         self._stored.set_default(
             slurm_installed=False,
             slurmrestd_restarted=False,
         )
+
         self._slurm_manager = SlurmManager(self, "slurmrestd")
         self._slurmrestd = SlurmrestdRequires(self, 'slurmrestd')
 
@@ -37,6 +39,7 @@ class SlurmrestdCharm(CharmBase):
             self.on.install: self._on_install,
             self.on.upgrade_charm: self._on_upgrade,
             self._slurmrestd.on.config_available: self._on_check_status_and_write_config,
+            self._slurmrestd.on.config_unavailable: self._on_config_unavailable,
             self._slurmrestd.on.munge_key_available: self._on_configure_munge_key,
             self._slurmrestd.on.jwt_rsa_available: self._on_configure_jwt_rsa,
             self._slurmrestd.on.restart_slurmrestd: self._on_restart_slurmrestd,
@@ -61,13 +64,30 @@ class SlurmrestdCharm(CharmBase):
             self.unit.status = BlockedStatus("Error installing slurmrestd")
             event.defer()
 
+        self._check_status()
+
     def _on_upgrade(self, event):
         """Perform upgrade operations."""
         self.unit.set_workload_version(Path("version").read_text().strip())
+        self._check_status()
+
+    def _on_config_unavailable(self, event):
+        """Handle the config unavailable due to relation broken."""
+        # when the config becomes unavailable, we have to set this flag to False,
+        # so the next time the config becoms avaiable, the daemon restarts
+        self._stored.slurmrestd_restarted = False
+        self._check_status()
 
     def _on_restart_slurmrestd(self, event):
         """Resart the slurmrestd component."""
+        logger.debug("## _on_restart_slurmrestd")
+
+        if not self._check_status():
+            event.defer()
+            return
+
         self._slurm_manager.restart_slurm_component()
+        self._stored.slurmrestd_restarted = True
 
     def _on_configure_munge_key(self, event):
         """Configure the munge key.
@@ -75,59 +95,60 @@ class SlurmrestdCharm(CharmBase):
         1) Get the munge key from the stored state of the slurmrestd relation
         2) Write the munge key to the munge key path and chmod
         3) Restart munged
-        4) Set munge_key_available in charm stored state
         """
         if not self._stored.slurm_installed:
             event.defer()
             return
+
+        logger.debug("## configuring new munge key")
         munge_key = self._slurmrestd.get_stored_munge_key()
         self._slurm_manager.configure_munge_key(munge_key)
         self._slurm_manager.restart_munged()
-        self._stored.munge_key_available = True
 
     def _on_configure_jwt_rsa(self, event):
         if not self._stored.slurm_installed:
             event.defer()
             return
 
+        logger.debug("## configuring new jwt rsa")
         jwt_rsa = self._slurmrestd.get_stored_jwt_rsa()
         self._slurm_manager.configure_jwt_rsa(jwt_rsa)
-        self._stored.munge_key_available = True
 
-    def _check_status(self):
+    def _check_status(self) -> bool:
         if not self._stored.slurm_installed:
             self.unit.status = BlockedStatus("Error installing slurmrestd")
-            return None
-
-        slurm_config = self._slurmrestd.get_stored_slurm_config()
-        munge_key_available = self._stored.munge_key_available
-
-        slurmctld_joined = self._slurmrestd.is_joined
+            return False
 
         # Check and see if we have what we need for operation.
-        if not slurmctld_joined:
-            self.unit.status = BlockedStatus("Needed relations: slurmctld")
-            return None
-        elif not (munge_key_available and slurm_config):
-            self.unit.status = WaitingStatus("Waiting on: configuration")
-            return None
+        if not self._slurmrestd.is_joined:
+            self.unit.status = BlockedStatus("Need relations: slurmctld")
+            return False
 
-        return dict(slurm_config)
+        slurmctld_available = (self._slurmrestd.get_stored_munge_key()
+                               and self._slurmrestd.get_stored_jwt_rsa()
+                               and self._slurmrestd.get_stored_slurm_config())
+        if not slurmctld_available:
+            self.unit.status = WaitingStatus("Waiting on: slurmctld")
+            return True
+
+        self.unit.status = ActiveStatus("slurmrestd available")
+
+        return True
 
     def _on_check_status_and_write_config(self, event):
-        slurm_config = self._check_status()
-        if not slurm_config:
+        if not self._check_status():
             event.defer()
             return
 
-        self._slurm_manager.render_slurm_configs(slurm_config)
+        slurm_config = self._slurmrestd.get_stored_slurm_config()
+        if slurm_config:
+            self._slurm_manager.render_slurm_configs(slurm_config)
+        else:
+            logger.error(f"## weird slurmconfig: {slurm_config}")
 
         # Only restart slurmrestd the first time the node is brought up.
         if not self._stored.slurmrestd_restarted:
-            self._slurm_manager.restart_slurm_component()
-            self._stored.slurmrestd_restarted = True
-
-        self.unit.status = ActiveStatus("slurmrestd available")
+            self._on_restart_slurmrestd(event)
 
 
 if __name__ == "__main__":

@@ -362,14 +362,10 @@ class SlurmctldCharm(CharmBase):
             self._resume_nodes(configured_nodes)
             self._stored.down_nodes = down_nodes.copy()
 
-            # NOTE: does it make sense to do this here?
-            # slurmrestd needs the slurm.conf file, so send it
+            # slurmrestd needs the slurm.conf file, so send it every time it changes
             if self._stored.slurmrestd_available:
-                self._slurmrestd.set_slurm_config_on_app_relation_data(
-                    slurm_config
-                )
-                # NOTE: check if we really need to restart slurmrestd. scontrol
-                #       reconfigure might be enough
+                self._slurmrestd.set_slurm_config_on_app_relation_data(slurm_config)
+                # NOTE: scontrol reconfigure does not restart slurmrestd
                 self._slurmrestd.restart_slurmrestd()
         else:
             logger.debug("## Should rewrite slurm.conf, but we don't have it. "

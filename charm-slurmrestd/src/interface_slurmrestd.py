@@ -89,6 +89,8 @@ class SlurmrestdRequires(Object):
             event.defer()
             return
 
+        logger.debug("## slurmrestd joined relation")
+
         # slurmctld sets the munge_key on the relation-created event
         # which happens before relation-joined. We can almost guarantee that
         # the munge key will exist at this point, but check for it just incase.
@@ -115,12 +117,15 @@ class SlurmrestdRequires(Object):
             event.defer()
             return
 
+        logger.debug("## slurmrestd - relation changed")
+
         munge_key = event_app_data.get('munge_key')
         jwt_rsa = event_app_data.get('jwt_rsa')
         restart_slurmrestd_uuid = event_app_data.get("restart_slurmrestd_uuid")
         slurm_config = self._get_slurm_config_from_relation()
 
-        if not (munge_key and slurm_config):
+        if not (munge_key and jwt_rsa and slurm_config):
+            logger.debug("## Deferring event: missing munge, jwt, and/or config")
             event.defer()
             return
 
@@ -145,9 +150,11 @@ class SlurmrestdRequires(Object):
                 self.on.restart_slurmrestd.emit()
 
     def _on_relation_broken(self, event):
+        self._store_munge_key("")
+        self._store_jwt_rsa("")
         self.on.config_unavailable.emit()
 
-    def _get_slurm_config_from_relation(self):
+    def _get_slurm_config_from_relation(self) -> dict:
         """Return slurm_config."""
         relation = self._relation
         if relation:
@@ -158,7 +165,7 @@ class SlurmrestdRequires(Object):
                     slurm_config = app_data.get('slurm_config')
                     if slurm_config:
                         return json.loads(slurm_config)
-        return None
+        return {}
 
     @property
     def _relation(self):
@@ -192,9 +199,9 @@ class SlurmrestdRequires(Object):
         """Retrieve the jwt_rsa from stored state."""
         return self._stored.jwt_rsa
 
-    def _store_slurm_config(self, slurm_config):
+    def _store_slurm_config(self, slurm_config: dict):
         self._stored.slurm_config = slurm_config
 
-    def get_stored_slurm_config(self):
+    def get_stored_slurm_config(self) -> dict:
         """Retrieve the slurm_config from stored state."""
-        return self._stored.slurm_config
+        return dict(self._stored.slurm_config)

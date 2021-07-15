@@ -7,15 +7,18 @@ import subprocess
 from pathlib import Path
 from typing import List
 
-from interface_slurmd import Slurmd
-from interface_slurmdbd import Slurmdbd
-from interface_slurmrestd import Slurmrestd
-from interface_slurmctld_peer import SlurmctldPeer
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
+
+from interface_slurmd import Slurmd
+from interface_slurmdbd import Slurmdbd
+from interface_slurmrestd import Slurmrestd
+from interface_slurmctld_peer import SlurmctldPeer
 from slurm_ops_manager import SlurmManager
+from interface_grafana_source import GrafanaSource
+from interface_influxdb import InfluxDB
 
 logger = logging.getLogger()
 
@@ -46,11 +49,15 @@ class SlurmctldCharm(CharmBase):
         self._slurmrestd = Slurmrestd(self, "slurmrestd")
         self._slurmctld_peer = SlurmctldPeer(self, "slurmctld-peer")
 
+        self._grafana = GrafanaSource(self, "grafana-source")
+        self._influxdb = InfluxDB(self, "influxdb-api")
+
         event_handler_bindings = {
             self.on.install: self._on_install,
             self.on.upgrade_charm: self._on_upgrade,
             self.on.update_status: self._on_update_status,
             self.on.config_changed: self._on_write_slurm_config,
+            # slurm component lifecycle events
             self._slurmdbd.on.slurmdbd_available: self._on_slurmdbd_available,
             self._slurmdbd.on.slurmdbd_unavailable: self._on_slurmdbd_unavailable,
             self._slurmd.on.slurmd_available: self._on_write_slurm_config,
@@ -59,6 +66,10 @@ class SlurmctldCharm(CharmBase):
             self._slurmrestd.on.slurmrestd_available: self._on_slurmrestd_available,
             self._slurmrestd.on.slurmrestd_unavailable: self._on_write_slurm_config,
             self._slurmctld_peer.on.slurmctld_peer_available: self._on_write_slurm_config, # NOTE: a second slurmctld should get the jwt/munge keys and configure them
+            # Addons lifecycle events
+            self._grafana.on.grafana_available: self._on_grafana_available,
+            self._influxdb.on.influxdb_available: self._on_influxdb_available,
+            self._influxdb.on.influxdb_unavailable: self._on_write_slurm_config,
             # actions
             self.on.show_current_config_action: self._on_show_current_config,
             self.on.drain_action: self._drain_nodes_action,
@@ -109,9 +120,32 @@ class SlurmctldCharm(CharmBase):
     @property
     def _addons_info(self):
         """Assemble addons for slurm.conf."""
-        addons = {}
         # NOTE add prolog and epilog
-        # NOTE add acct-gather
+        # NOTE add elasticsearch
+
+        return {**self._assemble_acct_gather_addons()}
+
+    def _assemble_acct_gather_addons(self):
+        """Generate the acct gather section of the addons."""
+        addons = dict()
+
+        influxdb_info = self._get_influxdb_info()
+        if influxdb_info:
+            addons["acct_gather"] = influxdb_info
+            addons["acct_gather"]["default"] = "all"
+            addons["acct_gather_profile"] = "acct_gather_profile/influxdb"
+
+        # it is possible to setup influxdb or hdf5 profiles without the
+        # relation, using the custom-config section of slurm.conf. We need to
+        # support setting up the acct_gather configuration for this scenario
+        acct_gather_custom = self.config.get("acct-gather-custom")
+        if acct_gather_custom:
+            if not addons.get("acct_gather"):
+                addons["acct_gather"] = dict()
+
+            addons["acct_gather"]["custom"] = acct_gather_custom
+
+        addons["acct_gather_frequency"] = self.config.get("acct-gather-frequency")
 
         return addons
 
@@ -415,6 +449,26 @@ class SlurmctldCharm(CharmBase):
         nodes = ",".join(nodelist)
         update_cmd = f"update nodename={nodes} state=resume"
         self._slurm_manager.slurm_cmd('scontrol', update_cmd)
+
+    def _on_grafana_available(self, event):
+        """Create the grafana-source if we are the leader and have influxdb."""
+        if not self._is_leader():
+            return
+
+        influxdb_info = self._get_influxdb_info()
+
+        if influxdb_info:
+            self._grafana.set_grafana_source_info(influxdb_info)
+        else:
+            logger.error("## Can not set Grafana source: missing influxdb relation")
+
+    def _on_influxdb_available(self, event):
+        """Assemble addons to forward slurm data to influxdb."""
+        self._on_write_slurm_config(event)
+
+    def _get_influxdb_info(self) -> dict:
+        """Return influxdb info."""
+        return self._influxdb.get_influxdb_info()
 
     def _drain_nodes_action(self, event):
         """Drain specified nodes."""

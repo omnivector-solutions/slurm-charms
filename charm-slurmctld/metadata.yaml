@@ -35,3 +35,10 @@ requires:
     interface: slurmdbd
   slurmrestd:
     interface: slurmrestd
+  influxdb-api:
+    interface: influxdb-api
+
+provides:
+  grafana-source:
+    interface: grafana-source
+    scope: global

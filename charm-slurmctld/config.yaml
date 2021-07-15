@@ -45,3 +45,23 @@ options:
     default: "ANY,CYCLE"
     type: string
     description: Only run the Health Check on nodes in this state.
+
+  acct-gather-frequency:
+    type: string
+    default: "task=30"
+    description: >
+      Accounting and profiling sampling intervals for the acct_gather plugins.
+
+      Note: a value of `0` disables the periodic sampling. In this case, the
+      accounting information is collected when the job terminates.
+
+      Example usage:
+      $ juju config slurmcltd acct-gather-frequency="task=30,network=30"
+  acct-gather-custom:
+    type: string
+    default: ""
+    description: >
+      User supplied `acct_gather.conf` configuration.
+
+      This value supplements the charm supplied `acct_gather.conf` file that is
+      used for configuring the acct_gather plugins.

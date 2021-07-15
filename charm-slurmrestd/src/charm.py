@@ -38,6 +38,7 @@ class SlurmrestdCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
             self.on.upgrade_charm: self._on_upgrade,
+            self.on.update_status: self._on_update_status,
             self._slurmrestd.on.config_available: self._on_check_status_and_write_config,
             self._slurmrestd.on.config_unavailable: self._on_config_unavailable,
             self._slurmrestd.on.munge_key_available: self._on_configure_munge_key,
@@ -69,6 +70,10 @@ class SlurmrestdCharm(CharmBase):
     def _on_upgrade(self, event):
         """Perform upgrade operations."""
         self.unit.set_workload_version(Path("version").read_text().strip())
+        self._check_status()
+
+    def _on_update_status(self, event):
+        """Handle update status."""
         self._check_status()
 
     def _on_config_unavailable(self, event):

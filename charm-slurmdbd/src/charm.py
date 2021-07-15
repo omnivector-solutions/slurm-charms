@@ -62,6 +62,7 @@ class SlurmdbdCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
             self.on.upgrade_charm: self._on_upgrade,
+            self.on.update_status: self._on_update_status,
             self.on.config_changed: self._write_config_and_restart_slurmdbd,
             self.on.jwt_available: self._on_jwt_available,
             self.on.munge_available: self._on_munge_available,
@@ -96,6 +97,10 @@ class SlurmdbdCharm(CharmBase):
     def _on_upgrade(self, event):
         """Perform upgrade operations."""
         self.unit.set_workload_version(Path("version").read_text().strip())
+
+    def _on_update_status(self, event):
+        """Handle update status."""
+        self._check_status()
 
     def _on_jwt_available(self, event):
         """Retrieve and configure the jwt_rsa key."""

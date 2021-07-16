@@ -1,2 +1,2 @@
 ops
-git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.6.9
+git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.6.10

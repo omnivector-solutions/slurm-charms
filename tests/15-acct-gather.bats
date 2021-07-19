@@ -23,3 +23,8 @@ myjuju () {
 	run juju run --unit slurmd/leader "grep JobAcctGatherFrequency /run/slurm/conf/slurm.conf"
 	assert_output "JobAcctGatherFrequency=$freq"
 }
+
+@test "Assert we can run-action influxdb-info" {
+	run juju run-action slurmctld/leader influxdb-info --wait --format=json
+	assert_output --partial "not related"
+}

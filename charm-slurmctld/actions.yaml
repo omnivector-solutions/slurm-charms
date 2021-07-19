@@ -38,3 +38,10 @@ resume:
         The nodes to resume, using the Slurm format, e.g. `node-[1,2]`.
   required:
     - nodename
+
+influxdb-info:
+  description: >
+    Get InfluxDB info.
+
+    This action returns the host, port, username, password, database, and
+    retention policy regarding to InfluxDB.

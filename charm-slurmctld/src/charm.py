@@ -74,6 +74,7 @@ class SlurmctldCharm(CharmBase):
             self.on.show_current_config_action: self._on_show_current_config,
             self.on.drain_action: self._drain_nodes_action,
             self.on.resume_action: self._resume_nodes_action,
+            self.on.influxdb_info_action: self._infludb_info_action,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -498,6 +499,14 @@ class SlurmctldCharm(CharmBase):
             event.set_results({'status': 'resuming', 'nodes': nodes})
         except subprocess.CalledProcessError as e:
             event.fail(message=f'Error resuming {nodes}: {e.output}')
+
+    def _infludb_info_action(self, event):
+        influxdb_info = self._get_influxdb_info()
+
+        if not influxdb_info:
+            influxdb_info = "not related"
+        logger.debug(f"## InfluxDB-info action: {influxdb_info}")
+        event.set_results({"influxdb": influxdb_info})
 
 
 if __name__ == "__main__":

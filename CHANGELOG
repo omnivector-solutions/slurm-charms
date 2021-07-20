@@ -7,6 +7,7 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- add support for Ubuntu partitions on CentOS deploys
 - add influxdb-info action to slurmctld
 - add grafana relation for slurmctld
 - add influxdb relation for accouting and profiling of jobs with the SLURM

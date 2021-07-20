@@ -1,4 +1,4 @@
 ops
 influxdb
-git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.6.10
+git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.6.11
 git+https://github.com/omnivector-solutions/interface-nrpe-external-master.git@master

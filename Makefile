@@ -2,6 +2,10 @@
 SHELL := /bin/bash
 export PATH := /snap/bin:$(PATH)
 
+ifeq ($(VERBOSE), 1)
+	VERBOSE="--verbose"
+endif
+
 # TARGETS
 .PHONY: lint
 lint: ## Run linter
@@ -30,34 +34,29 @@ clean: ## Remove .tox, build dirs, and charms
 .PHONY: slurmd
 slurmd: version ## Build slurmd
 	@cp version LICENSE icon.svg charm-slurmd/
-	@charmcraft pack --project-dir charm-slurmd
+	@charmcraft pack --project-dir charm-slurmd ${VERBOSE}
 	@cp slurmd_ubuntu-20.04-amd64_centos-7-amd64.charm slurmd.charm
 
 .PHONY: slurmctld
 slurmctld: version ## pack slurmctld
 	@cp version LICENSE icon.svg charm-slurmctld/
-	@charmcraft pack --project-dir charm-slurmctld
+	@charmcraft pack --project-dir charm-slurmctld ${VERBOSE}
 	@cp slurmctld_ubuntu-20.04-amd64_centos-7-amd64.charm slurmctld.charm
 
 .PHONY: slurmdbd
 slurmdbd: version ## pack slurmdbd
 	@cp version LICENSE icon.svg charm-slurmdbd/
-	@charmcraft pack --project-dir charm-slurmdbd
+	@charmcraft pack --project-dir charm-slurmdbd ${VERBOSE}
 	@cp slurmdbd_ubuntu-20.04-amd64_centos-7-amd64.charm slurmdbd.charm
 
 .PHONY: slurmrestd
 slurmrestd: version ## pack slurmrestd
 	@cp version LICENSE icon.svg charm-slurmrestd/
-	@charmcraft pack --project-dir charm-slurmrestd
+	@charmcraft pack --project-dir charm-slurmrestd ${VERBOSE}
 	@cp slurmrestd_ubuntu-20.04-amd64_centos-7-amd64.charm slurmrestd.charm
 
 .PHONY: charms
 charms: readme slurmd slurmdbd slurmctld slurmrestd ## Build all charms
-
-.PHONY: format
-format: # reformat source python files
-	isort charm-slurmd charm-slurmdbd charm-slurmctld --skip-glob '*/[0-9][0-9][0-9][0-9]*.py'
-	black charm-slurmd charm-slurmdbd charm-slurmctld --exclude '\d{4}.*\.py'
 
 # Display target comments in 'make help'
 .PHONY: help

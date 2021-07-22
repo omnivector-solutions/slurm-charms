@@ -53,17 +53,13 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-          architecture: 'x64'
       - name: "Install charmcraft"
         run: |
-          pip install charmcraft
+          sudo snap install charmcraft --channel=latest/candidate --classic
       - name: "Build the charms"
         shell: bash
         run: |
-          make charms
+          VERBOSE=1 make charms
           echo "charm version: $(cat VERSION)"
 
       - name: "Store charm hash filename for later use"
@@ -158,12 +154,12 @@ jobs:
 
       - name: "Install juju and jq snaps"
         run: |
-          sudo snap install juju --classic
+          sudo snap install juju --channel=2.9/stable --classic
           sudo snap install jq
 
       - name: "Login to juju controller as cicd user"
         run: |
-          echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju login --user circleci
+          echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju login -B --user circleci
           juju whoami
 
       - name: "Add models to house charms for testing"
@@ -184,7 +180,7 @@ jobs:
         if: ${{ success() }}
         shell: bash
         run: |
-          git clone https://github.com/omnivector-solutions/slurm-bundles -b 1.2.0 ../slurm-bundles
+          git clone https://github.com/omnivector-solutions/slurm-bundles -b 1.4.0 ../slurm-bundles
 
           juju whoami
           juju list-models
@@ -198,7 +194,8 @@ jobs:
               juju deploy --verbose --debug \
                           ./../slurm-bundles/slurm-core/bundle.yaml \
                           --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
-                          --overlay ./../slurm-bundles/slurm-core/series/focal.yaml
+                          --overlay ./../slurm-bundles/slurm-core/series/focal.yaml \
+                          --overlay ./../slurm-bundles/slurm-core/charms/local-development.yaml
               ;;
 
             "centos7")
@@ -206,7 +203,8 @@ jobs:
               juju deploy --verbose --debug \
                           ./../slurm-bundles/slurm-core/bundle.yaml \
                           --overlay ./../slurm-bundles/slurm-core/clouds/aws.yaml \
-                          --overlay ./../slurm-bundles/slurm-core/series/centos7.yaml
+                          --overlay ./../slurm-bundles/slurm-core/series/centos7.yaml \
+                          --overlay ./../slurm-bundles/slurm-core/charms/local-development.yaml
               ;;
           esac
 

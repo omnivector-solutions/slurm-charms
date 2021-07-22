@@ -56,6 +56,16 @@ jobs:
       - name: "Install charmcraft"
         run: |
           sudo snap install charmcraft --channel=latest/candidate --classic
+      - name: "Install lxd"
+        run: |
+          sudo snap install lxd
+      - name: "Configure lxd"
+        run: |
+          sudo groupadd --force --system lxd
+          sudo usermod --append --groups lxd $USER
+          sudo snap start lxd
+          sudo lxd waitready --timeout=30
+          sudo lxd init --auto
       - name: "Build the charms"
         shell: bash
         run: |

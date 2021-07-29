@@ -7,6 +7,7 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- fix #111: install bullseye gpg keys from files
 - add support for Ubuntu partitions on CentOS deploys
 - add influxdb-info action to slurmctld
 - add grafana relation for slurmctld

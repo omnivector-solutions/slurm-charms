@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """SlurmdCharm."""
 import base64
+import json
 import logging
 from pathlib import Path
 from time import sleep
 
+from etcd3gw.client import Etcd3Client
 from ops.charm import CharmBase, CharmEvents
 from ops.framework import EventBase, EventSource, StoredState
 from ops.main import main
@@ -21,9 +23,19 @@ class SlurmdStart(EventBase):
     """Emitted when slurmd should start."""
 
 
+class SlurmctldStarted(EventBase):
+    """Emitted when slurmd should start."""
+
+
+class CheckEtcd(EventBase):
+    """Emitted when slurmd should start."""
+
+
 class SlurmdCharmEvents(CharmEvents):
     """Slurmd emitted events."""
     slurmd_start = EventSource(SlurmdStart)
+    slurmctld_started = EventSource(SlurmctldStarted)
+    check_etcd = EventSource(CheckEtcd)
 
 
 class SlurmdCharm(CharmBase):
@@ -54,10 +66,11 @@ class SlurmdCharm(CharmBase):
             self.on.upgrade_charm: self._on_upgrade,
             self.on.update_status: self._on_update_status,
             self.on.config_changed: self._on_config_changed,
+            self.on.slurmctld_started: self._on_slurmctld_started,
             self.on.slurmd_start: self._on_slurmd_start,
+            self.on.check_etcd: self._on_check_etcd,
             self._slurmd.on.slurmctld_available: self._on_slurmctld_available,
             self._slurmd.on.slurmctld_unavailable: self._on_slurmctld_unavailable,
-            self._slurmd.on.slurmctld_started: self._on_slurmctld_started,
             # actions
             self.on.version_action: self._on_version_action,
             self.on.node_configured_action: self._on_node_configured_action,
@@ -183,6 +196,38 @@ class SlurmdCharm(CharmBase):
         self._on_set_partition_info_on_app_relation_data(event)
         self._check_status()
 
+        # check etcd for hostnames
+        self.on.check_etcd.emit()
+
+    def _on_check_etcd(self, event):
+        """Check if node is accounted for.
+
+        Check if slurmctld accounted for this node's inventory for the first
+        time, if so, emit slurmctld_started event, so the node can start the
+        daemon.
+        """
+
+        host = self._slurmd.slurmctld_address
+        port = self._slurmd.etcd_port
+        logger.debug(f"## Connecting to etcd3 in {host}:{port}")
+        client = Etcd3Client(host=host, port=port, api_path="/v3/")
+
+        logger.debug("## Querying etcd3 for node list")
+        v = client.get(key="all_nodes")
+        logger.debug(f"## Got: {v}")
+
+        node_accounted = False
+        if v:
+            hostnames = json.loads(v[0])
+            logger.debug(f"### etcd3 node list: {hostnames}")
+            if self.hostname in hostnames:
+                self.on.slurmctld_started.emit()
+                node_accounted = True
+
+        if not node_accounted:
+            logger.debug("## Node not accounted for. Deferring.")
+            event.defer()
+
     def _on_slurmctld_unavailable(self, event):
         logger.debug("## Slurmctld unavailable")
         self._set_slurmctld_available(False)
@@ -191,7 +236,7 @@ class SlurmdCharm(CharmBase):
         self._check_status()
 
     def _on_slurmctld_started(self, event):
-        """Set flag to True and emit slurm_start event."""
+        """Set flag to True and emit slurmd_start event."""
         self._set_slurmctld_started(True)
         self.on.slurmd_start.emit()
 

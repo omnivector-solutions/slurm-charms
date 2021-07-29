@@ -13,7 +13,7 @@ lint: ## Run linter
 
 .PHONY: version
 version: ## Create/update version file
-	@git describe --tags > version
+	@git describe --tags --dirty > version
 
 .PHONY: readme
 readme: ## create charms' README.md

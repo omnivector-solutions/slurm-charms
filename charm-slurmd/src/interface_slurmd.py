@@ -9,7 +9,6 @@ from ops.framework import (
 from ops.model import Relation
 from utils import get_inventory
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -21,16 +20,11 @@ class SlurmctldUnavailableEvent(EventBase):
     """Emit when the relation to slurmctld is broken."""
 
 
-class SlurmctldStartedEvent(EventBase):
-    """Emitted when slurmctld starts."""
-
-
 class SlurmdEvents(ObjectEvents):
     """Slurmd emitted events."""
 
     slurmctld_available = EventSource(SlurmctldAvailableEvent)
     slurmctld_unavailable = EventSource(SlurmctldUnavailableEvent)
-    slurmctld_started = EventSource(SlurmctldStartedEvent)
 
 
 class Slurmd(Object):
@@ -48,7 +42,9 @@ class Slurmd(Object):
         self._stored.set_default(
             munge_key=str(),
             slurmctld_hostname=str(),
+            slurmctld_addr=str(),
             slurmctld_port=str(),
+            etcd_port=str(),
         )
 
         self.framework.observe(
@@ -59,11 +55,6 @@ class Slurmd(Object):
         self.framework.observe(
             self._charm.on[self._relation_name].relation_joined,
             self._on_relation_joined,
-        )
-
-        self.framework.observe(
-            self._charm.on[self._relation_name].relation_changed,
-            self._on_relation_changed,
         )
 
         self.framework.observe(
@@ -89,14 +80,15 @@ class Slurmd(Object):
         """
         Handle the relation-joined event.
 
-        Get the munge_key, slurmctld_host and slurmctld_port from slurmctld
-        and save it to the charm stored state.
+        Get the munge_key, slurmctld_host and slurmctld_port, and etcd port
+        from slurmctld and save it to the charm stored state.
         """
         app_data = event.relation.data[event.app]
         if not app_data.get("munge_key"):
             event.defer()
             return
 
+        slurmctld_addr = event.relation.data[event.unit]["ingress-address"]
         # slurmctld sets the munge_key on the relation-created event
         # which happens before relation-joined. We can guarantee that
         # the munge_key, slurmctld_host and slurmctld_port will exist
@@ -104,27 +96,11 @@ class Slurmd(Object):
         # them in the charm's stored state.
         self._store_munge_key(app_data["munge_key"])
         self._store_slurmctld_host_port(app_data["slurmctld_host"],
-                                        app_data["slurmctld_port"])
+                                        app_data["slurmctld_port"],
+                                        slurmctld_addr)
+        self.etcd_port = app_data["etcd_port"]
 
         self.on.slurmctld_available.emit()
-
-    def _on_relation_changed(self, event):
-        """Handle relation changed event.
-
-        Check if slurmctld accounted for this node's inventory for the first
-        time, if so, emit slurmctld_available event, so the node can start the
-        daemon.
-        """
-
-        if self._charm._slurm_manager.slurm_is_active():
-            logger.debug("## slurmd running - nothing to do")
-        else:
-            hostnames = event.relation.data[event.app].get("unit_hostnames")
-            if hostnames:
-                hostnames = json.loads(hostnames)
-
-                if self._charm.hostname in hostnames:
-                    self.on.slurmctld_started.emit()
 
     def _on_relation_broken(self, event):
         """Perform relation broken operations."""
@@ -181,13 +157,37 @@ class Slurmd(Object):
         """Store the munge_key in the StoredState."""
         self._stored.munge_key = munge_key
 
-    def _store_slurmctld_host_port(self, host: str, port: str):
-        """Store the hostname and port of slurmctld in StoredState."""
+    @property
+    def slurmctld_address(self) -> str:
+        """Get slurmctld IP address."""
+        return self._stored.slurmctld_addr
+
+    @slurmctld_address.setter
+    def slurmctld_address(self, addr: str):
+        """Set slurmctld IP address."""
+        self._stored.slurmctld_addr = addr
+
+    @property
+    def etcd_port(self) -> str:
+        """Return the port for etcd."""
+        return self._stored.etcd_port
+
+    @etcd_port.setter
+    def etcd_port(self, port: str):
+        """Set the port for etcd."""
+        logger.debug(f"## Setting etcd port {port}")
+        self._stored.etcd_port = port
+
+    def _store_slurmctld_host_port(self, host: str, port: str, addr: str):
+        """Store the hostname, port and IP of slurmctld in StoredState."""
         if host != self._stored.slurmctld_hostname:
             self._stored.slurmctld_hostname = host
 
         if port != self._stored.slurmctld_port:
             self._stored.slurmctld_port = port
+
+        if addr != self.slurmctld_address:
+            self.slurmctld_address = addr
 
     def get_stored_munge_key(self) -> str:
         """Retrieve the munge_key from the StoredState."""

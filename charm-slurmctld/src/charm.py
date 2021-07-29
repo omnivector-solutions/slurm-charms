@@ -7,18 +7,19 @@ import subprocess
 from pathlib import Path
 from typing import List
 
-from ops.charm import CharmBase
+from ops.charm import CharmBase, LeaderElectedEvent
 from ops.framework import StoredState
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, ModelError, WaitingStatus
 
+from etcd_ops import EtcdOps
+from interface_grafana_source import GrafanaSource
+from interface_influxdb import InfluxDB
+from interface_slurmctld_peer import SlurmctldPeer
 from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
 from interface_slurmrestd import Slurmrestd
-from interface_slurmctld_peer import SlurmctldPeer
 from slurm_ops_manager import SlurmManager
-from interface_grafana_source import GrafanaSource
-from interface_influxdb import InfluxDB
 
 logger = logging.getLogger()
 
@@ -52,11 +53,14 @@ class SlurmctldCharm(CharmBase):
         self._grafana = GrafanaSource(self, "grafana-source")
         self._influxdb = InfluxDB(self, "influxdb-api")
 
+        self._etcd = EtcdOps()
+
         event_handler_bindings = {
             self.on.install: self._on_install,
             self.on.upgrade_charm: self._on_upgrade,
             self.on.update_status: self._on_update_status,
             self.on.config_changed: self._on_write_slurm_config,
+            self.on.leader_elected: self._on_leader_elected,
             # slurm component lifecycle events
             self._slurmdbd.on.slurmdbd_available: self._on_slurmdbd_available,
             self._slurmdbd.on.slurmdbd_unavailable: self._on_slurmdbd_unavailable,
@@ -207,6 +211,17 @@ class SlurmctldCharm(CharmBase):
             self.unit.status = BlockedStatus("Error installing slurmctld")
             event.defer()
 
+        logger.debug("## Retrieving etcd resource to install it")
+        try:
+            etcd_path = self.model.resources.fetch("etcd")
+            logger.debug(f"## Found etcd resource: {etcd_path}")
+        except ModelError:
+            logger.error("## Missing etcd resource")
+            self.unit.status = BlockedStatus("Missing etcd resource")
+            event.defer()
+            return
+        self._etcd.install(etcd_path)
+
         self._check_status()
 
     def _on_upgrade(self, event):
@@ -216,6 +231,16 @@ class SlurmctldCharm(CharmBase):
     def _on_update_status(self, event):
         """Handle update status."""
         self._check_status()
+
+    def _on_leader_elected(self, event: LeaderElectedEvent) -> None:
+        logger.debug("## slurmctld - leader elected")
+        self._etcd.start()
+
+        # populate etcd with the nodelist
+        slurm_config = self._assemble_slurm_config()
+        accounted_nodes = self._assemble_all_nodes(slurm_config.get("partitions", []))
+        logger.debug(f"## Sending to etcd list of accounted nodes: {accounted_nodes}")
+        self._etcd.set_list_of_accounted_nodes(accounted_nodes)
 
     def _check_status(self):
         """Check for all relations and set appropriate status.
@@ -232,6 +257,10 @@ class SlurmctldCharm(CharmBase):
 
         if not self._stored.slurm_installed:
             self.unit.stauts = BlockedStatus("Error installing slurmctld")
+            return False
+
+        if (self._is_leader() and not self._etcd.is_active()):
+            self.unit.stauts = WaitingStatus("Initializing charm")
             return False
 
         if not self._slurm_manager.check_munged():
@@ -390,7 +419,7 @@ class SlurmctldCharm(CharmBase):
 
             # send the list of hostnames to slurmd relation data
             accounted_nodes = self._assemble_all_nodes(slurm_config["partitions"])
-            self._slurmd.set_list_of_accounted_nodes(accounted_nodes)
+            self._etcd.set_list_of_accounted_nodes(accounted_nodes)
 
             # check for "not new anymore" nodes, i.e., nodes that runned the
             # node-configured action. Those nodes are not anymore in the

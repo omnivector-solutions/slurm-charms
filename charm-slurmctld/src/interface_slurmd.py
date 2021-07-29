@@ -3,7 +3,6 @@
 import copy
 import json
 import logging
-from typing import List
 
 from ops.framework import (
     EventBase, EventSource, Object, ObjectEvents, StoredState
@@ -78,11 +77,7 @@ class Slurmd(Object):
         # send the hostname and port to enable configless mode
         app_relation_data["slurmctld_host"] = self._charm.hostname
         app_relation_data["slurmctld_port"] = self._charm.port
-
-    def set_list_of_accounted_nodes(self, nodes: List[str]):
-        """Set list of accounted for nodes in the app relation data."""
-        for relation in self._charm.framework.model.relations["slurmd"]:
-            relation.data[self.model.app]["unit_hostnames"] = json.dumps(nodes)
+        app_relation_data["etcd_port"] = "2379"
 
     def _on_relation_changed(self, event):
         """Emit slurmd available event."""

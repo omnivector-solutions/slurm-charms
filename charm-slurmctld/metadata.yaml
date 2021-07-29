@@ -42,3 +42,11 @@ provides:
   grafana-source:
     interface: grafana-source
     scope: global
+
+resources:
+  etcd:
+    type: file
+    filename: etcd-v3.5.0-linux-amd64.tar.gz
+    description: >
+      Official tarball containing the compiled etcd binaries. Retrieved from
+      GitHub Releases.

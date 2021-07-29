@@ -17,14 +17,14 @@ myjuju () {
 	# on Juju status
 	sleep 5
 
-	run juju run --unit slurmctld/leader "grep JobAcctGatherFrequency /etc/slurm/slurm.conf"
+	run juju run -m $JUJU_MODEL --unit slurmctld/leader "grep JobAcctGatherFrequency /etc/slurm/slurm.conf"
 	assert_output "JobAcctGatherFrequency=$freq"
 
-	run juju run --unit slurmd/leader "grep JobAcctGatherFrequency /run/slurm/conf/slurm.conf"
+	run juju run -m $JUJU_MODEL --unit slurmd/leader "grep JobAcctGatherFrequency /run/slurm/conf/slurm.conf"
 	assert_output "JobAcctGatherFrequency=$freq"
 }
 
 @test "Assert we can run-action influxdb-info" {
-	run juju run-action slurmctld/leader influxdb-info --wait --format=json
+	run juju run-action -m $JUJU_MODEL slurmctld/leader influxdb-info --wait --format=json
 	assert_output --partial "not related"
 }

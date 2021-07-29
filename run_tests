@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+# install bats if needed
+if [ ! -d "node_modules" ]; then
+	echo "Installing Bats"
+	npm install
+else
+	echo "Bats installed"
+fi
+
+# create juju models for centos and ubuntu
+postfix=$(date +'%Y-%m-%d-')$RANDOM
+centos_model="centos-test-$postfix"
+ubuntu_model="focal-test-$postfix"
+
+for model in $centos_model $ubuntu_model; do
+	echo "Creating model $model"
+	juju add-model "$model"
+	juju switch "$model"
+	juju model-config --model "$model" logging-config="<unit>=DEBUG;<root>=DEBUG"
+	juju wait -t 10 -m "$model"
+
+	cd ../slurm-bundles
+	target=$(echo $model | cut -d"-" -f1)
+	make lxd-$target
+	cd ../slurm-charms
+
+	juju-wait -t 540 -m $model
+	juju status
+
+	JUJU_MODEL="$model" npx bats tests/
+	echo -e "\n\n\n"
+done

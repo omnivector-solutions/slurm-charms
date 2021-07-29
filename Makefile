@@ -26,6 +26,7 @@ readme: ## create charms' README.md
 clean: ## Remove .tox, build dirs, and charms
 	rm -rf .tox/
 	rm -rf venv/
+	rm -rf node_modules/
 	find . -name "*.charm" -delete
 	rm -rf charm-slurm*/build
 	rm -rf charm-slurm*/version
@@ -57,6 +58,10 @@ slurmrestd: version ## pack slurmrestd
 
 .PHONY: charms
 charms: readme slurmd slurmdbd slurmctld slurmrestd ## Build all charms
+
+.PHONY: tests
+tests: clean charms
+	./run_tests
 
 # Display target comments in 'make help'
 .PHONY: help

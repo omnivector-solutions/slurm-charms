@@ -96,7 +96,7 @@ myjuju () {
 }
 
 @test "Ping slurmrestd" {
-	host=$(juju status slurmrestd --format=json | jq .applications.slurmrestd.units | grep public-address | cut -f 4 -d'"')
+	host=$(juju status --model "$JUJU_MODEL" slurmrestd --format=json | jq .applications.slurmrestd.units | grep public-address | cut -f 4 -d'"')
 	user="ubuntu"
 	token=$(juju run --model "$JUJU_MODEL" --unit slurmctld/leader "scontrol token username=$user" | cut -d"=" -f 2)
 

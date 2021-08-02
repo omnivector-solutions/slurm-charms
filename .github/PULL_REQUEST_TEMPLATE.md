@@ -12,3 +12,5 @@ Final checklist
 - [ ] I am the author of these changes, or I have the rights to submit them.
 - [ ] I added the relevant changed to the README and/or documentation.
 - [ ] I self reviewed my own code.
+- [ ] I updated the `CHANGELOG` according to the [contributing
+  guide](https://omnivector-solutions.github.io/osd-documentation/master/contributing.html#changelog)

@@ -55,7 +55,7 @@ jobs:
           fetch-depth: 0
       - name: "Install charmcraft"
         run: |
-          sudo snap install charmcraft --channel=latest/candidate --classic
+          sudo snap install charmcraft --channel=latest/stable --classic
       - name: "Install lxd"
         run: |
           sudo snap install lxd --channel=latest/stable

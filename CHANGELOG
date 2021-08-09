@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+0.7.0 - 2021-08-09
+------------------
+
 - fix: reduce number of events when a slurmd unit is added/removed
 - fix #111: install bullseye gpg keys from files
 - add support for Ubuntu partitions on CentOS deploys

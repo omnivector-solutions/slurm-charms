@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- allow installing Slurm from different repositories on Ubuntu
+- use Omnivector's PPA for installing Slurm on Ubuntu
+
 0.7.0 - 2021-08-09
 ------------------
 

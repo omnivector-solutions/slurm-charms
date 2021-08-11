@@ -11,11 +11,3 @@ options:
       `ppa:omnivector/osd-testing`.
 
       Note: currently supported for Ubuntu only.
-  slurmdbd-debug:
-    type: string
-    default: info
-    description: >
-      The level of detail to provide slurmdbd daemon's logs. The default value
-      is `info`. If the slurmdbd daemon is initiated with `-v` or `--verbose`
-      options, that debug level will be preserve or restored upon
-      reconfiguration.

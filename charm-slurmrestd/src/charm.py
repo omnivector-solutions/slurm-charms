@@ -54,7 +54,8 @@ class SlurmrestdCharm(CharmBase):
 
         self.unit.status = WaitingStatus("Installing slurmrestd")
 
-        successful_installation = self._slurm_manager.install()
+        custom_repo = self.config.get("custom-slurm-repo")
+        successful_installation = self._slurm_manager.install(custom_repo)
 
         if successful_installation:
             self.unit.status = ActiveStatus("slurmrestd installed")

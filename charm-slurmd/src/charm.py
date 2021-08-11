@@ -94,7 +94,8 @@ class SlurmdCharm(CharmBase):
         self.unit.set_workload_version(Path("version").read_text().strip())
         self.unit.status = WaitingStatus("Installing slurmd")
 
-        successful_installation = self._slurm_manager.install()
+        custom_repo = self.config.get("custom-slurm-repo")
+        successful_installation = self._slurm_manager.install(custom_repo)
         logger.debug(f"### slurmd installed: {successful_installation}")
 
         if successful_installation:

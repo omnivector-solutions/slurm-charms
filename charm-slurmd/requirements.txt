@@ -1,4 +1,4 @@
 ops
 etcd3gw==1.0.0
-git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.6.12
+git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.6.13
 git+https://github.com/omnivector-solutions/interface-nrpe-external-master.git@master

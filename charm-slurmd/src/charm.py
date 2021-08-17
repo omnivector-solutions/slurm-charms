@@ -214,8 +214,13 @@ class SlurmdCharm(CharmBase):
         client = Etcd3Client(host=host, port=port, api_path="/v3/")
 
         logger.debug("## Querying etcd3 for node list")
-        v = client.get(key="all_nodes")
-        logger.debug(f"## Got: {v}")
+        try:
+            v = client.get(key="all_nodes")
+            logger.debug(f"## Got: {v}")
+        except Exception as e:
+            logger.error(f"## Unable to connect to {host} to get list of nodes: {e}")
+            event.defer()
+            return
 
         node_accounted = False
         if v:

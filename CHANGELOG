@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+0.8.0 - 2021-09-13
+------------------
+
 - fix slurmd crashing when etcd in slurmctld is down/not-started/unreachable
 - allow installing Slurm from different repositories on Ubuntu
 - use Omnivector's PPA for installing Slurm on Ubuntu

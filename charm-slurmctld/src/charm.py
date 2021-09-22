@@ -21,6 +21,8 @@ from interface_slurmdbd import Slurmdbd
 from interface_slurmrestd import Slurmrestd
 from slurm_ops_manager import SlurmManager
 
+from charms.fluentbit.v0.fluentbit import FluentbitClient
+
 logger = logging.getLogger()
 
 
@@ -44,6 +46,7 @@ class SlurmctldCharm(CharmBase):
         )
 
         self._slurm_manager = SlurmManager(self, "slurmctld")
+        self._fluentbit = FluentbitClient(self, "fluentbit")
 
         self._slurmd = Slurmd(self, "slurmd")
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
@@ -70,6 +73,8 @@ class SlurmctldCharm(CharmBase):
             self._slurmrestd.on.slurmrestd_available: self._on_slurmrestd_available,
             self._slurmrestd.on.slurmrestd_unavailable: self._on_write_slurm_config,
             self._slurmctld_peer.on.slurmctld_peer_available: self._on_write_slurm_config, # NOTE: a second slurmctld should get the jwt/munge keys and configure them
+            # fluentbit
+            self.on["fluentbit"].relation_created: self._on_fluentbit_relation_created,
             # Addons lifecycle events
             self._grafana.on.grafana_available: self._on_grafana_available,
             self._influxdb.on.influxdb_available: self._on_influxdb_available,
@@ -224,6 +229,14 @@ class SlurmctldCharm(CharmBase):
         self._etcd.install(etcd_path)
 
         self._check_status()
+
+    def _on_fluentbit_relation_created(self, event):
+        """Set up Fluentbit log forwarding."""
+        logger.debug("## Configuring fluentbit")
+        cfg = list()
+        cfg.extend(self._slurm_manager.fluentbit_config_nhc)
+        cfg.extend(self._slurm_manager.fluentbit_config_slurm)
+        self._fluentbit.configure(cfg)
 
     def _on_upgrade(self, event):
         """Perform upgrade operations."""

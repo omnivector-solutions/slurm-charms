@@ -16,6 +16,8 @@ from slurm_ops_manager import SlurmManager
 from interface_slurmd import Slurmd
 from interface_slurmd_peer import SlurmdPeer
 
+from charms.fluentbit.v0.fluentbit import FluentbitClient
+
 logger = logging.getLogger()
 
 
@@ -56,6 +58,7 @@ class SlurmdCharm(CharmBase):
         )
 
         self._slurm_manager = SlurmManager(self, "slurmd")
+        self._fluentbit = FluentbitClient(self, "fluentbit")
 
         # interface to slurmctld, should only have one slurmctld per slurmd app
         self._slurmd = Slurmd(self, "slurmd")
@@ -71,6 +74,8 @@ class SlurmdCharm(CharmBase):
             self.on.check_etcd: self._on_check_etcd,
             self._slurmd.on.slurmctld_available: self._on_slurmctld_available,
             self._slurmd.on.slurmctld_unavailable: self._on_slurmctld_unavailable,
+            # fluentbit
+            self.on["fluentbit"].relation_created: self._on_fluentbit_relation_created,
             # actions
             self.on.version_action: self._on_version_action,
             self.on.node_configured_action: self._on_node_configured_action,
@@ -105,6 +110,14 @@ class SlurmdCharm(CharmBase):
             event.defer()
 
         self._check_status()
+
+    def _on_fluentbit_relation_created(self, event):
+        """Set up Fluentbit log forwarding."""
+        logger.debug("## Configuring fluentbit")
+        cfg = list()
+        cfg.extend(self._slurm_manager.fluentbit_config_nhc)
+        cfg.extend(self._slurm_manager.fluentbit_config_slurm)
+        self._fluentbit.configure(cfg)
 
     def _on_upgrade(self, event):
         """Perform upgrade operations."""

@@ -37,6 +37,8 @@ requires:
     interface: slurmrestd
   influxdb-api:
     interface: influxdb-api
+  fluentbit:
+    interface: fluentbit
 
 provides:
   grafana-source:

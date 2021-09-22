@@ -7,6 +7,8 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- add Fluentbit relation to forward logs from all the Slurm Charms
+
 0.8.0 - 2021-09-13
 ------------------
 

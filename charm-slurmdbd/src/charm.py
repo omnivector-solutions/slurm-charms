@@ -14,6 +14,8 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 from slurm_ops_manager import SlurmManager
 
+from charms.fluentbit.v0.fluentbit import FluentbitClient
+
 logger = logging.getLogger()
 
 
@@ -58,6 +60,7 @@ class SlurmdbdCharm(CharmBase):
         self._slurm_manager = SlurmManager(self, "slurmdbd")
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
         self._slurmdbd_peer = SlurmdbdPeer(self, "slurmdbd-peer")
+        self._fluentbit = FluentbitClient(self, "fluentbit")
 
         event_handler_bindings = {
             self.on.install: self._on_install,
@@ -72,6 +75,8 @@ class SlurmdbdCharm(CharmBase):
             self._slurmdbd_peer.on.slurmdbd_peer_available: self._write_config_and_restart_slurmdbd,
             self._slurmdbd.on.slurmctld_available: self._on_slurmctld_available,
             self._slurmdbd.on.slurmctld_unavailable: self._on_slurmctld_unavailable,
+            # fluentbit
+            self.on["fluentbit"].relation_created: self._on_fluentbit_relation_created,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -94,6 +99,14 @@ class SlurmdbdCharm(CharmBase):
             return
 
         self._check_status()
+
+    def _on_fluentbit_relation_created(self, event):
+        """Set up Fluentbit log forwarding."""
+        logger.debug("## Configuring fluentbit")
+        cfg = list()
+        cfg.extend(self._slurm_manager.fluentbit_config_nhc)
+        cfg.extend(self._slurm_manager.fluentbit_config_slurm)
+        self._fluentbit.configure(cfg)
 
     def _on_upgrade(self, event):
         """Perform upgrade operations."""

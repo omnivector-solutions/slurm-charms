@@ -31,6 +31,8 @@ provides:
 requires:
   db:
     interface: mysql
+  fluentbit:
+    interface: fluentbit
 
 peers:
   slurmdbd-peer:

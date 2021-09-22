@@ -14,6 +14,7 @@ from ops.model import (
 from slurm_ops_manager import SlurmManager
 from interface_slurmrestd import SlurmrestdRequires
 
+from charms.fluentbit.v0.fluentbit import FluentbitClient
 
 logger = logging.getLogger()
 
@@ -34,6 +35,7 @@ class SlurmrestdCharm(CharmBase):
 
         self._slurm_manager = SlurmManager(self, "slurmrestd")
         self._slurmrestd = SlurmrestdRequires(self, 'slurmrestd')
+        self._fluentbit = FluentbitClient(self, "fluentbit")
 
         event_handler_bindings = {
             self.on.install: self._on_install,
@@ -44,6 +46,8 @@ class SlurmrestdCharm(CharmBase):
             self._slurmrestd.on.munge_key_available: self._on_configure_munge_key,
             self._slurmrestd.on.jwt_rsa_available: self._on_configure_jwt_rsa,
             self._slurmrestd.on.restart_slurmrestd: self._on_restart_slurmrestd,
+            # fluentbit
+            self.on["fluentbit"].relation_created: self._on_fluentbit_relation_created,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -67,6 +71,14 @@ class SlurmrestdCharm(CharmBase):
             event.defer()
 
         self._check_status()
+
+    def _on_fluentbit_relation_created(self, event):
+        """Set up Fluentbit log forwarding."""
+        logger.debug("## Configuring fluentbit")
+        cfg = list()
+        cfg.extend(self._slurm_manager.fluentbit_config_nhc)
+        cfg.extend(self._slurm_manager.fluentbit_config_slurm)
+        self._fluentbit.configure(cfg)
 
     def _on_upgrade(self, event):
         """Perform upgrade operations."""

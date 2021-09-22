@@ -26,6 +26,10 @@ provides:
   slurmd:
     interface: slurmd
 
+requires:
+  fluentbit:
+    interface: fluentbit
+
 peers:
   slurmd-peer:
     interface: slurmd-peer

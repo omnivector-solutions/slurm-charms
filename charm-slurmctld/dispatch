@@ -24,11 +24,11 @@ then
 		if [[ $major == "7" ]]
 		then
 			yum -y install epel-release
-			yum -y install python3
+			yum -y install yum-priorities python3
 		elif [[ $major == "8" ]]
 		then
 			dnf -y install epel-release
-			dnf -y install python3
+			dnf -y install yum-priorities python3
 		else
 			echo "Running unsuppored version of centos: $major"
 			exit -1

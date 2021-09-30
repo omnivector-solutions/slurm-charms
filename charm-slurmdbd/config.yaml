@@ -8,9 +8,13 @@ options:
       This can be set to the Organization's locall mirror/cache of packages and
       superseeds the Omnivector repositories. Alternatively, it can be used to
       track a `testing` Slurm version, e.g. by setting to
-      `ppa:omnivector/osd-testing`.
+      `ppa:omnivector/osd-testing` (on Ubuntu), or
+      `https://omnivector-solutions.github.io/repo/centos7/stable/$basearch`
+      (on CentOS).
 
-      Note: currently supported for Ubuntu only.
+      Note: The configuration `custom-slurm-repo` must be set *before*
+      deploying the units. Changing this value after deploying the units will
+      not reinstall Slurm.
   slurmdbd-debug:
     type: string
     default: info

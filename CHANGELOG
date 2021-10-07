@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+0.8.1 - 2021-10-07
+------------------
+
 - use Omnivector Solutions' RPM repository to install Slurm
 - add Fluentbit relation to forward logs from all the Slurm Charms
 

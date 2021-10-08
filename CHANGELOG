@@ -12,6 +12,7 @@ Unreleased
 
 - use Omnivector Solutions' RPM repository to install Slurm
 - add Fluentbit relation to forward logs from all the Slurm Charms
+- fix creation of user and group when those already exist
 
 0.8.0 - 2021-09-13
 ------------------

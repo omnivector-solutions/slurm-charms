@@ -7,12 +7,14 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- fix creation of user and group when those already exist
+
+
 0.8.1 - 2021-10-07
 ------------------
 
 - use Omnivector Solutions' RPM repository to install Slurm
 - add Fluentbit relation to forward logs from all the Slurm Charms
-- fix creation of user and group when those already exist
 
 0.8.0 - 2021-09-13
 ------------------

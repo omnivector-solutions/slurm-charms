@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+0.8.2 - 2021-10-13
+------------------
+
 - fix changing infiniband repos on Ubuntu
 - fix fluentbit parser for slurm logs
 - fix creation of user and group when those already exist

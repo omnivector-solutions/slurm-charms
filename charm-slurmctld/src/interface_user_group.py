@@ -48,7 +48,7 @@ class UserGroupRequires(Object):
         self.on.remove_user_group.emit()
 
     def get_user_group(self):
-        app_relation_data = self._relation.data[self.model.app]
+        app_relation_data = self._relation.data[event.app]
         user_name = app_relation_data["user_name"]
         group_name = app_relation_data["group_name"]
         return user_name, group_name

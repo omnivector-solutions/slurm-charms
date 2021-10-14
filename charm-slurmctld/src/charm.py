@@ -46,6 +46,8 @@ class SlurmctldCharm(CharmBase):
         )
 
         self._slurm_manager = SlurmManager(self, "slurmctld")
+        self._user_group = UserGroupRequires(self, "user-group")
+
         self._fluentbit = FluentbitClient(self, "fluentbit")
 
         self._slurmd = Slurmd(self, "slurmd")
@@ -79,6 +81,8 @@ class SlurmctldCharm(CharmBase):
             self._grafana.on.grafana_available: self._on_grafana_available,
             self._influxdb.on.influxdb_available: self._on_influxdb_available,
             self._influxdb.on.influxdb_unavailable: self._on_write_slurm_config,
+            self._user_group.on.create_user_group: self._on_create_user_group,
+            self._user_group.on.remove_user_group: self._on_remove_user_group,
             # actions
             self.on.show_current_config_action: self._on_show_current_config,
             self.on.drain_action: self._drain_nodes_action,
@@ -550,6 +554,60 @@ class SlurmctldCharm(CharmBase):
             influxdb_info = "not related"
         logger.debug(f"## InfluxDB-info action: {influxdb_info}")
         event.set_results({"influxdb": influxdb_info})
+
+    def _on_create_user_group(self, event):
+        """Create the user and group provided."""
+        user, group = self._user_group.get_user_group()
+
+        # Create the group.
+        try:
+            subprocess.check_output(["groupadd", group])
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 9:
+                logger.warning("## Group already exists.")
+            else:
+                logger.error(f"## Error creating group: {e}")
+
+        # Create the user.
+        try:
+            subprocess.check_output(
+                [
+                    "useradd",
+                    "--system",
+                    "--no-create-home",
+                    "--gid",
+                    group,
+                    "--shell",
+                    "/usr/sbin/nologin",
+                    user,
+                ]
+            )
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 9:
+                logger.warning("## User already exists.")
+            else:
+                logger.error(f"## Error creating user: {e}")
+
+    def _on_remove_user_group(self, event):
+        """Remove the user and group provided."""
+        user, group = self._user_group.get_user_group()
+
+        # Remove the user.
+        try:
+            subprocess.check_output(
+                [
+                    "userdel",
+                    user,
+                ]
+            )
+        except subprocess.CalledProcessError as e:
+            logger.error(f"## Error deleting user: {e}")
+
+        # Remove the group.
+        try:
+            subprocess.check_output(["groupdel", group])
+        except subprocess.CalledProcessError as e:
+            logger.error(f"## Error deleting group: {e}")
 
 
 if __name__ == "__main__":

@@ -39,6 +39,8 @@ requires:
     interface: influxdb-api
   fluentbit:
     interface: fluentbit
+  user-group:
+    interface: user-group
 
 provides:
   grafana-source:

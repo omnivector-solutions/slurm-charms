@@ -19,6 +19,7 @@ from interface_slurmctld_peer import SlurmctldPeer
 from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
 from interface_slurmrestd import Slurmrestd
+from interface_user_group import UserGroupRequires
 from slurm_ops_manager import SlurmManager
 
 from charms.fluentbit.v0.fluentbit import FluentbitClient

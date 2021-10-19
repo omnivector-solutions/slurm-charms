@@ -47,12 +47,12 @@ class UserGroupRequires(Object):
         """Create the user and group sent by the provides side of the relation."""
         app_data = event.relation.data.get(event.app)
 
-        self._user_name = app_data.get("user_name")
+        self.user_name = app_data.get("user_name")
         if not app_data.get("user_uid"):
             event.defer()
             return
-        self._user_uid = app_data.get("user_uid")
-        self._group_name = app_data.get("group_name")
+        self.user_uid = app_data.get("user_uid")
+        self.group_name = app_data.get("group_name")
 
         self.on.create_user_group.emit()
 
@@ -60,11 +60,11 @@ class UserGroupRequires(Object):
         """Remove the user and group."""
         app_data = event.relation.data.get(event.app)
 
-        self._user_name = app_data.get("user_name")
+        self.user_name = app_data.get("user_name")
         if not app_data.get("user_uid"):
             event.defer()
             return
-        self._user_uid = app_data.get("user_uid")
-        self._group_name = app_data.get("group_name")
+        self.user_uid = app_data.get("user_uid")
+        self.group_name = app_data.get("group_name")
 
         self.on.remove_user_group.emit()

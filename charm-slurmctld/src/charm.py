@@ -558,9 +558,9 @@ class SlurmctldCharm(CharmBase):
 
     def _on_create_user_group(self, event):
         """Create the user and group provided."""
-        user = self._user_group._user_name
-        user_uid = self._user_group._user_uid
-        group = self._user_group._group_name
+        user = self._user_group.user_name
+        user_uid = self._user_group.user_uid
+        group = self._user_group.group_name
 
         # Create the group.
         try:
@@ -595,8 +595,8 @@ class SlurmctldCharm(CharmBase):
 
     def _on_remove_user_group(self, event):
         """Remove the user and group provided."""
-        user = self._user_group._user_name
-        group = self._user_group._group_name
+        user = self._user_group.user_name
+        group = self._user_group.group_name
 
         # Remove the user.
         try:

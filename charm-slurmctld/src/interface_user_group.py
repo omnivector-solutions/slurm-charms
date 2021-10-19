@@ -1,9 +1,11 @@
+#!/usr/bin/env python3
+"""User-Group interface."""
 from ops.framework import EventBase, EventSource, Object, ObjectEvents
 
-import subprocess
 
 class CreateUserGroupEvent(EventBase):
     """Event to signal the creation of a user/group."""
+
 
 class RemoveUserGroupEvent(EventBase):
     """Event to signal the removal of a user/group."""
@@ -17,6 +19,7 @@ class UserGroupEvents(ObjectEvents):
 
 
 class UserGroupRequires(Object):
+    """UserGroup Interface."""
 
     on = UserGroupEvents()
 

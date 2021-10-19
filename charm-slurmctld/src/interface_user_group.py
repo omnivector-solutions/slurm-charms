@@ -1,5 +1,6 @@
 from ops.framework import EventBase, EventSource, Object, ObjectEvents
 
+import subprocess
 
 class CreateUserGroupEvent(EventBase):
     """Event to signal the creation of a user/group."""
@@ -31,8 +32,8 @@ class UserGroupRequires(Object):
         )
 
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_broken,
-            self._on_relation_broken,
+            self._charm.on[self._relation_name].relation_departed,
+            self._on_relation_departed,
         )
 
     @property
@@ -41,14 +42,26 @@ class UserGroupRequires(Object):
 
     def _on_relation_joined(self, event):
         """Create the user and group sent by the provides side of the relation."""
+        app_data = event.relation.data.get(event.app)
+
+        self._user_name = app_data.get("user_name")
+        if not app_data.get("user_uid"):
+            event.defer()
+            return
+        self._user_uid = app_data.get("user_uid")
+        self._group_name = app_data.get("group_name")
+
         self.on.create_user_group.emit()
 
-    def _on_relation_broken(self, event):
+    def _on_relation_departed(self, event):
         """Remove the user and group."""
-        self.on.remove_user_group.emit()
+        app_data = event.relation.data.get(event.app)
 
-    def get_user_group(self):
-        app_relation_data = self._relation.data[event.app]
-        user_name = app_relation_data["user_name"]
-        group_name = app_relation_data["group_name"]
-        return user_name, group_name
+        self._user_name = app_data.get("user_name")
+        if not app_data.get("user_uid"):
+            event.defer()
+            return
+        self._user_uid = app_data.get("user_uid")
+        self._group_name = app_data.get("group_name")
+
+        self.on.remove_user_group.emit()

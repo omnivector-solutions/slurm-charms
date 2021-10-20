@@ -578,13 +578,9 @@ class SlurmctldCharm(CharmBase):
                     "useradd",
                     "--system",
                     "--no-create-home",
-                    "--gid",
-                    group,
-                    "--shell",
-                    "/usr/sbin/nologin",
-                    "-u",
-                    user_uid,
-                    user,
+                    "--gid", group,
+                    "--shell", "/usr/sbin/nologin",
+                    "-u", user_uid, user,
                 ]
             )
         except subprocess.CalledProcessError as e:
@@ -600,12 +596,7 @@ class SlurmctldCharm(CharmBase):
 
         # Remove the user.
         try:
-            subprocess.check_output(
-                [
-                    "userdel",
-                    user,
-                ]
-            )
+            subprocess.check_output(["userdel", user])
         except subprocess.CalledProcessError as e:
             logger.error(f"## Error deleting user: {e}")
 

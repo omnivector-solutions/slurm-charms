@@ -79,6 +79,8 @@ class Slurmd(Object):
         app_relation_data["slurmctld_port"] = self._charm.port
         app_relation_data["etcd_port"] = "2379"
 
+        app_relation_data["cluster_name"] = self._charm.config.get("cluster-name")
+
     def _on_relation_changed(self, event):
         """Emit slurmd available event."""
         if event.relation.data[event.app].get("partition_info"):

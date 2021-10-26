@@ -31,6 +31,7 @@ class SlurmrestdCharm(CharmBase):
         self._stored.set_default(
             slurm_installed=False,
             slurmrestd_restarted=False,
+            cluster_name=str()
         )
 
         self._slurm_manager = SlurmManager(self, "slurmrestd")
@@ -74,6 +75,9 @@ class SlurmrestdCharm(CharmBase):
 
     def _on_fluentbit_relation_created(self, event):
         """Set up Fluentbit log forwarding."""
+        self._configure_fluentbit()
+
+    def _configure_fluentbit(self):
         logger.debug("## Configuring fluentbit")
         cfg = list()
         cfg.extend(self._slurm_manager.fluentbit_config_nhc)
@@ -161,12 +165,26 @@ class SlurmrestdCharm(CharmBase):
         slurm_config = self._slurmrestd.get_stored_slurm_config()
         if slurm_config:
             self._slurm_manager.render_slurm_configs(slurm_config)
+            self.cluster_name = slurm_config.get("cluster_name")
         else:
             logger.error(f"## weird slurmconfig: {slurm_config}")
 
         # Only restart slurmrestd the first time the node is brought up.
         if not self._stored.slurmrestd_restarted:
             self._on_restart_slurmrestd(event)
+
+        if self._fluentbit._relation is not None:
+            self._configure_fluentbit()
+
+    @property
+    def cluster_name(self) -> str:
+        """Return the cluster-name."""
+        return self._stored.cluster_name
+
+    @cluster_name.setter
+    def cluster_name(self, name: str):
+        """Set the cluster-name."""
+        self._stored.cluster_name = name
 
 
 if __name__ == "__main__":

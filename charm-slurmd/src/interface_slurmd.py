@@ -80,8 +80,8 @@ class Slurmd(Object):
         """
         Handle the relation-joined event.
 
-        Get the munge_key, slurmctld_host and slurmctld_port, and etcd port
-        from slurmctld and save it to the charm stored state.
+        Get the munge_key, slurmctld_host and slurmctld_port, etcd port, and
+        the cluster name from slurmctld and save it to the charm stored state.
         """
         app_data = event.relation.data[event.app]
         if not app_data.get("munge_key"):
@@ -100,6 +100,7 @@ class Slurmd(Object):
                                         slurmctld_addr)
         self.etcd_port = app_data["etcd_port"]
 
+        self._charm.cluster_name = app_data.get("cluster_name")
         self.on.slurmctld_available.emit()
 
     def _on_relation_broken(self, event):

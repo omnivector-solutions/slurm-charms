@@ -55,6 +55,7 @@ class SlurmdCharm(CharmBase):
             slurm_installed=False,
             slurmctld_available=False,
             slurmctld_started=False,
+            cluster_name=str()
         )
 
         self._slurm_manager = SlurmManager(self, "slurmd")
@@ -75,7 +76,7 @@ class SlurmdCharm(CharmBase):
             self._slurmd.on.slurmctld_available: self._on_slurmctld_available,
             self._slurmd.on.slurmctld_unavailable: self._on_slurmctld_unavailable,
             # fluentbit
-            self.on["fluentbit"].relation_created: self._on_fluentbit_relation_created,
+            self.on["fluentbit"].relation_created: self._on_configure_fluentbit,
             # actions
             self.on.version_action: self._on_version_action,
             self.on.node_configured_action: self._on_node_configured_action,
@@ -111,8 +112,11 @@ class SlurmdCharm(CharmBase):
 
         self._check_status()
 
-    def _on_fluentbit_relation_created(self, event):
+    def _on_configure_fluentbit(self, event):
         """Set up Fluentbit log forwarding."""
+        self._configure_fluentbit()
+
+    def _configure_fluentbit(self):
         logger.debug("## Configuring fluentbit")
         cfg = list()
         cfg.extend(self._slurm_manager.fluentbit_config_nhc)
@@ -263,6 +267,10 @@ class SlurmdCharm(CharmBase):
         if not self._check_status():
             event.defer()
             return
+
+        # only set up fluentbit if we have a relation to it
+        if self._fluentbit._relation is not None:
+            self._configure_fluentbit()
 
         # at this point, we have slurm installed, munge configured, and we know
         # slurmctld accounted for this node. It should be safe to start slurmd
@@ -438,6 +446,16 @@ class SlurmdCharm(CharmBase):
     def hostname(self) -> str:
         """Return the hostname."""
         return self._slurm_manager.hostname
+
+    @property
+    def cluster_name(self) -> str:
+        """Return the cluster-name."""
+        return self._stored.cluster_name
+
+    @cluster_name.setter
+    def cluster_name(self, name: str):
+        """Set the cluster-name."""
+        self._stored.cluster_name = name
 
 
 if __name__ == "__main__":

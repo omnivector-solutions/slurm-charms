@@ -99,6 +99,11 @@ class SlurmctldCharm(CharmBase):
         return self._slurm_manager.port
 
     @property
+    def cluster_name(self) -> str:
+        """Return the cluster name."""
+        return self.config.get("cluster-name")
+
+    @property
     def _slurmctld_info(self):
         return self._slurmctld_peer.get_slurmctld_info()
 

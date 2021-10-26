@@ -7,6 +7,8 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- add labels to Fluentbit logs: cluster-name, partition-name, hostname, service
+
 0.8.2 - 2021-10-13
 ------------------
 

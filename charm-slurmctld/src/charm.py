@@ -280,15 +280,15 @@ class SlurmctldCharm(CharmBase):
         #       to assemble slurm.conf
 
         if not self._stored.slurm_installed:
-            self.unit.stauts = BlockedStatus("Error installing slurmctld")
+            self.unit.status = BlockedStatus("Error installing slurmctld")
             return False
 
         if (self._is_leader() and not self._etcd.is_active()):
-            self.unit.stauts = WaitingStatus("Initializing charm")
+            self.unit.status = WaitingStatus("Initializing charm")
             return False
 
         if not self._slurm_manager.check_munged():
-            self.unit.stauts = BlockedStatus("Error configuring munge key")
+            self.unit.status = BlockedStatus("Error configuring munge key")
             return False
 
         # statuses of mandatory components:

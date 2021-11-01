@@ -156,7 +156,7 @@ class SlurmdCharm(CharmBase):
             return False
 
         if not self._slurm_manager.check_munged():
-            self.unit.stauts = BlockedStatus("Error configuring munge key")
+            self.unit.status = BlockedStatus("Error configuring munge key")
             return False
 
         if not self._stored.slurmctld_started:

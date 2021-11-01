@@ -9,7 +9,7 @@ Unreleased
 
 - add labels to Fluentbit logs: cluster-name, partition-name, hostname, service
 - add user-group relation to create user and group on the system
-
+- fix typos in unit status
 
 0.8.2 - 2021-10-13
 ------------------

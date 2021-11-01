@@ -110,6 +110,8 @@ class Slurmdbd(Object):
         self._store_jwt_rsa(jwt_rsa)
         self.on.slurmctld_available.emit()
 
+        self._charm.cluster_name = event_app_data.get("cluster_name")
+
     def _on_relation_broken(self, event):
         """Clear the application relation data and emit the event."""
         self.set_slurmdbd_info_on_app_relation_data("")

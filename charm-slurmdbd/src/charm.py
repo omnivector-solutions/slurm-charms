@@ -53,6 +53,7 @@ class SlurmdbdCharm(CharmBase):
             jwt_available=False,
             munge_available=False,
             slurm_installed=False,
+            cluster_name=str()
         )
 
         self._db = MySQLClient(self, "db")
@@ -102,6 +103,9 @@ class SlurmdbdCharm(CharmBase):
 
     def _on_fluentbit_relation_created(self, event):
         """Set up Fluentbit log forwarding."""
+        self._configure_fluentbit()
+
+    def _configure_fluentbit(self):
         logger.debug("## Configuring fluentbit")
         cfg = list()
         cfg.extend(self._slurm_manager.fluentbit_config_nhc)
@@ -155,6 +159,8 @@ class SlurmdbdCharm(CharmBase):
         self.on.munge_available.emit()
 
         self.on.write_config.emit()
+        if self._fluentbit._relation is not None:
+            self._configure_fluentbit()
 
     def _on_slurmctld_unavailable(self, event):
         """Reset state and charm status when slurmctld broken."""
@@ -279,6 +285,16 @@ class SlurmdbdCharm(CharmBase):
     def set_db_info(self, db_info):
         """Set the db_info in the stored state."""
         self._stored.db_info = db_info
+
+    @property
+    def cluster_name(self) -> str:
+        """Return the cluster-name."""
+        return self._stored.cluster_name
+
+    @cluster_name.setter
+    def cluster_name(self, name: str):
+        """Set the cluster-name."""
+        self._stored.cluster_name = name
 
 
 if __name__ == "__main__":

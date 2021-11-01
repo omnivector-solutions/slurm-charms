@@ -564,10 +564,14 @@ class SlurmctldCharm(CharmBase):
 
         # Create the group.
         try:
-            subprocess.check_output(["groupadd", group])
+            subprocess.check_output(["groupadd", "--gid", user_uid, group]) # use the UID as the GID
         except subprocess.CalledProcessError as e:
             if e.returncode == 9:
                 logger.warning("## Group already exists.")
+            if e.returncode == 4:
+                logger.warning("## GID already exists.")
+                self._user_group._relation.data[self._user_group.model.app]["status"] = "failure: GID already exists"
+                return
             else:
                 logger.error(f"## Error creating group: {e}")
 
@@ -586,8 +590,14 @@ class SlurmctldCharm(CharmBase):
         except subprocess.CalledProcessError as e:
             if e.returncode == 9:
                 logger.warning("## User already exists.")
+            if e.returncode == 4:
+                logger.warning("## UID already exists.")
+                self._user_group._relation.data[self._user_group.model.app]["status"] = "failure: UID already exists"
+                return
             else:
                 logger.error(f"## Error creating user: {e}")
+
+        self._user_group._relation.data[self._user_group.model.app]["status"] = "success: User created"
 
     def _on_remove_user_group(self, event):
         """Remove the user and group provided."""

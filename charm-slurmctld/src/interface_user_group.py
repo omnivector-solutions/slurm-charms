@@ -18,7 +18,7 @@ class UserGroupEvents(ObjectEvents):
     remove_user_group = EventSource(RemoveUserGroupEvent)
 
 
-class UserGroupRequires(Object):
+class UserGroupProvides(Object):
     """UserGroup Interface."""
 
     on = UserGroupEvents()

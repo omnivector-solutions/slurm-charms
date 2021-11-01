@@ -19,7 +19,7 @@ from interface_slurmctld_peer import SlurmctldPeer
 from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
 from interface_slurmrestd import Slurmrestd
-from interface_user_group import UserGroupRequires
+from interface_user_group import UserGroupProvides
 from slurm_ops_manager import SlurmManager
 
 from charms.fluentbit.v0.fluentbit import FluentbitClient
@@ -47,7 +47,7 @@ class SlurmctldCharm(CharmBase):
         )
 
         self._slurm_manager = SlurmManager(self, "slurmctld")
-        self._user_group = UserGroupRequires(self, "user-group")
+        self._user_group = UserGroupProvides(self, "user-group")
 
         self._fluentbit = FluentbitClient(self, "fluentbit")
 

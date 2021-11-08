@@ -60,7 +60,7 @@ slurmrestd: version ## pack slurmrestd
 charms: readme slurmd slurmdbd slurmctld slurmrestd ## Build all charms
 
 .PHONY: tests
-tests: clean charms
+tests: clean charms ## Run bats tests
 	./run_tests
 
 # Display target comments in 'make help'

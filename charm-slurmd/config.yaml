@@ -27,8 +27,11 @@ options:
     type: string
     default: ""
     description: >
-      Extra partition configuration specified as a space separated `key=value`
-      single line.
+      Extra partition configuration, specified as a space separated `key=value`
+      in a single line.
+
+      Example usage:
+      $ juju config slurmd partition-config="DefaultTime=45:00 MaxTime=1:00:00"
   partition-state:
     type: string
     default: "UP"

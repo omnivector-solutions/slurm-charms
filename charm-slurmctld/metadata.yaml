@@ -41,6 +41,8 @@ requires:
     interface: fluentbit
 
 provides:
+  prolog-epilog:
+    interface: prolog-epilog
   grafana-source:
     interface: grafana-source
     scope: global

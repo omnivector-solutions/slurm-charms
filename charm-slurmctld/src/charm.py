@@ -20,6 +20,7 @@ from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
 from interface_slurmrestd import Slurmrestd
 from interface_user_group import UserGroupProvides
+from interface_prolog_epilog import PrologEpilog
 from slurm_ops_manager import SlurmManager
 
 from charms.fluentbit.v0.fluentbit import FluentbitClient
@@ -47,18 +48,18 @@ class SlurmctldCharm(CharmBase):
         )
 
         self._slurm_manager = SlurmManager(self, "slurmctld")
-        self._user_group = UserGroupProvides(self, "user-group")
-
-        self._fluentbit = FluentbitClient(self, "fluentbit")
 
         self._slurmd = Slurmd(self, "slurmd")
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
         self._slurmrestd = Slurmrestd(self, "slurmrestd")
         self._slurmctld_peer = SlurmctldPeer(self, "slurmctld-peer")
+        self._prolog_epilog = PrologEpilog(self, "prolog-epilog")
 
         self._grafana = GrafanaSource(self, "grafana-source")
         self._influxdb = InfluxDB(self, "influxdb-api")
+        self._fluentbit = FluentbitClient(self, "fluentbit")
 
+        self._user_group = UserGroupProvides(self, "user-group")
         self._etcd = EtcdOps()
 
         event_handler_bindings = {
@@ -79,6 +80,8 @@ class SlurmctldCharm(CharmBase):
             # fluentbit
             self.on["fluentbit"].relation_created: self._on_fluentbit_relation_created,
             # Addons lifecycle events
+            self._prolog_epilog.on.prolog_epilog_available: self._on_write_slurm_config,
+            self._prolog_epilog.on.prolog_epilog_unavailable: self._on_write_slurm_config,
             self._grafana.on.grafana_available: self._on_grafana_available,
             self._influxdb.on.influxdb_available: self._on_influxdb_available,
             self._influxdb.on.influxdb_unavailable: self._on_write_slurm_config,
@@ -140,13 +143,26 @@ class SlurmctldCharm(CharmBase):
     @property
     def _addons_info(self):
         """Assemble addons for slurm.conf."""
-        # NOTE add prolog and epilog
         # NOTE add elasticsearch
 
-        return {**self._assemble_acct_gather_addons()}
+        return {**self._assemble_prolog_epilog(),
+                **self._assemble_acct_gather_addons()}
+
+    def _assemble_prolog_epilog(self) -> dict:
+        """Generate the prolog_epilog section of the addons."""
+        logger.debug("## Generating prolog epilog configuration")
+
+        prolog_epilog = self._prolog_epilog.get_prolog_epilog()
+
+        if prolog_epilog:
+            return {"prolog_epilog": prolog_epilog}
+        else:
+            return {}
 
     def _assemble_acct_gather_addons(self):
         """Generate the acct gather section of the addons."""
+        logger.debug("## Generating acct gather configuration")
+
         addons = dict()
 
         influxdb_info = self._get_influxdb_info()

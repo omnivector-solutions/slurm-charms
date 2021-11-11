@@ -10,6 +10,7 @@ Unreleased
 0.8.3 - 2021-11-05
 ------------------
 
+- improve logrotate profiles for Slurm and NHC logs
 - add epilog-prolog relation
 - add labels to Fluentbit logs: cluster-name, partition-name, hostname, service
 - add user-group relation to create user and group on the system

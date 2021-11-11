@@ -39,15 +39,15 @@ class InfluxDB(Object):
     _stored = StoredState()
     on = InfluxDBEvents()
 
-    _INFLUX_USER = "slurm"
-    _INFLUX_DATABASE = "slurm"
-    _INFLUX_PRIVILEGE = "all"
-
     def __init__(self, charm, relation_name):
         """Observe relation events."""
         super().__init__(charm, relation_name)
         self._charm = charm
         self._relation_name = relation_name
+
+        self._INFLUX_USER = "slurm"
+        self._INFLUX_PRIVILEGE = "all"
+        self._INFLUX_DATABASE = self._charm.cluster_name
 
         self._stored.set_default(
             influxdb_info=str(),
@@ -81,22 +81,22 @@ class InfluxDB(Object):
                     self._stored.influxdb_admin_info = json.dumps(admin_info)
 
                     # Influxdb client
-                    client = influxdb.InfluxDBClient(ingress,
-                                                     port,
-                                                     user,
-                                                     password)
+                    client = influxdb.InfluxDBClient(ingress, port, user, password)
 
                     # Influxdb slurm user password
                     influx_slurm_password = generate_password()
 
                     # Only create the user and db if they don't already exist
                     users = [db["user"] for db in client.get_list_users()]
+                    logger.debug(f"## users in influxdb: {users}")
                     if self._INFLUX_USER not in users:
-                        client.create_user(self._INFLUX_DATABASE,
+                        logger.debug(f"## Creating influxdb user: {self._INFLUX_USER}")
+                        client.create_user(self._INFLUX_USER,
                                            influx_slurm_password)
 
                     databases = [db["name"] for db in client.get_list_database()]
                     if self._INFLUX_DATABASE not in databases:
+                        logger.debug(f"## Creating influxdb db: {self._INFLUX_DATABASE}")
                         client.create_database(self._INFLUX_DATABASE)
 
                     client.grant_privilege(self._INFLUX_PRIVILEGE,

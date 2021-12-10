@@ -7,12 +7,13 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
-0.8.3 - 2021-11-05
-------------------
-
 - use the cluster name as the database name for InfluxDB
 - improve logrotate profiles for Slurm and NHC logs
 - add epilog-prolog relation
+
+0.8.3 - 2021-11-05
+------------------
+
 - add labels to Fluentbit logs: cluster-name, partition-name, hostname, service
 - add user-group relation to create user and group on the system
 - fix typos in unit status

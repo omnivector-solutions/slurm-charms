@@ -5,8 +5,8 @@ options:
     description: >
       Use a custom repository for Slurm installation.
 
-      This can be set to the Organization's locall mirror/cache of packages and
-      superseeds the Omnivector repositories. Alternatively, it can be used to
+      This can be set to the Organization's local mirror/cache of packages and
+      supersedes the Omnivector repositories. Alternatively, it can be used to
       track a `testing` Slurm version, e.g. by setting to
       `ppa:omnivector/osd-testing` (on Ubuntu), or
       `https://omnivector-solutions.github.io/repo/centos7/stable/$basearch`

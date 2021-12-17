@@ -1,7 +1,7 @@
 version:
   description: Return version of installed software.
 node-configured:
-  description: Remove a nove from DownNodes when the reason is `New node`.
+  description: Remove a node from DownNodes when the reason is `New node`.
 get-node-inventory:
   description: Return node inventory.
 

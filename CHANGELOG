@@ -49,7 +49,7 @@ Unreleased
 - add support for Ubuntu partitions on CentOS deploys
 - add influxdb-info action to slurmctld
 - add grafana relation for slurmctld
-- add influxdb relation for accouting and profiling of jobs with the SLURM
+- add influxdb relation for accounting and profiling of jobs with the SLURM
   InfluxDB plugin
 - add acct gather configuration options
 - handle update-status hook to constantly give feedback about charms' status

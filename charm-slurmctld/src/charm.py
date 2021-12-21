@@ -14,6 +14,7 @@ from ops.model import ActiveStatus, BlockedStatus, ModelError, WaitingStatus
 
 from etcd_ops import EtcdOps
 from interface_grafana_source import GrafanaSource
+from interface_elasticsearch import Elasticsearch
 from interface_influxdb import InfluxDB
 from interface_slurmctld_peer import SlurmctldPeer
 from interface_slurmd import Slurmd
@@ -57,6 +58,7 @@ class SlurmctldCharm(CharmBase):
 
         self._grafana = GrafanaSource(self, "grafana-source")
         self._influxdb = InfluxDB(self, "influxdb-api")
+        self._elasticsearch = Elasticsearch(self, "elasticsearch")
         self._fluentbit = FluentbitClient(self, "fluentbit")
 
         self._user_group = UserGroupProvides(self, "user-group")
@@ -85,6 +87,8 @@ class SlurmctldCharm(CharmBase):
             self._grafana.on.grafana_available: self._on_grafana_available,
             self._influxdb.on.influxdb_available: self._on_influxdb_available,
             self._influxdb.on.influxdb_unavailable: self._on_write_slurm_config,
+            self._elasticsearch.on.elasticsearch_available: self._on_elasticsearch_available,
+            self._elasticsearch.on.elasticsearch_unavailable: self._on_write_slurm_config,
             self._user_group.on.create_user_group: self._on_create_user_group,
             self._user_group.on.remove_user_group: self._on_remove_user_group,
             # actions
@@ -143,10 +147,9 @@ class SlurmctldCharm(CharmBase):
     @property
     def _addons_info(self):
         """Assemble addons for slurm.conf."""
-        # NOTE add elasticsearch
-
         return {**self._assemble_prolog_epilog(),
-                **self._assemble_acct_gather_addons()}
+                **self._assemble_acct_gather_addon(),
+                **self._assemble_elastic_search_addon()}
 
     def _assemble_prolog_epilog(self) -> dict:
         """Generate the prolog_epilog section of the addons."""
@@ -159,7 +162,7 @@ class SlurmctldCharm(CharmBase):
         else:
             return {}
 
-    def _assemble_acct_gather_addons(self):
+    def _assemble_acct_gather_addon(self):
         """Generate the acct gather section of the addons."""
         logger.debug("## Generating acct gather configuration")
 
@@ -184,6 +187,18 @@ class SlurmctldCharm(CharmBase):
         addons["acct_gather_frequency"] = self.config.get("acct-gather-frequency")
 
         return addons
+
+    def _assemble_elastic_search_addon(self):
+        """Generate the acct gather section of the addons."""
+        logger.debug("## Generating elastic search addon configuration")
+        addon = dict()
+
+        elasticsearch_ingress = self._elasticsearch.elasticsearch_ingress
+        if elasticsearch_ingress:
+            suffix = f"/{self.cluster_name}/jobcomp"
+            addon = {"elasticsearch_address": f"{elasticsearch_ingress}{suffix}"}
+
+        return addon
 
     def set_slurmd_available(self, flag: bool):
         """Set stored value of slurmd available."""
@@ -534,6 +549,10 @@ class SlurmctldCharm(CharmBase):
 
     def _on_influxdb_available(self, event):
         """Assemble addons to forward slurm data to influxdb."""
+        self._on_write_slurm_config(event)
+
+    def _on_elasticsearch_available(self, event):
+        """Assemble addons to forward Slurm data to elasticsearch."""
         self._on_write_slurm_config(event)
 
     def _get_influxdb_info(self) -> dict:

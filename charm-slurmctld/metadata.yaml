@@ -37,6 +37,8 @@ requires:
     interface: slurmrestd
   influxdb-api:
     interface: influxdb-api
+  elasticsearch:
+    interface: elasticsearch
   fluentbit:
     interface: fluentbit
 

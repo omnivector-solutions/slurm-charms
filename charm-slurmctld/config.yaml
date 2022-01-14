@@ -68,7 +68,7 @@ options:
     description: >
       Accounting and profiling sampling intervals for the acct_gather plugins.
 
-      Note: a value of `0` disables the periodic sampling. In this case, the
+      Note: A value of `0` disables the periodic sampling. In this case, the
       accounting information is collected when the job terminates.
 
       Example usage:

@@ -2,7 +2,7 @@ show-current-config:
   description: >
     Display the currently used `slurm.conf`.
 
-    Note: this file only exists in `slurmctld` charm and is automatically
+    Note: This file only exists in `slurmctld` charm and is automatically
     distributed to all compute nodes by Slurm.
 
     Example usage:
@@ -27,7 +27,7 @@ resume:
   description: >
     Resume specified nodes.
 
-    Note: newly added nodes will remain in the `down` state until configured,
+    Note: Newly added nodes will remain in the `down` state until configured,
     with the `node-configured` action.
 
     Example usage: $ juju run-action slurmctld/leader resume nodename=node-[1,2]

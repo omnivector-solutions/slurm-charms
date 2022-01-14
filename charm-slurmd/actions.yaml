@@ -15,7 +15,7 @@ set-infiniband-repo:
   description: >
     Set the new infiniband repository.
 
-    Note: the repository file must be base64 encoded when using this action.
+    Note: The repository file must be base64 encoded when using this action.
 
     Example usage:
     $ juju run-action slurmd/leader set-infiniband-repo repo="$(cat repo.file | base64)"
@@ -30,7 +30,7 @@ set-infiniband-repo:
     Overrides the repository file with a custom repository for Infiniband
     installation.
 
-    Note: this file should be base64 encoded.
+    Note: This file should be base64 encoded.
 
     On CentOS, the file is placed at `/etc/yum.repos.d/infiniband.repo`, while
     on Ubuntu it is at `/etc/apt/sources.list.d/infiniband.list`.

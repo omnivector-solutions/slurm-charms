@@ -51,3 +51,34 @@ stop-infiniband:
   description: Stop Infiniband systemd service.
 is-active-infiniband:
   description: Check if Infiniband systemd service is active.
+
+nvidia-repo:
+  description: >
+    Get or set the repository used to install Nvidia drivers.
+
+    This value must be set **before** installing the drivers. Changing it
+    afterwards has no impact on the system.
+
+    Note: The repository file must be base64 encoded when using this action.
+  params:
+    repo:
+      type: string
+      description: >
+        If specified, set the repository to the value specified.
+nvidia-package:
+  description: >
+    Get or set the Nvidia driver package name.
+
+    This value must be set **before** installing the drivers. Changing it
+    afterwards has no impact on the system.
+  params:
+    package:
+      type: string
+      description: >
+        If specified, set the package name to the value specified
+nvidia-install:
+  description: >
+    Install Nvidia GPU drivers. This might take a few minutes to complete.
+
+    If no custom repository was specified before, this action will set the
+    Nvidia repository as the default and install the latest drivers from it.

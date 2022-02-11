@@ -91,6 +91,10 @@ class SlurmdCharm(CharmBase):
             self.on.enable_infiniband_action: self.enable_infiniband,
             self.on.stop_infiniband_action: self.stop_infiniband,
             self.on.is_active_infiniband_action: self.is_active_infiniband,
+            # nvdia actions
+            self.on.nvidia_repo_action: self.nvidia_repo,
+            self.on.nvidia_package_action: self.nvidia_package,
+            self.on.nvidia_install_action: self.nvidia_install,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -404,6 +408,30 @@ class SlurmdCharm(CharmBase):
         status = self._slurm_manager.infiniband.is_active()
         logger.debug(f"#### Infiniband service is-active: {status}")
         event.set_results({'infiniband-is-active': status})
+
+    def nvidia_repo(self, event):
+        """Set or get the used nvidia repository."""
+        repo = event.params.get("repo", None)
+        if repo:
+            self._slurm_manager.nvidia.repository = base64.b64decode(repo).decode()
+
+        event.set_results({'nvidia-repo': self._slurm_manager.nvidia.repository})
+
+    def nvidia_package(self, event):
+        """Set or get the used nvidia package."""
+        package = event.params.get("package", None)
+        if package or package == "":
+            # user supplied a package name -> store it
+            self._slurm_manager.nvidia.package = package
+
+        event.set_results({'nvidia-package': self._slurm_manager.nvidia.package})
+
+    def nvidia_install(self, event):
+        """Install nvidia drivers."""
+        logger.debug("#### Installing nvidia drivers: %s", self._slurm_manager.nvidia.package)
+        self._slurm_manager.nvidia.install()
+        event.set_results({'installation': 'Successfull. Please reboot node.'})
+        self.unit.status = BlockedStatus("Need reboot for nvidia")
 
     def _on_show_nhc_config(self, event):
         """Show current nhc.conf."""

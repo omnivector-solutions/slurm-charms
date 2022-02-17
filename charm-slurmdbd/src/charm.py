@@ -230,6 +230,10 @@ class SlurmdbdCharm(CharmBase):
 
     def _check_status(self) -> bool:
         """Check that we have the things we need."""
+        if self._slurm_manager.needs_reboot:
+            self.unit.status = BlockedStatus("Machine needs reboot")
+            return False
+
         slurm_installed = self._stored.slurm_installed
         if not slurm_installed:
             self.unit.status = BlockedStatus("Error installing slurm")

@@ -143,6 +143,10 @@ class SlurmdCharm(CharmBase):
         - slurmctld available and working
         - munge key configured and working
         """
+        if self._slurm_manager.needs_reboot:
+            self.unit.status = BlockedStatus("Machine needs reboot")
+            return False
+
         if not self.get_partition_name():
             self.unit.status = WaitingStatus("Waiting on charm configuration")
             return False

@@ -137,6 +137,10 @@ class SlurmrestdCharm(CharmBase):
         self._slurm_manager.configure_jwt_rsa(jwt_rsa)
 
     def _check_status(self) -> bool:
+        if self._slurm_manager.needs_reboot:
+            self.unit.status = BlockedStatus("Machine needs reboot")
+            return False
+
         if not self._stored.slurm_installed:
             self.unit.status = BlockedStatus("Error installing slurmrestd")
             return False

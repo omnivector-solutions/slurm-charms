@@ -310,6 +310,10 @@ class SlurmctldCharm(CharmBase):
         #       only for the cluster to operate. But we need slurmd inventory
         #       to assemble slurm.conf
 
+        if self._slurm_manager.needs_reboot:
+            self.unit.status = BlockedStatus("Machine needs reboot")
+            return False
+
         if not self._stored.slurm_installed:
             self.unit.status = BlockedStatus("Error installing slurmctld")
             return False

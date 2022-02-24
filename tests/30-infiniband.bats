@@ -2,12 +2,8 @@
 
 load "../node_modules/bats-support/load"
 load "../node_modules/bats-assert/load"
+. "tests/utils.sh"
 
-
-myjuju () {
-	juju "$@"
-	juju-wait -t 540 -m "$JUJU_MODEL"
-}
 
 @test "Querying the infiniband version when not installed" {
 	# NOTE: this test should come before others, as it queries the

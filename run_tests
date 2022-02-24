@@ -18,14 +18,20 @@ for model in $centos_model $ubuntu_model; do
 	juju add-model "$model"
 	juju switch "$model"
 	juju model-config --model "$model" logging-config="<unit>=DEBUG;<root>=DEBUG"
-	juju wait -t 10 -m "$model"
+	juju wait-for model "$model" --timeout=10s
 
 	cd ../slurm-bundles
 	target=$(echo $model | cut -d"-" -f1)
 	make lxd-$target
 	cd ../slurm-charms
 
-	juju-wait -t 540 -m $model
+	# wait for deploy to finish
+	sleep 10
+	juju wait-for application slurmctld --query='status=="active"' --timeout=9m
+	juju wait-for application slurmdbd --query='status=="active"' --timeout=9m
+	juju wait-for application slurmrestd --query='status=="active"' --timeout=9m
+	juju wait-for application slurmd --query='status=="active" || status=="blocked"' --timeout=9m
+
 	juju status
 
 	JUJU_MODEL="$model" npx bats tests/

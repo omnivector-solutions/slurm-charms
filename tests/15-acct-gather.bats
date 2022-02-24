@@ -2,12 +2,7 @@
 
 load "../node_modules/bats-support/load"
 load "../node_modules/bats-assert/load"
-
-
-myjuju () {
-	juju "$@"
-	juju-wait -t 540 -m $JUJU_MODEL
-}
+. "tests/utils.sh"
 
 
 @test "Assert we can update JobAcctGatherFrequency" {

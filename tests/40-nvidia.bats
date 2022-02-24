@@ -2,12 +2,8 @@
 
 load "../node_modules/bats-support/load"
 load "../node_modules/bats-assert/load"
+. "tests/utils.sh"
 
-
-myjuju () {
-	juju "$@"
-	juju-wait -t 540 -m "$JUJU_MODEL"
-}
 
 @test "Querying the default package names" {
 	run juju run-action -m "$JUJU_MODEL" slurmd/leader nvidia-package --wait

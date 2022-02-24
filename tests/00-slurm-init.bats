@@ -2,11 +2,7 @@
 
 load "../node_modules/bats-support/load"
 load "../node_modules/bats-assert/load"
-
-myjuju () {
-	juju "$@"
-	juju-wait -t 540 -m "$JUJU_MODEL"
-}
+. "tests/utils.sh"
 
 
 @test "test first node is down" {
@@ -28,7 +24,7 @@ myjuju () {
 	assert_success
 
 	# slurmctld needs some time to update its configs
-	juju-wait -t 60 -m "$JUJU_MODEL"
+	juju wait-for application slurmctld --query='status=="active"' --timeout=1m > /dev/null 2>&1
 
 	run juju run "sinfo" -m $JUJU_MODEL --unit slurmctld/leader
 	assert_success
@@ -43,7 +39,9 @@ myjuju () {
 	old_node=$(juju run --model $JUJU_MODEL --unit slurmd/leader hostname)
 
 	# slurmctld needs some time to update its configs
-	juju-wait -t 60 -m "$JUJU_MODEL"
+	juju wait-for application slurmctld --query='status=="active"' --timeout=9m > /dev/null 2>&1
+	juju wait-for application slurmd --query='status=="active" || status=="blocked"' --timeout=10m
+	juju wait-for unit slurmd/1 --query='workload-status=="active" || workload-status=="blocked"' --timeout=10m
 
 	# attempt to give some time to juju and slurm to clam down
 	flag="Polling sinfo 5 times"

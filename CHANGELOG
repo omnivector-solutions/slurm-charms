@@ -8,7 +8,7 @@ Unreleased
 ----------
 
 - improve checks when nodes need to be rebooted
-- add nVdia GPU support: install drivers via an action on compute nodes
+- add Nvidia GPU support: install drivers via an action on compute nodes
 - update operator framework to 1.3.0
 
 0.8.5 - 2022-01-13

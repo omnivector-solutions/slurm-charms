@@ -32,6 +32,13 @@ clean: ## Remove .tox, build dirs, and charms
 	rm -rf charm-slurm*/version
 	rm -rf charm-slurm*/README.md
 
+.PHONY: deepclean
+deepclean: clean ## Cleanup charmcraft/lxd
+	@charmcraft clean --project-dir charm-slurmctld
+	@charmcraft clean --project-dir charm-slurmd
+	@charmcraft clean --project-dir charm-slurmdbd
+	@charmcraft clean --project-dir charm-slurmrestd
+
 .PHONY: slurmd
 slurmd: version ## Build slurmd
 	@cp version LICENSE icon.svg charm-slurmd/

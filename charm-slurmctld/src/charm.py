@@ -476,9 +476,12 @@ class SlurmctldCharm(CharmBase):
             self._slurm_manager.slurm_systemctl('restart')
             self._slurm_manager.slurm_cmd('scontrol', 'reconfigure')
 
-            # send the list of hostnames to slurmd relation data
+            # send the list of hostnames to slurmd via etcd
             accounted_nodes = self._assemble_all_nodes(slurm_config["partitions"])
             self._etcd.set_list_of_accounted_nodes(accounted_nodes)
+
+            # send the custom NHC parameters to all slurmd
+            self._slurmd.set_nhc_params(self.config.get('health-check-params'))
 
             # check for "not new anymore" nodes, i.e., nodes that runned the
             # node-configured action. Those nodes are not anymore in the

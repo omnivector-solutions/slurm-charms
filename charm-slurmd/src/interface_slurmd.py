@@ -45,6 +45,7 @@ class Slurmd(Object):
             slurmctld_addr=str(),
             slurmctld_port=str(),
             etcd_port=str(),
+            nhc_params=str()
         )
 
         self.framework.observe(
@@ -55,6 +56,11 @@ class Slurmd(Object):
         self.framework.observe(
             self._charm.on[self._relation_name].relation_joined,
             self._on_relation_joined,
+        )
+
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_changed,
+            self._on_relation_changed,
         )
 
         self.framework.observe(
@@ -80,8 +86,9 @@ class Slurmd(Object):
         """
         Handle the relation-joined event.
 
-        Get the munge_key, slurmctld_host and slurmctld_port, etcd port, and
-        the cluster name from slurmctld and save it to the charm stored state.
+        Get the munge_key, slurmctld_host and slurmctld_port, etcd port, NHC
+        params, the cluster name from slurmctld and save it to the charm stored
+        state.
         """
         app_data = event.relation.data[event.app]
         if not app_data.get("munge_key"):
@@ -101,7 +108,20 @@ class Slurmd(Object):
         self.etcd_port = app_data["etcd_port"]
 
         self._charm.cluster_name = app_data.get("cluster_name")
+
+        self._store_nhc_params(app_data.get("nhc_params"))
+
         self.on.slurmctld_available.emit()
+
+    def _on_relation_changed(self, event):
+        """Perform relation changed operations.
+
+        Possible scenarios:
+        - nhc parameters changed
+        """
+
+        app_data = event.relation.data[event.app]
+        self._store_nhc_params(app_data.get("nhc_params"))
 
     def _on_relation_broken(self, event):
         """Perform relation broken operations."""
@@ -157,6 +177,14 @@ class Slurmd(Object):
     def _store_munge_key(self, munge_key: str):
         """Store the munge_key in the StoredState."""
         self._stored.munge_key = munge_key
+
+    def _store_nhc_params(self, params: str):
+        """Store the NHC params."""
+        if params != self._stored.nhc_params:
+            self._stored.nhc_params = params
+
+            logger.debug(f"## rendering /usr/sbin/omni-nhc-wrapper: {params}")
+            self._charm._slurm_manager.render_nhc_wrapper(params)
 
     @property
     def slurmctld_address(self) -> str:

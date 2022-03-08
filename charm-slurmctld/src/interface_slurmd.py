@@ -69,8 +69,8 @@ class Slurmd(Object):
             event.defer()
             return
 
-        # Get the munge_key from set it to the app data on the relation to be
-        # retrieved on the other side by slurmdbd.
+        # Get the munge_key and set it to the app data on the relation to be
+        # retrieved on the other side by slurmd.
         app_relation_data = event.relation.data[self.model.app]
         app_relation_data["munge_key"] = self._charm.get_munge_key()
 
@@ -80,6 +80,8 @@ class Slurmd(Object):
         app_relation_data["etcd_port"] = "2379"
 
         app_relation_data["cluster_name"] = self._charm.config.get("cluster-name")
+
+        app_relation_data["nhc_params"] = self._charm.config.get("health-check-params", "#")
 
     def _on_relation_changed(self, event):
         """Emit slurmd available event."""
@@ -151,6 +153,24 @@ class Slurmd(Object):
                 partitions.append(partition_info)
 
         return ensure_unique_partitions(partitions)
+
+    def set_nhc_params(self, params: str = ""):
+        """Send NHC parameters to all slurmd."""
+
+        # juju does not allow setting empty data/strings on the relation data,
+        # so we set it to something that behaves like empty
+        if not params or params == "":
+            params = "#"
+
+        logger.debug(f"## set_nhc_params: {params}")
+
+        if self.is_joined:
+            relations = self._charm.framework.model.relations.get(self._relation_name)
+            for relation in relations:
+                app = self.model.app
+                relation.data[app]["nhc_params"] = params
+        else:
+            logger.debug("## slurmd not joined")
 
 
 def ensure_unique_partitions(partitions):

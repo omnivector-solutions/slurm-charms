@@ -27,10 +27,11 @@ for model in $centos_model $ubuntu_model; do
 
 	# wait for deploy to finish
 	sleep 10
-	juju wait-for application slurmctld --query='status=="active"' --timeout=9m
-	juju wait-for application slurmdbd --query='status=="active"' --timeout=9m
-	juju wait-for application slurmrestd --query='status=="active"' --timeout=9m
-	juju wait-for application slurmd --query='status=="active" || status=="blocked"' --timeout=9m
+	juju wait-for unit percona-cluster/0 --query='agent-status=="idle"' --timeout=9m
+	juju wait-for unit slurmctld/0 --query='agent-status=="idle"' --timeout=9m
+	juju wait-for unit slurmdbd/0 --query='agent-status=="idle"' --timeout=9m
+	juju wait-for unit slurmrestd/0 --query='agent-status=="idle"' --timeout=9m
+	juju wait-for unit slurmd/0 --query='agent-status=="idle"' --timeout=9m
 
 	juju status
 

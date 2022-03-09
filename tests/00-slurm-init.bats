@@ -24,7 +24,7 @@ load "../node_modules/bats-assert/load"
 	assert_success
 
 	# slurmctld needs some time to update its configs
-	juju wait-for application slurmctld --query='status=="active"' --timeout=1m > /dev/null 2>&1
+	juju wait-for unit slurmctld/0 --query='agent-status=="idle"' --timeout=1m > /dev/null 2>&1
 
 	run juju run "sinfo" -m $JUJU_MODEL --unit slurmctld/leader
 	assert_success
@@ -39,9 +39,9 @@ load "../node_modules/bats-assert/load"
 	old_node=$(juju run --model $JUJU_MODEL --unit slurmd/leader hostname)
 
 	# slurmctld needs some time to update its configs
-	juju wait-for application slurmctld --query='status=="active"' --timeout=9m > /dev/null 2>&1
+	juju wait-for application slurmctld --query='status=="active" || status=="blocked"' --timeout=9m > /dev/null 2>&1
 	juju wait-for application slurmd --query='status=="active" || status=="blocked"' --timeout=10m
-	juju wait-for unit slurmd/1 --query='workload-status=="active" || workload-status=="blocked"' --timeout=10m
+	juju wait-for unit slurmd/1 --query='agent-status=="idle" || workload-status=="blocked"' --timeout=10m
 
 	# attempt to give some time to juju and slurm to clam down
 	flag="Polling sinfo 5 times"

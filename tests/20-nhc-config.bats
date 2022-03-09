@@ -24,3 +24,15 @@ load "../node_modules/bats-assert/load"
 	run juju run-action -m "$JUJU_MODEL" slurmctld/leader show-current-config --wait
 	assert_output --partial "HealthCheckNodeState=CYCLE,ANY"
 }
+
+@test "Assert we can change the slurm settings for NHC - params" {
+	run juju run -m "$JUJU_MODEL" --unit slurmd/leader cat /usr/sbin/omni-nhc-wrapper
+	assert_output --partial "/usr/sbin/nhc-wrapper #"
+
+	local params="-M admin@omnivector.solutions -S notifications"
+	myjuju config slurmctld health-check-params="$params"
+	juju wait-for unit slurmctld/0 --query='agent-status=="idle"'
+
+	run juju run -m "$JUJU_MODEL" --unit slurmd/leader cat /usr/sbin/omni-nhc-wrapper
+	assert_output --partial "/usr/sbin/nhc-wrapper $params"
+}

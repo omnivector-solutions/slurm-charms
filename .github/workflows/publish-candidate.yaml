@@ -32,9 +32,11 @@ jobs:
         shell: bash
         run: |
           make version
+          make readme
           echo "charm version: $(cat version)"
 
           for charm in slurmd slurmctld slurmdbd slurmrestd; do
+              cp version LICENSE icon.svg charm-${charm}/
               sg lxd -c "charmcraft -v pack --project-dir charm-$charm"
               cp ${charm}_ubuntu-20.04-amd64_centos-7-amd64.charm ${charm}.charm
           done

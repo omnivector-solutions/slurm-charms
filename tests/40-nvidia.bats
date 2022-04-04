@@ -22,5 +22,7 @@ load "../node_modules/bats-assert/load"
 
 @test "Querying the default repos" {
 	run juju run-action -m "$JUJU_MODEL" slurmd/leader nvidia-repo --wait
-	assert_output --regexp "developer.download.nvidia.com/compute/cuda/repos/(ubuntu2004|rhel7)"
+
+	# should not be set
+	assert_output --partial "nvidia-repo: \"\""
 }

@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+0.9.0 - 2022-04-12
+------------------
+
 - fix: do not install Nvidia repository by default
 - add support for custom NHC parameters
 - improve checks when nodes need to be rebooted

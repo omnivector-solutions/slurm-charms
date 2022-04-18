@@ -22,7 +22,7 @@ version_string="${version_date}\n$(echo $version_date | sed -e 's|.|-|g')\n"
 sed -i -e 9a"$version_string" CHANGELOG
 
 echo -e "Creating commit and tag:"
-changes="\n$(tail -n +13 CHANGELOG | sed -e "/-----/,999999d" | head -n -1)"
+changes="$(tail -n +13 CHANGELOG | sed -e "/-----/,999999d" | head -n -1)"
 echo -e "Release $new_version"
 echo -e "$changes"
 

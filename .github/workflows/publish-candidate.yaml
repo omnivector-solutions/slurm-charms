@@ -65,7 +65,7 @@ jobs:
           CHARMCRAFT_AUTH: ${{ secrets.CHARMCRAFT_AUTH }}
         run: |
           extension="_ubuntu-20.04-amd64_centos-7-amd64.charm"
-          release="--release=latest/edge --release=latest/candidate"
+          release="--release=edge --release=candidate"
 
           charmcraft upload "$release" slurmctld$extension --resource etcd:1
 

@@ -33,4 +33,4 @@ In the case things aren't working as expected, please [file a bug](https://githu
 The slurm charms are maintained under the MIT license. See `LICENSE` file in
 this directory for full preamble.
 
-Copyright &copy; Omnivector Solutions 2021 
+Copyright &copy; Omnivector Solutions 2021 - 2022.

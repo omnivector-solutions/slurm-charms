@@ -366,6 +366,7 @@ class SlurmdCharm(CharmBase):
     def _on_get_node_inventory_action(self, event):
         """Return node inventory."""
         inventory = self._slurmd.node_inventory
+        logger.debug(f'### Node inventory: {inventory}')
         event.set_results({'inventory': inventory})
 
     def get_infiniband_repo(self, event):

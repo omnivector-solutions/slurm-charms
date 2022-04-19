@@ -5,6 +5,8 @@ import random
 import subprocess
 import sys
 
+from slurm_ops_manager.utils import get_real_mem
+
 
 def lscpu():
     """Return lscpu as a python dictionary."""
@@ -37,20 +39,6 @@ def cpu_info():
     }
 
 
-def free_m():
-    """Return the real memory."""
-    real_mem = ""
-    try:
-        real_mem = subprocess.check_output(
-            "free -m | grep -oP '\\d+' | head -n 1", shell=True
-        )
-    except subprocess.CalledProcessError as e:
-        print(e)
-        sys.exit(-1)
-
-    return real_mem.decode().strip()
-
-
 def lspci_nvidia():
     """Check for and return the count of nvidia gpus."""
     gpus = 0
@@ -81,7 +69,7 @@ def get_inventory(node_name, node_addr):
         "node_name": node_name,
         "node_addr": node_addr,
         "state": "UNKNOWN",
-        "real_memory": free_m(),
+        "real_memory": get_real_mem(),
         **cpu_info(),
     }
 

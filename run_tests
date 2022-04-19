@@ -8,6 +8,8 @@ else
 	echo "Bats installed"
 fi
 
+. tests/utils.sh
+
 # create juju models for centos and ubuntu
 postfix=$(date +'%Y-%m-%d-')$RANDOM
 centos_model="centos-test-$postfix"
@@ -18,6 +20,7 @@ for model in $centos_model $ubuntu_model; do
 	juju add-model "$model"
 	juju switch "$model"
 	juju model-config --model "$model" logging-config="<unit>=DEBUG;<root>=DEBUG"
+	juju model-config --model "$model" update-status-hook-interval=1m
 	juju wait-for model "$model" --timeout=10s
 
 	cd ../slurm-bundles
@@ -32,6 +35,8 @@ for model in $centos_model $ubuntu_model; do
 	juju wait-for unit slurmdbd/0 --query='agent-status=="idle"' --timeout=9m
 	juju wait-for unit slurmrestd/0 --query='agent-status=="idle"' --timeout=9m
 	juju wait-for unit slurmd/0 --query='agent-status=="idle"' --timeout=9m
+
+	myjuju run --all --model "$model" "sudo reboot"
 
 	juju status
 

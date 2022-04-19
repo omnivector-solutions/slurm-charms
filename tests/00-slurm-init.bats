@@ -58,6 +58,9 @@ load "../node_modules/bats-assert/load"
 		fi
 	done
 
+	# reboot new node
+	myjuju run --model $JUJU_MODEL --unit slurmd/1 sudo reboot
+
 	# old node should still be idle
 	run juju run "sinfo -n $old_node" -m $JUJU_MODEL --unit slurmctld/leader
 	assert_success

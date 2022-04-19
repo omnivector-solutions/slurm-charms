@@ -93,6 +93,24 @@ load "../node_modules/bats-assert/load"
 	assert_line --partial "idle"
 }
 
+@test "test we can get a node's inventory" {
+	run juju run-action -m $JUJU_MODEL slurmd/leader get-node-inventory --wait
+	assert_output --regexp "cores-per-socket: \"[0-9]"
+	assert_output --regexp "cpus: \"[0-9]"
+	assert_output --regexp "real-memory: \"[0-9]"
+}
+
+@test "test we can modify a node's inventory" {
+	myjuju run-action -m $JUJU_MODEL slurmd/leader set-node-inventory real-memory=42 --wait
+
+	run juju run-action -m $JUJU_MODEL slurmd/leader get-node-inventory --wait
+	assert_output --regexp "real-memory: \"42\""
+
+	# verify that slurmctld updated the configuration
+	run juju run -m $JUJU_MODEL --unit slurmctld/leader "cat /etc/slurm/slurm.conf"
+	assert_output --regexp "RealMemory=42 "
+}
+
 @test "Ping slurmrestd" {
 	host=$(juju status --model "$JUJU_MODEL" slurmrestd --format=json | jq .applications.slurmrestd.units | grep public-address | cut -f 4 -d'"')
 	user="ubuntu"

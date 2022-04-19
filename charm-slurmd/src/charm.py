@@ -81,6 +81,7 @@ class SlurmdCharm(CharmBase):
             self.on.version_action: self._on_version_action,
             self.on.node_configured_action: self._on_node_configured_action,
             self.on.get_node_inventory_action: self._on_get_node_inventory_action,
+            self.on.set_node_inventory_action: self._on_set_node_inventory_action,
             self.on.show_nhc_config_action: self._on_show_nhc_config,
             # infiniband actions
             self.on.get_infiniband_repo_action: self.get_infiniband_repo,
@@ -367,7 +368,23 @@ class SlurmdCharm(CharmBase):
         """Return node inventory."""
         inventory = self._slurmd.node_inventory
         logger.debug(f'### Node inventory: {inventory}')
-        event.set_results({'inventory': inventory})
+
+        # Juju does not like underscores in dictionaries
+        inv = {k.replace("_", "-"): v for k, v in inventory.items()}
+        event.set_results(inv)
+
+    def _on_set_node_inventory_action(self, event):
+        """Overwrite the node inventory."""
+        inventory = self._slurmd.node_inventory
+
+        # update local copy of inventory
+        memory = event.params.get("real-memory", inventory["real_memory"])
+        inventory["real_memory"] = memory
+
+        # send it to slurmctld
+        self._slurmd.node_inventory = inventory
+
+        event.set_results({"real-memory": memory})
 
     def get_infiniband_repo(self, event):
         """Return the currently used infiniband repository."""

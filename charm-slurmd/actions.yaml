@@ -4,6 +4,12 @@ node-configured:
   description: Remove a node from DownNodes when the reason is `New node`.
 get-node-inventory:
   description: Return node inventory.
+set-node-inventory:
+  description: Modify node inventory.
+  params:
+    real-memory:
+      type: integer
+      description: Total amount of memory of the node, in MB.
 
 show-nhc-config:
   description: Display the currently used `nhc.conf`.

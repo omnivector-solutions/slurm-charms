@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- added set-node-inventory slurmd action
+- fix get-node-inventory action
+
 0.9.0 - 2022-04-12
 ------------------
 

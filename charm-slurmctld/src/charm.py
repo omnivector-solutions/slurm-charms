@@ -599,9 +599,13 @@ class SlurmctldCharm(CharmBase):
         influxdb_info = self._get_influxdb_info()
 
         if not influxdb_info:
-            influxdb_info = "not related"
+            info = "not related"
+        else:
+            # Juju does not like underscores in dictionaries
+            info = {k.replace("_", "-"): v for k, v in influxdb_info.items()}
+
         logger.debug(f"## InfluxDB-info action: {influxdb_info}")
-        event.set_results({"influxdb": influxdb_info})
+        event.set_results({"influxdb": info})
 
     def _on_create_user_group(self, event):
         """Create the user and group provided."""

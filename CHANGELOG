@@ -9,6 +9,7 @@ Unreleased
 
 - added set-node-inventory slurmd action
 - fix get-node-inventory action
+- fix influxdb-info slurmctld action
 
 0.9.0 - 2022-04-12
 ------------------

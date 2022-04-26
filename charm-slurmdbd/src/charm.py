@@ -7,7 +7,6 @@ from time import sleep
 from interface_mysql import MySQLClient
 from interface_slurmdbd import Slurmdbd
 from interface_slurmdbd_peer import SlurmdbdPeer
-# from nrpe_external_master import Nrpe
 from ops.charm import CharmBase, CharmEvents
 from ops.framework import EventBase, EventSource, StoredState
 from ops.main import main
@@ -57,7 +56,6 @@ class SlurmdbdCharm(CharmBase):
         )
 
         self._db = MySQLClient(self, "db")
-        # self._nrpe = Nrpe(self, "nrpe-external-master")
         self._slurm_manager = SlurmManager(self, "slurmdbd")
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
         self._slurmdbd_peer = SlurmdbdPeer(self, "slurmdbd-peer")

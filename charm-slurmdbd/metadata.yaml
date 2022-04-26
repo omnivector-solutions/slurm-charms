@@ -24,9 +24,6 @@ series:
 provides:
   slurmdbd:
     interface: slurmdbd
-  nrpe-external-master:
-    interface: nrpe-external-master
-    scope: container
 
 requires:
   db:

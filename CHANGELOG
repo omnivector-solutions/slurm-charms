@@ -7,6 +7,10 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- added munge key to etcd database
+- added action in slurmctld to create etcd user to query mungekey
+- added action in slurmctld to get etcd root password
+- added action in slurmd to get etcd slurmd password
 - added set-node-inventory slurmd action
 - updated default Mellanox Infiniband drivers to version 5.4
 - fix get-node-inventory action

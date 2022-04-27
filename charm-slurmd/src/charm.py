@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from time import sleep
 
-from etcd3gw.client import Etcd3Client
+from omnietcd3 import Etcd3AuthClient
 from ops.charm import CharmBase, CharmEvents
 from ops.framework import EventBase, EventSource, StoredState
 from ops.main import main
@@ -55,7 +55,8 @@ class SlurmdCharm(CharmBase):
             slurm_installed=False,
             slurmctld_available=False,
             slurmctld_started=False,
-            cluster_name=str()
+            cluster_name=str(),
+            etcd_slurmd_pass=str()
         )
 
         self._slurm_manager = SlurmManager(self, "slurmd")
@@ -237,11 +238,13 @@ class SlurmdCharm(CharmBase):
         host = self._slurmd.slurmctld_address
         port = self._slurmd.etcd_port
         logger.debug(f"## Connecting to etcd3 in {host}:{port}")
-        client = Etcd3Client(host=host, port=port, api_path="/v3/")
+        username = "slurmd"
+        password = self._stored.etcd_slurmd_pass
+        client = Etcd3AuthClient(host=host, port=port, username=username, password=password)
 
         logger.debug("## Querying etcd3 for node list")
         try:
-            v = client.get(key="all_nodes")
+            v = client.get(key="nodes/all_nodes")
             logger.debug(f"## Got: {v}")
         except Exception as e:
             logger.error(f"## Unable to connect to {host} to get list of nodes: {e}")
@@ -506,6 +509,10 @@ class SlurmdCharm(CharmBase):
     def cluster_name(self, name: str):
         """Set the cluster-name."""
         self._stored.cluster_name = name
+
+    def store_etcd_slurmd_pass(self, password: str):
+        """Save the slurmd password for etcd in the stored state."""
+        self._stored.etcd_slurmd_pass = password
 
 
 if __name__ == "__main__":

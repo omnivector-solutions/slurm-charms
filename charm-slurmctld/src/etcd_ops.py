@@ -10,7 +10,7 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 from typing import List
 
-from etcd3gw.client import Etcd3Client
+from omnietcd3 import Etcd3AuthClient
 
 logger = logging.getLogger()
 
@@ -87,15 +87,73 @@ class EtcdOps:
             logger.error(f'## Could not check etcd: {e}')
             return False
 
-    def configure(self):
-        """Configure etcd instance."""
-        # TODO set up password?
-        # TODO set up port?
-        # TODO enable metrics? Relate to prometheus?
+    def configure(self, root_pass: str, slurmd_pass: str) -> None:
+        """Configure etcd service."""
         logger.debug("## configuring etcd")
+        self.start()
 
-    def set_list_of_accounted_nodes(self, nodes: List[str]) -> None:
+        # some configs can only be applied with the server running
+        self.setup_default_roles(root_pass=root_pass, slurmd_pass=slurmd_pass)
+
+    def setup_default_roles(self, root_pass: str, slurmd_pass: str) -> None:
+        """Set up default etcd roles.
+
+        We use three roles:
+        - root: for slurmctld operations
+            - has full r/w permissions
+        - slurmd: for slurmd charms
+            - has r/w permissions only for nodes/* keys
+        - munge: for external accounts reading the munge key
+            - has r permissions for munge/* keys
+        """
+        logger.debug("## creating default etcd roles/users")
+        cmds = [# create root account with random pass
+                f"etcdctl user add root:{root_pass}",
+                # create root role
+                "etcdctl role add root",
+                "etcdctl user grant-role root root",
+
+                # create slurmd user
+                f"etcdctl user add slurmd:{slurmd_pass}",
+                # create slurmd role
+                "etcdctl role add slurmd",
+                "etcdctl role grant-permission slurmd readwrite --prefix=true nodes/",
+                # grant slurmd user the slurmd role
+                "etcdctl user grant-role slurmd slurmd",
+
+                # create munge role
+                "etcdctl role add munge-readers",
+                "etcdctl role grant-permission munge-readers read --prefix=true munge/",
+
+                # enable auth
+                "etcdctl auth enable",
+               ]
+
+        for cmd in cmds:
+            cmd_without_password = cmd.split(":")[0]
+            logger.debug(f"## executing command: {cmd_without_password}")
+            subprocess.run(shlex.split(cmd))
+
+    def create_new_munge_user(self, root_pass: str, user: str, password: str) -> None:
+        """Create new user in etcd with munge-readers role."""
+        logger.debug("## creating new account to query munge key")
+        auth = f"--user root --password {root_pass}"
+
+        cmd = f"etcdctl {auth} user add {user}:{password}"
+        subprocess.run(shlex.split(cmd))
+
+        logger.debug("## granting role munge-readers to new account")
+        cmd = f"etcdctl {auth} user grant-role {user} munge-readers"
+        subprocess.run(shlex.split(cmd))
+
+    def set_list_of_accounted_nodes(self, root_pass: str, nodes: List[str]) -> None:
         """Set list of nodes on etcd."""
-        logger.debug(f"## setting on etcd: all_nodes/{nodes}")
-        client = Etcd3Client(api_path="/v3/")
-        client.put(key="all_nodes", value=json.dumps(nodes))
+        logger.debug(f"## setting on etcd: nodes/all_nodes/{nodes}")
+        client = Etcd3AuthClient(username="root", password=root_pass)
+        client.put(key="nodes/all_nodes", value=json.dumps(nodes))
+
+    def store_munge_key(self, root_pass: str, key: str) -> None:
+        """Store munge key on etcd."""
+        logger.debug("## Storing munge key on etcd: munge/key")
+        client = Etcd3AuthClient(username="root", password=root_pass)
+        client.put(key="munge/key", value=key)

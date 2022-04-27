@@ -69,8 +69,7 @@ class Slurmd(Object):
         )
 
     def _on_relation_created(self, event):
-        """
-        Handle the relation-created event.
+        """Handle the relation-created event.
 
         Set the node inventory on the relation data.
         """
@@ -83,8 +82,7 @@ class Slurmd(Object):
         self.node_inventory = inv
 
     def _on_relation_joined(self, event):
-        """
-        Handle the relation-joined event.
+        """Handle the relation-joined event.
 
         Get the munge_key, slurmctld_host and slurmctld_port, etcd port, NHC
         params, the cluster name from slurmctld and save it to the charm stored
@@ -110,6 +108,8 @@ class Slurmd(Object):
         self._charm.cluster_name = app_data.get("cluster_name")
 
         self._store_nhc_params(app_data.get("nhc_params"))
+
+        self._charm.store_etcd_slurmd_pass(app_data.get("etcd_slurmd_pass"))
 
         self.on.slurmctld_available.emit()
 

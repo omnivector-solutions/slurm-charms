@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """utils.py module for slurmd charm."""
 import os
-import random
 import subprocess
 import sys
 
@@ -77,14 +76,3 @@ def get_inventory(node_name, node_addr):
     if gpus > 0:
         inventory["gres"] = gpus
     return inventory
-
-
-def random_string(length=4):
-    """Generate a random string."""
-    random_str = ""
-    for i in range(length):
-        random_integer = random.randint(97, 97 + 26 - 1)
-        flip_bit = random.randint(0, 1)
-        random_integer = random_integer - 32 if flip_bit == 1 else random_integer
-        random_str += chr(random_integer)
-    return random_str

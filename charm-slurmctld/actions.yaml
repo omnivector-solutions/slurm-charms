@@ -45,3 +45,25 @@ influxdb-info:
 
     This action returns the host, port, username, password, database, and
     retention policy regarding to InfluxDB.
+
+etcd-get-root-password:
+  description: >
+    Get the password for the etcd root account.
+etcd-get-slurmd-password:
+  description: >
+    Get the password for the etcd slurmd account.
+
+etcd-create-munge-account:
+  description: >
+    Create a new etcd account to be able to query the munge key.
+
+  params:
+    user:
+      type: string
+      description: Desired username
+    password:
+      type: string
+      description: Desired account password
+  required:
+    - user
+    - password

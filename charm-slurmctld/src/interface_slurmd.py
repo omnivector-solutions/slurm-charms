@@ -69,6 +69,12 @@ class Slurmd(Object):
             event.defer()
             return
 
+        # check if there's a password for the slurmd account, if not, defer
+        if not self._charm.etcd_slurmd_password:
+            logger.debug("## on_relation_created - deferring: leader not elected yet")
+            event.defer()
+            return
+
         # Get the munge_key and set it to the app data on the relation to be
         # retrieved on the other side by slurmd.
         app_relation_data = event.relation.data[self.model.app]
@@ -82,6 +88,8 @@ class Slurmd(Object):
         app_relation_data["cluster_name"] = self._charm.config.get("cluster-name")
 
         app_relation_data["nhc_params"] = self._charm.config.get("health-check-params", "#")
+
+        app_relation_data["etcd_slurmd_pass"] = self._charm.etcd_slurmd_password
 
     def _on_relation_changed(self, event):
         """Emit slurmd available event."""

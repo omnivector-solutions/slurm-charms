@@ -13,15 +13,15 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, ModelError, WaitingStatus
 
 from etcd_ops import EtcdOps
-from interface_grafana_source import GrafanaSource
 from interface_elasticsearch import Elasticsearch
-from interface_influxdb import InfluxDB
+from interface_grafana_source import GrafanaSource
+from interface_influxdb import InfluxDB, generate_password
+from interface_prolog_epilog import PrologEpilog
 from interface_slurmctld_peer import SlurmctldPeer
 from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
 from interface_slurmrestd import Slurmrestd
 from interface_user_group import UserGroupProvides
-from interface_prolog_epilog import PrologEpilog
 from slurm_ops_manager import SlurmManager
 
 from charms.fluentbit.v0.fluentbit import FluentbitClient
@@ -46,6 +46,9 @@ class SlurmctldCharm(CharmBase):
             slurmrestd_available=False,
             slurmdbd_available=False,
             down_nodes=list(),
+            etcd_configured=False,
+            etcd_root_pass=str(),
+            etcd_slurmd_pass=str(),
         )
 
         self._slurm_manager = SlurmManager(self, "slurmctld")
@@ -96,6 +99,9 @@ class SlurmctldCharm(CharmBase):
             self.on.drain_action: self._drain_nodes_action,
             self.on.resume_action: self._resume_nodes_action,
             self.on.influxdb_info_action: self._infludb_info_action,
+            self.on.etcd_get_root_password_action: self._etcd_get_root_password,
+            self.on.etcd_get_slurmd_password_action: self._etcd_get_slurmd_password,
+            self.on.etcd_create_munge_account_action: self._create_etcd_user_for_munge_key_ops,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -267,6 +273,7 @@ class SlurmctldCharm(CharmBase):
             self.unit.status = BlockedStatus("Missing etcd resource")
             event.defer()
             return
+
         self._etcd.install(etcd_path)
 
         self._check_status()
@@ -289,13 +296,33 @@ class SlurmctldCharm(CharmBase):
 
     def _on_leader_elected(self, event: LeaderElectedEvent) -> None:
         logger.debug("## slurmctld - leader elected")
-        self._etcd.start()
+
+        # configure etcd
+        if not self._stored.etcd_configured:
+            logger.debug("### leader elected - configuring etcd")
+            self._stored.etcd_configured = True
+
+            if self._stored.etcd_root_pass == "":
+                self._stored.etcd_root_pass = generate_password()
+            if self._stored.etcd_slurmd_pass == "":
+                self._stored.etcd_slurmd_pass = generate_password()
+
+            self._etcd.configure(root_pass=self._stored.etcd_root_pass,
+                                 slurmd_pass=self._stored.etcd_slurmd_pass)
+            self._etcd.store_munge_key(root_pass=self._stored.etcd_root_pass,
+                                       key=self._stored.munge_key)
 
         # populate etcd with the nodelist
         slurm_config = self._assemble_slurm_config()
         accounted_nodes = self._assemble_all_nodes(slurm_config.get("partitions", []))
         logger.debug(f"## Sending to etcd list of accounted nodes: {accounted_nodes}")
-        self._etcd.set_list_of_accounted_nodes(accounted_nodes)
+        self._etcd.set_list_of_accounted_nodes(self._stored.etcd_root_pass,
+                                               accounted_nodes)
+
+    @property
+    def etcd_slurmd_password(self) -> str:
+        """Get the stored password for slurmd account for etcd."""
+        return self._stored.etcd_slurmd_pass
 
     def _check_status(self):
         """Check for all relations and set appropriate status.
@@ -478,7 +505,7 @@ class SlurmctldCharm(CharmBase):
 
             # send the list of hostnames to slurmd via etcd
             accounted_nodes = self._assemble_all_nodes(slurm_config["partitions"])
-            self._etcd.set_list_of_accounted_nodes(accounted_nodes)
+            self._etcd.set_list_of_accounted_nodes(self._stored.etcd_root_pass, accounted_nodes)
 
             # send the custom NHC parameters to all slurmd
             self._slurmd.set_nhc_params(self.config.get('health-check-params'))
@@ -606,6 +633,21 @@ class SlurmctldCharm(CharmBase):
 
         logger.debug(f"## InfluxDB-info action: {influxdb_info}")
         event.set_results({"influxdb": info})
+
+    def _etcd_get_root_password(self, event):
+        event.set_results({"username": "root",
+                           "password": self._stored.etcd_root_pass})
+
+    def _etcd_get_slurmd_password(self, event):
+        event.set_results({"username": "slurmd",
+                           "password": self._stored.etcd_slurmd_pass})
+
+    def _create_etcd_user_for_munge_key_ops(self, event):
+        """Create etcd3 account to query munge key."""
+        user = event.params.get("user")
+        pw = event.params.get("password")
+        self._etcd.create_new_munge_user(self._stored.etcd_root_pass, user, pw)
+        event.set_results({"created-new-user": user})
 
     def _on_create_user_group(self, event):
         """Create the user and group provided."""

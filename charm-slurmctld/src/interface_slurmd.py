@@ -91,6 +91,9 @@ class Slurmd(Object):
 
         app_relation_data["etcd_slurmd_pass"] = self._charm.etcd_slurmd_password
 
+        app_relation_data["tls_cert"] = self._charm.model.config["tls-cert"]
+        app_relation_data["ca_cert"] = self._charm.model.config["tls-ca-cert"]
+
     def _on_relation_changed(self, event):
         """Emit slurmd available event."""
         if event.relation.data[event.app].get("partition_info"):
@@ -177,6 +180,22 @@ class Slurmd(Object):
             for relation in relations:
                 app = self.model.app
                 relation.data[app]["nhc_params"] = params
+        else:
+            logger.debug("## slurmd not joined")
+
+    def set_tls_settings(self):
+        """Send TLS settings to all slurmd."""
+        tls_cert = self._charm.model.config["tls-cert"]
+        ca_cert = self._charm.model.config["tls-ca-cert"]
+
+        logger.debug(f"## set_tls_settings: {bool(tls_cert)}, {bool(ca_cert)}")
+
+        if self.is_joined:
+            relations = self._charm.framework.model.relations.get(self._relation_name)
+            for relation in relations:
+                app = self.model.app
+                relation.data[app]["tls_cert"] = ca_cert
+                relation.data[app]["ca_cert"] = ca_cert
         else:
             logger.debug("## slurmd not joined")
 

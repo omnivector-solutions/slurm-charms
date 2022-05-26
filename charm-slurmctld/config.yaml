@@ -91,3 +91,19 @@ options:
 
       This value supplements the charm supplied `acct_gather.conf` file that is
       used for configuring the acct_gather plugins.
+
+  tls-key:
+    type: string
+    default: ""
+    description: A TLS server private key (`.key` file) to be used.
+  tls-cert:
+    type: string
+    default: ""
+    description: A TLS server certificate (`.crt` file) to be used.
+  tls-ca-cert:
+    type: string
+    default: ""
+    description: |
+      A CA certificate (`.crt` file) to be used for verification of TLS
+      certificates. A CA certificate should only be issued in the case of
+      custom CAs and nodes not having it installed.

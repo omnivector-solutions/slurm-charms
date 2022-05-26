@@ -110,6 +110,7 @@ class Slurmd(Object):
         self._store_nhc_params(app_data.get("nhc_params"))
 
         self._charm.store_etcd_slurmd_pass(app_data.get("etcd_slurmd_pass"))
+        self._store_tls_params(app_data.get("tls_cert"), app_data.get("ca_cert"))
 
         self.on.slurmctld_available.emit()
 
@@ -118,10 +119,12 @@ class Slurmd(Object):
 
         Possible scenarios:
         - nhc parameters changed
+        - tls parameters changed
         """
 
         app_data = event.relation.data[event.app]
         self._store_nhc_params(app_data.get("nhc_params"))
+        self._store_tls_params(app_data.get("tls_cert"), app_data.get("ca_cert"))
 
     def _on_relation_broken(self, event):
         """Perform relation broken operations."""
@@ -185,6 +188,15 @@ class Slurmd(Object):
 
             logger.debug(f"## rendering /usr/sbin/omni-nhc-wrapper: {params}")
             self._charm._slurm_manager.render_nhc_wrapper(params)
+
+    def _store_tls_params(self, tls_cert: str, ca_cert: str = ""):
+        """Store TLS certificates in the charm storedState."""
+        logger.debug(f"## storing new tls params: {bool(tls_cert)}, {bool(ca_cert)}")
+        if tls_cert != self._charm.etcd_tls_cert:
+            self._charm.etcd_tls_cert = tls_cert
+
+        if ca_cert != self._charm.etcd_ca_cert:
+            self._charm.etcd_ca_cert = ca_cert
 
     @property
     def slurmctld_address(self) -> str:

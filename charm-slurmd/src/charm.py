@@ -56,7 +56,9 @@ class SlurmdCharm(CharmBase):
             slurmctld_available=False,
             slurmctld_started=False,
             cluster_name=str(),
-            etcd_slurmd_pass=str()
+            etcd_slurmd_pass=str(),
+            etcd_tls_cert=str(),
+            etcd_ca_cert=str(),
         )
 
         self._slurm_manager = SlurmManager(self, "slurmd")
@@ -227,6 +229,31 @@ class SlurmdCharm(CharmBase):
         # check etcd for hostnames
         self.on.check_etcd.emit()
 
+    @property
+    def etcd_use_tls(self) -> bool:
+        """Return wether TLS certificates are available."""
+        return bool(self.etcd_tls_cert)
+
+    @property
+    def etcd_tls_cert(self) -> str:
+        """Return TLS certificate."""
+        return self._stored.etcd_tls_cert
+
+    @etcd_tls_cert.setter
+    def etcd_tls_cert(self, tls_cert: str):
+        """Store TLS certificate."""
+        self._stored.etcd_tls_cert = tls_cert
+
+    @property
+    def etcd_ca_cert(self) -> str:
+        """Return CA TLS certificate."""
+        return self._stored.etcd_ca_cert
+
+    @etcd_ca_cert.setter
+    def etcd_ca_cert(self, ca_cert: str):
+        """Store CA TLS certificate."""
+        self._stored.etcd_ca_cert = ca_cert
+
     def _on_check_etcd(self, event):
         """Check if node is accounted for.
 
@@ -237,10 +264,26 @@ class SlurmdCharm(CharmBase):
 
         host = self._slurmd.slurmctld_address
         port = self._slurmd.etcd_port
-        logger.debug(f"## Connecting to etcd3 in {host}:{port}")
+
         username = "slurmd"
         password = self._stored.etcd_slurmd_pass
-        client = Etcd3AuthClient(host=host, port=port, username=username, password=password)
+
+        protocol = "http"
+        ca_cert = None
+        if self.etcd_use_tls:
+            protocol = "https"
+            ca_cert = Path("/etc/slurm/tls_cert.crt")
+            ca_cert.write_text(self.etcd_tls_cert)
+            ca_cert = Path.as_posix()
+        if self.etcd_ca_cert:
+            ca_cert = Path("/etc/slurm/ca_cert.crt")
+            ca_cert.write_text(self.etcd_ca_cert)
+            ca_cert = Path.as_posix()
+
+        logger.debug(f"## Connecting to etcd3 in {protocol}://{host}:{port}, {ca_cert}")
+        client = Etcd3AuthClient(host=host, port=port,
+                                 protocol=protocol, ca_cert=ca_cert,
+                                 username=username, password=password)
 
         logger.debug("## Querying etcd3 for node list")
         try:

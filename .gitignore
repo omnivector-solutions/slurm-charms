@@ -2,11 +2,17 @@
 *.snap
 *.resource
 *.charm
+*.crt
+*.key
+*.srl
+*.csr
+*.v3.ext
 venv
 out
 build
 tmp
 node_modules/
+**__pycache__
 .env
 version
 charm-slurm*/version

@@ -49,6 +49,8 @@ class SlurmctldCharm(CharmBase):
             etcd_configured=False,
             etcd_root_pass=str(),
             etcd_slurmd_pass=str(),
+            use_tls=False,
+            use_tls_ca=False,
         )
 
         self._slurm_manager = SlurmManager(self, "slurmctld")
@@ -65,7 +67,7 @@ class SlurmctldCharm(CharmBase):
         self._fluentbit = FluentbitClient(self, "fluentbit")
 
         self._user_group = UserGroupProvides(self, "user-group")
-        self._etcd = EtcdOps()
+        self._etcd = EtcdOps(self)
 
         event_handler_bindings = {
             self.on.install: self._on_install,
@@ -504,6 +506,18 @@ class SlurmctldCharm(CharmBase):
         if not self._check_status():
             event.defer()
             return
+
+        # check if both certificates are supplied
+        tls_key = self.model.config['tls-key']
+        tls_cert = self.model.config['tls-cert']
+        self._stored.use_tls = (bool(tls_key) and bool(tls_cert))
+        self._stored.use_tls_ca = bool(self.model.config['tls-ca-cert'])
+        logger.debug(f"## _on_write_slurm_config(): use_tls: {self._stored.use_tls}")
+        logger.debug(f"## _on_write_slurm_config(): use_tls_ca: {self._stored.use_tls_ca}")
+
+        # TODO this will fire everytime a the configuration changed, we don't
+        #      need that. This should happen only if the tls configs changed
+        self._etcd.setup_tls()
 
         slurm_config = self._assemble_slurm_config()
         if slurm_config:

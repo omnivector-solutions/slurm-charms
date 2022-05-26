@@ -10,6 +10,9 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 from typing import List
 
+from jinja2 import Environment, FileSystemLoader
+from slurm_ops_manager.utils import operating_system
+
 from omnietcd3 import Etcd3AuthClient
 
 logger = logging.getLogger()
@@ -18,12 +21,24 @@ logger = logging.getLogger()
 class EtcdOps:
     """ETCD ops."""
 
-    def __init__(self):
+    def __init__(self, charm):
         """Initialize class."""
+        self._charm = charm
+
         # system user and group
         self._etcd_user = "etcd"
         self._etcd_group = "etcd"
         self._etcd_service = "etcd.service"
+
+        if operating_system() == 'ubuntu':
+            self._etcd_environment_file = Path("/etc/default/etcd")
+        else:
+            self._etcd_environment_file = Path("/etc/sysconfig/etcd")
+
+        self._certs_path = Path("/var/lib/etcd/tls_certificates/")
+        self._tls_key_path = self._certs_path / "tls.key"
+        self._tls_crt_path = self._certs_path / "tls.crt"
+        self._tls_ca_crt_path = self._certs_path / "tls-ca.crt"
 
     def install(self, resource_path: Path):
         """Install etcd."""
@@ -63,19 +78,90 @@ class EtcdOps:
     def _setup_systemd(self):
         logger.debug("## creating systemd files for etcd")
 
-        charm_dir = Path(__file__).parent
-        template_dir = Path(charm_dir) / "templates"
-        source = template_dir / "etcd.service.tmpl"
+        template_dir = Path(__file__).parent / "templates"
+        environment = Environment(loader=FileSystemLoader(template_dir))
+
+        # service unit
+        template = environment.get_template("etcd.service.tmpl")
+        ctxt = {"environment_file": self._etcd_environment_file}
         dest = Path("/etc/systemd/system/") / self._etcd_service
-        shutil.copy2(source, dest)
+        dest.write_text(template.render(ctxt))
 
         subprocess.call(["systemctl", "daemon-reload"])
+
+    def _setup_environment_file(self):
+        logger.debug("## creating environemnt file for etcd")
+        template_dir = Path(__file__).parent / "templates"
+        environment = Environment(loader=FileSystemLoader(template_dir))
+
+        template = environment.get_template("etcd.env.tmpl")
+
+        if self._charm._stored.use_tls:
+            ctxt = {"use_tls": True,
+                    "protocol": "https",
+                    "tls_key_path": self._tls_key_path,
+                    "tls_cert_path": self._tls_crt_path,
+                    }
+            if self._charm._stored.use_tls_ca:
+                ctxt["ca_cert_path"] = self._tls_ca_crt_path
+        else:
+            ctxt = {"use_tls": False,
+                    "protocol": "http"}
+
+        self._etcd_environment_file.write_text(template.render(ctxt))
+
+    def setup_tls(self):
+        """Setup the files for TLS."""
+        logger.debug("## setting tls files for etcd")
+
+        # safeguard
+        if not self._charm._stored.use_tls:
+            logger.debug("## no certificates provided")
+            # must restart if user removed certs
+            self._setup_environment_file()
+            self.restart()
+            return
+
+        # create dir to store certs
+        if not self._certs_path.exists():
+            logger.debug("## creating directory to store certs")
+            self._certs_path.mkdir(parents=True)
+
+        # create the files
+        logger.debug("## creating cert files")
+        key = self._charm.model.config["tls-key"]
+        self._tls_key_path.write_text(key)
+        crt = self._charm.model.config["tls-cert"]
+        self._tls_crt_path.write_text(crt)
+
+        ca_crt = self._charm.model.config["tls-ca-cert"]
+        if ca_crt:
+            logger.debug("## creating ca cert file")
+            self._tls_ca_crt_path.write_text(ca_crt)
+
+        # set correct permissions
+        shutil.chown(self._certs_path, user=self._etcd_user, group=self._etcd_group)
+        self._certs_path.chmod(0o500)
+
+        # update configurations and restart
+        self._setup_environment_file()
+        self.restart()
+
+    def stop(self):
+        """Stop etcd service."""
+        logger.debug("## stopping etcd")
+        subprocess.call(["systemctl", "stop", self._etcd_service])
 
     def start(self):
         """Start etcd service."""
         logger.debug("## enabling and starting etcd")
         subprocess.call(["systemctl", "enable", self._etcd_service])
         subprocess.call(["systemctl", "start", self._etcd_service])
+
+    def restart(self):
+        """Restart etcd service."""
+        logger.debug("## restarting etcd")
+        subprocess.call(["systemctl", "restart", self._etcd_service])
 
     def is_active(self) -> bool:
         """Check if systemd etcd service is active."""
@@ -88,8 +174,12 @@ class EtcdOps:
             return False
 
     def configure(self, root_pass: str, slurmd_pass: str) -> None:
-        """Configure etcd service."""
+        """Configure etcd service for the first time."""
         logger.debug("## configuring etcd")
+
+        # rewrite environment file and start service
+        self.setup_tls()
+        self._setup_environment_file()
         self.start()
 
         # some configs can only be applied with the server running
@@ -107,7 +197,7 @@ class EtcdOps:
             - has r permissions for munge/* keys
         """
         logger.debug("## creating default etcd roles/users")
-        cmds = [# create root account with random pass
+        cmds = [# create root account
                 f"etcdctl user add root:{root_pass}",
                 # create root role
                 "etcdctl role add root",
@@ -146,14 +236,36 @@ class EtcdOps:
         cmd = f"etcdctl {auth} user grant-role {user} munge-readers"
         subprocess.run(shlex.split(cmd))
 
+    def _client(self, root_pass: str) -> Etcd3AuthClient:
+        """Build an etcd client with the correct protocol.
+
+        Use https if we have TLS certs and HTTP otherwise.
+        """
+        protocol = "http"
+        tls_cert = None
+        cacert = None
+
+        if self._charm._stored.use_tls:
+            protocol = "https"
+            tls_cert = self._tls_crt_path.as_posix()
+
+            if self._charm._stored.use_tls_ca:
+                cacert = self._tls_ca_crt_path.as_posix()
+        logger.debug(f"## Created new etcd client using {protocol}, {tls_cert} and {cacert}")
+        client = Etcd3AuthClient(username="root", password=root_pass,
+                                 protocol=protocol, ca_cert=cacert,
+                                 cert_cert=tls_cert)
+        client.authenticate()
+        return client
+
     def set_list_of_accounted_nodes(self, root_pass: str, nodes: List[str]) -> None:
         """Set list of nodes on etcd."""
         logger.debug(f"## setting on etcd: nodes/all_nodes/{nodes}")
-        client = Etcd3AuthClient(username="root", password=root_pass)
+        client = self._client(root_pass)
         client.put(key="nodes/all_nodes", value=json.dumps(nodes))
 
     def store_munge_key(self, root_pass: str, key: str) -> None:
         """Store munge key on etcd."""
         logger.debug("## Storing munge key on etcd: munge/key")
-        client = Etcd3AuthClient(username="root", password=root_pass)
+        client = self._client(root_pass)
         client.put(key="munge/key", value=key)

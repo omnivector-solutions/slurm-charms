@@ -7,6 +7,8 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- added slurmctld configuration options to use TLS certificates for etcd
+
 0.9.1 - 2022-06-02
 ------------------
 

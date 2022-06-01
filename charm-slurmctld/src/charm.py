@@ -289,17 +289,20 @@ class SlurmctldCharm(CharmBase):
     def _on_upgrade(self, event):
         """Perform upgrade operations."""
         self.unit.set_workload_version(Path("version").read_text().strip())
+        self._configure_etcd()
 
     def _on_update_status(self, event):
         """Handle update status."""
         self._check_status()
 
-    def _on_leader_elected(self, event: LeaderElectedEvent) -> None:
-        logger.debug("## slurmctld - leader elected")
+    def _configure_etcd(self):
+        """Handle initial configuration for etcd.
 
-        # configure etcd
+        - set passwords for root and slurmd account
+        - store munge key in db
+        """
         if not self._stored.etcd_configured:
-            logger.debug("### leader elected - configuring etcd")
+            logger.debug("### configuring etcd")
             self._stored.etcd_configured = True
 
             if self._stored.etcd_root_pass == "":
@@ -311,6 +314,13 @@ class SlurmctldCharm(CharmBase):
                                  slurmd_pass=self._stored.etcd_slurmd_pass)
             self._etcd.store_munge_key(root_pass=self._stored.etcd_root_pass,
                                        key=self._stored.munge_key)
+
+        logger.debug("### etcd configured")
+
+    def _on_leader_elected(self, event: LeaderElectedEvent) -> None:
+        logger.debug("## slurmctld - leader elected")
+
+        self._configure_etcd()
 
         # populate etcd with the nodelist
         slurm_config = self._assemble_slurm_config()

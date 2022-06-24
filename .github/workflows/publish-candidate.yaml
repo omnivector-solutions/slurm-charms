@@ -67,7 +67,7 @@ jobs:
           extension="_ubuntu-20.04-amd64_centos-7-amd64.charm"
           release="--release=edge --release=candidate"
 
-          charmcraft upload "$release" slurmctld$extension --resource etcd:1
+          charmcraft upload $release slurmctld$extension --resource etcd:1
 
           for charm in slurmd slurmdbd slurmrestd; do
               charmcraft upload "$release" "$charm$extension"

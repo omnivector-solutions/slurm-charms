@@ -7,10 +7,11 @@ from pathlib import Path
 from time import sleep
 
 from omnietcd3 import Etcd3AuthClient
+from singularity_ops import SingularityOps
 from ops.charm import CharmBase, CharmEvents
 from ops.framework import EventBase, EventSource, StoredState
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus, ModelError
 from slurm_ops_manager import SlurmManager
 
 from interface_slurmd import Slurmd
@@ -68,6 +69,9 @@ class SlurmdCharm(CharmBase):
         self._slurmd = Slurmd(self, "slurmd")
         self._slurmd_peer = SlurmdPeer(self, "slurmd-peer")
 
+        # deal with singularity installation and setup
+        self._singularity = SingularityOps(self)
+
         event_handler_bindings = {
             self.on.install: self._on_install,
             self.on.upgrade_charm: self._on_upgrade,
@@ -117,6 +121,26 @@ class SlurmdCharm(CharmBase):
         else:
             self.unit.status = BlockedStatus("Error installing slurmd")
             event.defer()
+
+        # choose singularity resource according to operating system
+        if self._slurm_manager.operating_system == "ubuntu":
+            singularity_resource_name = "singularity-deb"
+        elif self._slurm_manager.operating_system == "centos":
+            singularity_resource_name = "singularity-rpm"
+        else:
+            # others operating systems are not supported
+            singularity_resource_name = ""
+
+        if singularity_resource_name != "":
+            logger.debug("## Retrieving singularity resource to install it")
+
+            try:
+                singularity_path = self.model.resources.fetch(singularity_resource_name)
+                logger.debug(f"## Found singularity resource: {singularity_path}")
+
+                self._singularity.install(singularity_path)
+            except ModelError as e:
+                logger.error(f"## Missing singularity resource - {e}")
 
         self._check_status()
 

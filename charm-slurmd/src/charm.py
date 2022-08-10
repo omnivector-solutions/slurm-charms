@@ -10,7 +10,7 @@ from omnietcd3 import Etcd3AuthClient
 from ops.charm import CharmBase, CharmEvents
 from ops.framework import EventBase, EventSource, StoredState
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, ModelError, WaitingStatus
 from slurm_ops_manager import SlurmManager
 
 from interface_slurmd import Slurmd
@@ -99,6 +99,8 @@ class SlurmdCharm(CharmBase):
             self.on.nvidia_repo_action: self.nvidia_repo,
             self.on.nvidia_package_action: self.nvidia_package,
             self.on.nvidia_install_action: self.nvidia_install,
+            # singularity actions
+            self.on.singularity_install_action: self.singularity_install,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -500,6 +502,22 @@ class SlurmdCharm(CharmBase):
         self._slurm_manager.nvidia.install()
         event.set_results({'installation': 'Successfull. Please reboot node.'})
         self.unit.status = BlockedStatus("Need reboot for nvidia")
+
+    def singularity_install(self, event):
+        """Install singularity."""
+        resource_name = self._slurm_manager.singularity.resource_name
+
+        # if the operating system is supported
+        if resource_name != "":
+            logger.debug(f"#### Retrieving singularity resource: {resource_name}")
+
+            try:
+                resource_path = self.model.resources.fetch(resource_name)
+                logger.debug(f"#### Found singularity resource: {resource_path}")
+                self._slurm_manager.singularity.install(resource_path)
+                event.set_results({'installation': 'Successfull.'})
+            except ModelError as e:
+                logger.error(f"## Missing singularity resource - {e}")
 
     def _on_show_nhc_config(self, event):
         """Show current nhc.conf."""

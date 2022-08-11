@@ -6,8 +6,6 @@ load "../node_modules/bats-assert/load"
 
 
 @test "test singularity is installed" {
-	partition="Unit-test-partition"
-	myjuju config --model $JUJU_MODEL slurmd partition-name="$partition"
 	run juju run-action -m "$JUJU_MODEL" slurmd/leader singularity-install --wait
 	run juju run --unit slurmd/leader --model "$JUJU_MODEL" "singularity --version"
 	assert_output --partial "singularity-ce version "

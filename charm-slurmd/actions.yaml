@@ -93,7 +93,7 @@ singularity-install:
   description: >
     Install Singularity. This might take a few minutes to complete.
 
-    This action will install singularity using the officials .deb (Ubuntu) 
-    or .rpm (Centos) packages retrieved from GitHub Releases.
+    This action will install singularity using the official .deb (Ubuntu) 
+    or .rpm (CentOS) packages retrieved from GitHub Releases.
 
-    Note: The .deb or .rpm files must be stored as juju resources.
+    Note: The .deb or .rpm files must be suppliead as Juju resources.

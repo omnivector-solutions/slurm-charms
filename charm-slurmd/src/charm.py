@@ -518,6 +518,7 @@ class SlurmdCharm(CharmBase):
                 event.set_results({'installation': 'Successfull.'})
             except ModelError as e:
                 logger.error(f"## Missing singularity resource - {e}")
+                event.fail(message=f'Error installing Singularity: {e.output}')
 
     def _on_show_nhc_config(self, event):
         """Show current nhc.conf."""

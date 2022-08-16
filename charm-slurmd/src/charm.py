@@ -404,13 +404,11 @@ class SlurmdCharm(CharmBase):
 
         - Slurm
         - munge
-        - NHC
         - infiniband
         """
         version = {}
         version['slurm'] = self._slurm_manager.slurm_version()
         version['munge'] = self._slurm_manager.munge_version()
-        version['nhc'] = self._slurm_manager.nhc_version()
         version['infiniband'] = self._slurm_manager.infiniband_version()
 
         event.set_results(version)

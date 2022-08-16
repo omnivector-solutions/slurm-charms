@@ -105,7 +105,6 @@ class SlurmdCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmd."""
-        logger.debug("### Relocating NHC Resource to local directory")
         try:
             nhc_path = self.model.resources.fetch("nhc")
             logger.debug(f"## Found nhc resource: {nhc_path}")
@@ -114,21 +113,13 @@ class SlurmdCharm(CharmBase):
             self.unit.status = BlockedStatus("Missing nhc resource")
             event.defer()
             return
-        # move the nhc tarball to temp directory for later acess by slurm ops manager
-        nhc_tmp_file = "/opt/nhc.tar.gz"
-        content = ""
-        with open(nhc_path, "rb") as f:
-            content = f.read()
-        f = open(nhc_tmp_file, 'wb')
-        f.write(content)
-        f.close()
-        logger.debug("### Relocating NHC Resource Successful")
+
 
         self.unit.set_workload_version(Path("version").read_text().strip())
         self.unit.status = WaitingStatus("Installing slurmd")
 
         custom_repo = self.config.get("custom-slurm-repo")
-        successful_installation = self._slurm_manager.install(custom_repo)
+        successful_installation = self._slurm_manager.install(custom_repo, nhc_path)
         logger.debug(f"### slurmd installed: {successful_installation}")
 
         if successful_installation:

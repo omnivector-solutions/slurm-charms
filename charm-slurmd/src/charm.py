@@ -105,12 +105,12 @@ class SlurmdCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmd."""
-        logger.debug(f"### Relocating NHC Resource to local directory")
+        logger.debug("### Relocating NHC Resource to local directory")
         try:
             nhc_path = self.model.resources.fetch("nhc")
             logger.debug(f"## Found nhc resource: {nhc_path}")
         except Exception as e:
-            logger.error("## Missing nhc resource")
+            logger.error("## Missing nhc resource", e)
             self.unit.status = BlockedStatus("Missing nhc resource")
             event.defer()
             return
@@ -122,7 +122,7 @@ class SlurmdCharm(CharmBase):
         f = open(nhc_tmp_file, 'wb')
         f.write(content)
         f.close()
-        logger.debug(f"### Relocating NHC Resource Successful")
+        logger.debug("### Relocating NHC Resource Successful")
 
         self.unit.set_workload_version(Path("version").read_text().strip())
         self.unit.status = WaitingStatus("Installing slurmd")

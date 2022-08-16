@@ -33,3 +33,11 @@ requires:
 peers:
   slurmd-peer:
     interface: slurmd-peer
+
+resources:
+  nhc:
+    type: file
+    filename: lbnl-nhc-1.4.3.tar.gz
+    description: >
+      Official tarball containing NHC. Retrieved from
+      GitHub Releases.

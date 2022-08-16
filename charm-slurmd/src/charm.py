@@ -116,7 +116,6 @@ class SlurmdCharm(CharmBase):
             event.defer()
             return
 
-
         self.unit.set_workload_version(Path("version").read_text().strip())
         self.unit.status = WaitingStatus("Installing slurmd")
 

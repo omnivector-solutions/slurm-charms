@@ -7,6 +7,8 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- added action in slurmd to install singularity
+
 0.9.2 - 2022-07-04
 ------------------
 

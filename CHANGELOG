@@ -8,10 +8,14 @@ Unreleased
 ----------
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 - added action in slurmd to install singularity
 =======
 - updated slurmd charm.py to use local resource for NHC install
 >>>>>>> Update Changelog
+=======
+- updated slurmd charm.py to use local resource for NHC install
+>>>>>>> 26e6827eb6c1396d7a48b9d47df9394d1687f21c
 
 0.9.2 - 2022-07-04
 ------------------

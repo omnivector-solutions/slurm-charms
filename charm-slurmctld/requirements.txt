@@ -3,7 +3,11 @@ influxdb==5.3.1
 etcd3gw==1.0.2
 jinja2==3.1.2
 <<<<<<< HEAD
+<<<<<<< HEAD
 git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.8.5
 =======
 git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.8.6
 >>>>>>> Change slurm-ops-manager version
+=======
+git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.8.6
+>>>>>>> 26e6827eb6c1396d7a48b9d47df9394d1687f21c

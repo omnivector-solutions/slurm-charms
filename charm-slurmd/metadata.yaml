@@ -36,6 +36,7 @@ peers:
 
 resources:
 <<<<<<< HEAD
+<<<<<<< HEAD
   singularity-deb:
     type: file
     filename: singularity-ce_3.10.2-focal_amd64.deb
@@ -47,10 +48,15 @@ resources:
     description: |
       Official .rpm package to install Singularity. Retrieved from GitHub Releases.
 =======
+=======
+>>>>>>> 26e6827eb6c1396d7a48b9d47df9394d1687f21c
   nhc:
     type: file
     filename: lbnl-nhc-1.4.3.tar.gz
     description: >
       Official tarball containing NHC. Retrieved from
       GitHub Releases.
+<<<<<<< HEAD
 >>>>>>> Add NHC and resources to slurm-charms metadata.yaml.
+=======
+>>>>>>> 26e6827eb6c1396d7a48b9d47df9394d1687f21c

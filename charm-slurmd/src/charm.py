@@ -107,11 +107,20 @@ class SlurmdCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmd."""
+        try:
+            nhc_path = self.model.resources.fetch("nhc")
+            logger.debug(f"## Found nhc resource: {nhc_path}")
+        except Exception as e:
+            logger.error("## Missing nhc resource", e)
+            self.unit.status = BlockedStatus("Missing nhc resource")
+            event.defer()
+            return
+
         self.unit.set_workload_version(Path("version").read_text().strip())
         self.unit.status = WaitingStatus("Installing slurmd")
 
         custom_repo = self.config.get("custom-slurm-repo")
-        successful_installation = self._slurm_manager.install(custom_repo)
+        successful_installation = self._slurm_manager.install(custom_repo, nhc_path)
         logger.debug(f"### slurmd installed: {successful_installation}")
 
         if successful_installation:

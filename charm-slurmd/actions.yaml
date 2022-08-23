@@ -96,4 +96,4 @@ singularity-install:
     This action will install singularity using the official .deb (Ubuntu) 
     or .rpm (CentOS) packages retrieved from GitHub Releases.
 
-    Note: The .deb or .rpm files must be suppliead as Juju resources.
+    Note: The .deb or .rpm files must be supplied as Juju resources.

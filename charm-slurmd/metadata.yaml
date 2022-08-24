@@ -44,7 +44,7 @@ resources:
     type: file
     filename: singularity-ce-3.10.2-1.el7.x86_64.rpm
     description: |
-      Official .rpm package to install Singularity. Retrieved from GitHub Releases
+      Official .rpm package to install Singularity. Retrieved from GitHub Releases.
   nhc:
      type: file
      filename: lbnl-nhc-1.4.3.tar.gz

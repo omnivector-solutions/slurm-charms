@@ -70,6 +70,6 @@ jobs:
           charmcraft upload $release slurmctld$extension --resource etcd:1
           charmcraft upload $release slurmd$extension --resource nhc:1
 
-          for charm in slurmd slurmdbd slurmrestd; do
+          for charm in slurmdbd slurmrestd; do
               charmcraft upload $release "$charm$extension"
           done

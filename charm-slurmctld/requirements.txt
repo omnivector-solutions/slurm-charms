@@ -2,4 +2,4 @@ ops==1.3.0
 influxdb==5.3.1
 etcd3gw==1.0.2
 jinja2==3.1.2
-git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.8.5
+git+https://github.com/omnivector-solutions/slurm-ops-manager.git@0.8.6

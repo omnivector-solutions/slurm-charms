@@ -111,7 +111,7 @@ class SlurmdCharm(CharmBase):
             nhc_path = self.model.resources.fetch("nhc")
             logger.debug(f"## Found nhc resource: {nhc_path}")
         except Exception as e:
-            logger.error("## Missing nhc resource", e)
+            logger.error(f"## Missing nhc resource: {e}")
             self.unit.status = BlockedStatus("Missing nhc resource")
             event.defer()
             return

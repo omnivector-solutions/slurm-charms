@@ -6,6 +6,10 @@ This file keeps track of all notable changes to the Slurm Charms.
 
 Unreleased
 ----------
+
+0.10.0 - 2022-09-15
+-------------------
+
 - updated NHC to version 1.4.3
 - changed how NHC is installed to be via Juju resources
 - added action in slurmd to install singularity

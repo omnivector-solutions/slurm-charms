@@ -101,6 +101,8 @@ class SlurmdCharm(CharmBase):
             self.on.nvidia_install_action: self.nvidia_install,
             # singularity actions
             self.on.singularity_install_action: self.singularity_install,
+            # mpi actions
+            self.on.mpi_install_action: self.mpi_install,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -528,6 +530,11 @@ class SlurmdCharm(CharmBase):
             except ModelError as e:
                 logger.error(f"## Missing singularity resource - {e}")
                 event.fail(message=f'Error installing Singularity: {e.output}')
+
+    def mpi_install(self, event):
+        """Install MPI (mpich)."""
+        self._slurm_manager.mpi.install()
+        event.set_results({'installation': 'Successfull.'})
 
     def _on_show_nhc_config(self, event):
         """Show current nhc.conf."""

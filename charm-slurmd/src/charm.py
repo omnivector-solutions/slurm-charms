@@ -534,7 +534,9 @@ class SlurmdCharm(CharmBase):
     def mpi_install(self, event):
         """Install MPI (mpich)."""
         self._slurm_manager.mpi.install()
-        event.set_results({'installation': 'Successfull.'})
+
+        if self._slurm_manager.mpi.installed():
+            event.set_results({'installation': 'Successfull.'})
 
     def _on_show_nhc_config(self, event):
         """Show current nhc.conf."""

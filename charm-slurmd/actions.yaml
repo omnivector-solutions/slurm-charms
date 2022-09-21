@@ -100,7 +100,4 @@ singularity-install:
 
 mpi-install:
   description: >
-    Install MPI (mpich). This might take a few minutes to complete.
-
-    This action will install mpich using the package manager 
-    apt-get (Ubuntu) or yum (CentOS).
+    Install MPI (`mpich`). This might take a few minutes to complete.

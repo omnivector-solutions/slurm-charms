@@ -47,5 +47,6 @@ jobs:
         workdir=$PWD        
         cd ..        
         git clone https://github.com/omnivector-solutions/slurm-bundles.git
-        cd $workdir        
+        cd $workdir
+        sed -i 's/@git describe --tags --dirty/echo "latest"/g' Makefile      
         make tests-${{ matrix.os }}

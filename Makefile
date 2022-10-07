@@ -75,7 +75,7 @@ tests-focal: clean charms ## Run bats tests on ubuntu focal
 	./run_tests focal
 
 .PHONY: tests-all
-tests: tests-centos tests-focal ## Run all bats tests
+tests-all: tests-centos tests-focal ## Run all bats tests
 
 # Display target comments in 'make help'
 .PHONY: help

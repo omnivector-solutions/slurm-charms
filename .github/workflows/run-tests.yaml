@@ -1,0 +1,51 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  bats:    
+    name: bats-${{ matrix.os }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:        
+        os: [centos, focal]
+
+    steps:
+    - uses: actions/checkout@v3
+        
+    - name: "Configure LXD"
+      run: |        
+        sudo adduser $USER lxd
+        newgrp lxd        
+        sudo lxd init --auto
+        sudo lxc network set lxdbr0 ipv6.address none        
+        sudo chmod a+wr /var/snap/lxd/common/lxd/unix.socket
+       
+    - name: Install Juju
+      run: |
+        sudo snap install juju --classic
+        
+    - name: Bootstrap Juju
+      run: |
+        juju bootstrap localhost
+        
+    - name: Install Charmcraft
+      run: |
+        sudo snap install charmcraft --classic
+      
+    - name: Run the tests on ${{ matrix.os }}
+      run: |        
+        workdir=$PWD        
+        cd ..        
+        git clone https://github.com/omnivector-solutions/slurm-bundles.git
+        cd $workdir
+        sed -i 's/@git describe --tags --dirty/echo "latest"/g' Makefile      
+        make tests-${{ matrix.os }}

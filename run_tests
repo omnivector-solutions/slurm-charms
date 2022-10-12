@@ -12,34 +12,46 @@ fi
 
 # create juju models for centos and ubuntu
 postfix=$(date +'%Y-%m-%d-')$RANDOM
-centos_model="centos-test-$postfix"
-ubuntu_model="focal-test-$postfix"
 
-for model in $centos_model $ubuntu_model; do
-	echo "Creating model $model"
-	juju add-model "$model"
-	juju switch "$model"
-	juju model-config --model "$model" logging-config="<unit>=DEBUG;<root>=DEBUG"
-	juju model-config --model "$model" update-status-hook-interval=1m
-	juju wait-for model "$model" --timeout=10s
+# The first arg is the operating system
+BASE_OS=$1
 
-	cd ../slurm-bundles
-	target=$(echo $model | cut -d"-" -f1)
-	make lxd-$target
-	cd ../slurm-charms
+if [[ $BASE_OS == "centos" ]]; then
+	model="centos-test-$postfix"
+else 
+	if [[ $BASE_OS == "focal" ]]; then
+		model="focal-test-$postfix"
+	else
+		echo "Usage: ./run_tests <OS>"
+		echo
+		echo "Supported operating systems: [centos, focal]"
+		echo
+		exit
+	fi
+fi
 
-	# wait for deploy to finish
-	sleep 10
-	juju wait-for unit percona-cluster/0 --query='agent-status=="idle"' --timeout=9m
-	juju wait-for unit slurmctld/0 --query='agent-status=="idle"' --timeout=9m
-	juju wait-for unit slurmdbd/0 --query='agent-status=="idle"' --timeout=9m
-	juju wait-for unit slurmrestd/0 --query='agent-status=="idle"' --timeout=9m
-	juju wait-for unit slurmd/0 --query='agent-status=="idle"' --timeout=9m
+echo "Creating model $model"
+juju add-model "$model"
+juju switch "$model"
+juju model-config --model "$model" logging-config="<unit>=DEBUG;<root>=DEBUG"
+juju model-config --model "$model" update-status-hook-interval=1m
+juju wait-for model "$model" --timeout=10s
 
-	myjuju run --all --model "$model" "sudo reboot"
+cd ../slurm-bundles
+target=$(echo $model | cut -d"-" -f1)
+make lxd-$target
+cd ../slurm-charms
 
-	juju status
+# wait for deploy to finish
+sleep 10
+juju wait-for unit percona-cluster/0 --query='agent-status=="idle"' --timeout=9m
+juju wait-for unit slurmctld/0 --query='agent-status=="idle"' --timeout=9m
+juju wait-for unit slurmdbd/0 --query='agent-status=="idle"' --timeout=9m
+juju wait-for unit slurmrestd/0 --query='agent-status=="idle"' --timeout=9m
+juju wait-for unit slurmd/0 --query='agent-status=="idle"' --timeout=9m
 
-	JUJU_MODEL="$model" npx bats tests/
-	echo -e "\n\n\n"
-done
+myjuju run --all --model "$model" "sudo reboot"
+
+juju status
+
+JUJU_MODEL="$model" npx bats tests/

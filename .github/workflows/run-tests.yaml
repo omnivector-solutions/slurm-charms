@@ -3,7 +3,8 @@ name: Integration Tests
 on:
   push:
     branches: [ "master" ]
-  pull_request:
+  pull_request:  
+  workflow_call:
 
 permissions:
   contents: read

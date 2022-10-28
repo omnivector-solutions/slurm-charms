@@ -6,9 +6,12 @@ on:
       - "*"
 
 jobs:
+  run-tests:
+    uses: ./.github/workflows/run-tests.yaml
   build-charms:
     name: "Build the charms"
     runs-on: "ubuntu-20.04"
+    needs: [run-tests]
     steps:
       - uses: actions/checkout@v2
         with:

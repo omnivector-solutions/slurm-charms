@@ -32,7 +32,7 @@ jobs:
        
     - name: Install Juju
       run: |
-        sudo snap install juju --classic
+        sudo snap install juju --channel=2.9/stable --classic
         
     - name: Bootstrap Juju
       run: |

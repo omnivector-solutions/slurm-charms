@@ -26,7 +26,9 @@ load "../node_modules/bats-assert/load"
 	partition="Default-test-partition"
 	myjuju config --model $JUJU_MODEL slurmd partition-name="$partition"
 	myjuju config --model $JUJU_MODEL slurmctld default-partition="$partition"
-	juju wait-for application slurmctld --query='status=="active"' --timeout=9m > /dev/null 2>&1
+	juju wait-for application slurmctld --query='status=="active" || status=="blocked"' --timeout=9m > /dev/null 2>&1
+	juju wait-for unit slurmctld/0 --query='agent-status=="idle"' --timeout=2m > /dev/null 2>&1
+	sleep 10
 
 	run juju run --unit slurmctld/leader --model "$JUJU_MODEL" "sinfo"
 	assert_output --partial "$partition* "

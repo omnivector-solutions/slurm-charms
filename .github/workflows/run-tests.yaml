@@ -10,9 +10,12 @@ permissions:
   contents: read
 
 jobs:
+  run-linter:
+    uses: ./.github/workflows/lint.yaml
   bats:    
     name: bats-${{ matrix.os }}
     runs-on: ubuntu-latest
+    needs: [run-linter]
 
     strategy:
       fail-fast: false

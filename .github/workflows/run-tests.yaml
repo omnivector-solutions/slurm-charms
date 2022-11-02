@@ -25,12 +25,25 @@ jobs:
     steps:
     - uses: actions/checkout@v3
         
-    - name: Setup operator environment
-      uses: charmed-kubernetes/actions-operator@main
-      with:
-        provider: lxd
-        lxd-channel: 5.4/stable
-        juju-channel: 2.9/stable
+    - name: "Configure LXD"
+      run: |        
+        sudo adduser $USER lxd
+        newgrp lxd        
+        sudo lxd init --auto
+        sudo lxc network set lxdbr0 ipv6.address none        
+        sudo chmod a+wr /var/snap/lxd/common/lxd/unix.socket
+       
+    - name: Install Juju
+      run: |
+        sudo snap install juju --channel=2.9/stable --classic
+        
+    - name: Bootstrap Juju
+      run: |
+        juju bootstrap localhost
+        
+    - name: Install Charmcraft
+      run: |
+        sudo snap install charmcraft --classic
       
     - name: Run the tests on ${{ matrix.os }}
       run: |        

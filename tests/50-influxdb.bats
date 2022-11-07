@@ -16,6 +16,10 @@ load "../node_modules/bats-assert/load"
 	juju wait-for application influxdb --query='status=="active"' --timeout=9m > /dev/null 2>&1
 	myjuju relate slurmctld:influxdb-api influxdb:query
 
+	juju wait-for application slurmctld --query='status=="active" || status=="blocked"' --timeout=9m > /dev/null 2>&1
+	juju wait-for unit slurmctld/0 --query='agent-status=="idle"' --timeout=2m > /dev/null 2>&1
+	sleep 10
+
 	run juju status --model $JUJU_MODEL --relations
 	assert_output --regexp "slurmctld:influxdb-api"
 	assert_output --regexp "influxdb:query"

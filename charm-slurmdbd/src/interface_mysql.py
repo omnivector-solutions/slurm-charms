@@ -35,6 +35,10 @@ class MySQLClient(Object):
         # Observe the relation-changed hook event and bind
         # self.on_relation_changed() to handle the event.
         self.framework.observe(
+            self._charm.on[self._relation_name].relation_joined,
+            self._on_relation_joined,
+        )
+        self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed,
         )
@@ -51,25 +55,38 @@ class MySQLClient(Object):
         else:
             return False
 
+    @property
+    def _relation(self):
+        """Return the Relation object for this relation."""
+        return self.framework.model.get_relation(self._relation_name)
+
+    def _on_relation_joined(self, event):
+        ingress = self._relation.data[self.model.unit].get("ingress-address")
+        self._relation.data[self.model.unit]["database"] = "slurm" # Store this in a different place
+        self._relation.data[self.model.unit]["username"] = "slurm" # Store this in a different place
+        self._relation.data[self.model.unit]["hostname"] = ingress
+
     def _on_relation_changed(self, event):
+        """Get the database password and set the db_info.
+
+        This relation is responsible for getting the database password
+        from the mysql-router and setting the information to stored state.
+        """
         event_unit_data = event.relation.data.get(event.unit)
         if not event_unit_data:
             event.defer()
             return
 
-        user = event_unit_data.get("user")
         password = event_unit_data.get("password")
-        host = event_unit_data.get("host")
-        database = event_unit_data.get("database")
 
-        if user and password and host and database:
+        if password:
             self._charm.set_db_info(
                 {
-                    "db_username": user,
+                    "db_username": "slurm", # Need to store this in a better place
                     "db_password": password,
-                    "db_hostname": host,
+                    "db_hostname": "127.0.0.1",
                     "db_port": "3306",
-                    "db_name": database,
+                    "db_name": "slurm", # Need to store this in a better place
                 }
             )
             self.on.database_available.emit()

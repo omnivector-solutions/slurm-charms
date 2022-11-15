@@ -55,7 +55,7 @@ class SlurmdbdCharm(CharmBase):
             cluster_name=str()
         )
 
-        self._db = MySQLClient(self, "db")
+        self._db = MySQLClient(self, "shared-db")
         self._slurm_manager = SlurmManager(self, "slurmdbd")
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
         self._slurmdbd_peer = SlurmdbdPeer(self, "slurmdbd-peer")

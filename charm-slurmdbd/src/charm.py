@@ -4,16 +4,19 @@ import logging
 from pathlib import Path
 from time import sleep
 
-from interface_mysql import MySQLClient
-from interface_slurmdbd import Slurmdbd
-from interface_slurmdbd_peer import SlurmdbdPeer
 from ops.charm import CharmBase, CharmEvents
 from ops.framework import EventBase, EventSource, StoredState
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
+
+from interface_mysql import MySQLClient
+from interface_slurmdbd import Slurmdbd
+from interface_slurmdbd_peer import SlurmdbdPeer
+
 from slurm_ops_manager import SlurmManager
 
 from charms.fluentbit.v0.fluentbit import FluentbitClient
+
 
 logger = logging.getLogger()
 
@@ -48,11 +51,11 @@ class SlurmdbdCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
-            db_info=dict(),
             jwt_available=False,
             munge_available=False,
             slurm_installed=False,
-            cluster_name=str()
+            cluster_name=str(),
+            db_info=dict(),
         )
 
         self._db = MySQLClient(self, "shared-db")
@@ -177,7 +180,6 @@ class SlurmdbdCharm(CharmBase):
             event.defer()
             return
 
-        db_info = self._stored.db_info
         slurmdbd_info = self._slurmdbd_peer.get_slurmdbd_info()
 
         # settings from the config.yaml
@@ -186,7 +188,7 @@ class SlurmdbdCharm(CharmBase):
         slurmdbd_config = {
             **config,
             **slurmdbd_info,
-            **db_info,
+            **self._stored.db_info,
         }
 
         self._slurm_manager.slurm_systemctl("stop")
@@ -242,7 +244,7 @@ class SlurmdbdCharm(CharmBase):
         slurmctld_available = (self._stored.jwt_available
                                and self._stored.munge_available)
         statuses = {"MySQL": {"available": self._stored.db_info != dict(),
-                              "joined": self._db.is_joined},
+                              "joined": True},
                     "slurcmtld": {"available": slurmctld_available,
                                   "joined": self._slurmdbd.is_joined}}
 

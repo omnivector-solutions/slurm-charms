@@ -61,10 +61,9 @@ class MySQLClient(Object):
         return self.framework.model.get_relation(self._relation_name)
 
     def _on_relation_joined(self, event):
-        ingress = self._relation.data[self.model.unit].get("ingress-address")
         self._relation.data[self.model.unit]["database"] = "slurm" # Store this in a different place
         self._relation.data[self.model.unit]["username"] = "slurm" # Store this in a different place
-        self._relation.data[self.model.unit]["hostname"] = ingress
+        self._relation.data[self.model.unit]["hostname"] = "%"
 
     def _on_relation_changed(self, event):
         """Get the database password and set the db_info.

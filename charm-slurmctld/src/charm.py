@@ -21,7 +21,6 @@ from interface_slurmctld_peer import SlurmctldPeer
 from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
 from interface_slurmrestd import Slurmrestd
-from interface_user_group import UserGroupProvides
 from slurm_ops_manager import SlurmManager
 
 from charms.fluentbit.v0.fluentbit import FluentbitClient
@@ -66,7 +65,6 @@ class SlurmctldCharm(CharmBase):
         self._elasticsearch = Elasticsearch(self, "elasticsearch")
         self._fluentbit = FluentbitClient(self, "fluentbit")
 
-        self._user_group = UserGroupProvides(self, "user-group")
         self._etcd = EtcdOps(self)
 
         event_handler_bindings = {
@@ -94,8 +92,6 @@ class SlurmctldCharm(CharmBase):
             self._influxdb.on.influxdb_unavailable: self._on_write_slurm_config,
             self._elasticsearch.on.elasticsearch_available: self._on_elasticsearch_available,
             self._elasticsearch.on.elasticsearch_unavailable: self._on_write_slurm_config,
-            self._user_group.on.create_user_group: self._on_create_user_group,
-            self._user_group.on.remove_user_group: self._on_remove_user_group,
             # actions
             self.on.show_current_config_action: self._on_show_current_config,
             self.on.drain_action: self._drain_nodes_action,
@@ -672,66 +668,6 @@ class SlurmctldCharm(CharmBase):
         pw = event.params.get("password")
         self._etcd.create_new_munge_user(self._stored.etcd_root_pass, user, pw)
         event.set_results({"created-new-user": user})
-
-    def _on_create_user_group(self, event):
-        """Create the user and group provided."""
-        user = self._user_group.user_name
-        user_uid = self._user_group.user_uid
-        group = self._user_group.group_name
-
-        # Create the group.
-        try:
-            subprocess.check_output(["groupadd", "--gid", user_uid, group]) # use the UID as the GID
-        except subprocess.CalledProcessError as e:
-            if e.returncode == 9:
-                logger.warning("## Group already exists.")
-            if e.returncode == 4:
-                logger.warning("## GID already exists.")
-                self._user_group._relation.data[self._user_group.model.app]["status"] = "failure: GID already exists"
-                return
-            else:
-                logger.error(f"## Error creating group: {e}")
-
-        # Create the user.
-        try:
-            subprocess.check_output(
-                [
-                    "useradd",
-                    "--system",
-                    "--no-create-home",
-                    "--gid", group,
-                    "--shell", "/usr/sbin/nologin",
-                    "-u", user_uid, user,
-                ]
-            )
-        except subprocess.CalledProcessError as e:
-            if e.returncode == 9:
-                logger.warning("## User already exists.")
-            if e.returncode == 4:
-                logger.warning("## UID already exists.")
-                self._user_group._relation.data[self._user_group.model.app]["status"] = "failure: UID already exists"
-                return
-            else:
-                logger.error(f"## Error creating user: {e}")
-
-        self._user_group._relation.data[self._user_group.model.app]["status"] = "success: User created"
-
-    def _on_remove_user_group(self, event):
-        """Remove the user and group provided."""
-        user = self._user_group.user_name
-        group = self._user_group.group_name
-
-        # Remove the user.
-        try:
-            subprocess.check_output(["userdel", user])
-        except subprocess.CalledProcessError as e:
-            logger.error(f"## Error deleting user: {e}")
-
-        # Remove the group.
-        try:
-            subprocess.check_output(["groupdel", group])
-        except subprocess.CalledProcessError as e:
-            logger.error(f"## Error deleting group: {e}")
 
 
 if __name__ == "__main__":

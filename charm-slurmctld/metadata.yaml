@@ -48,8 +48,6 @@ provides:
   grafana-source:
     interface: grafana-source
     scope: global
-  user-group:
-    interface: user-group
 
 resources:
   etcd:

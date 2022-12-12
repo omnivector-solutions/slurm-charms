@@ -24,7 +24,8 @@ load "../node_modules/bats-assert/load"
 	assert_success
 
 	# slurmctld needs some time to update its configs
-	juju wait-for unit slurmctld/0 --query='agent-status=="idle"' --timeout=1m > /dev/null 2>&1
+	juju wait-for unit slurmctld/0 --query='agent-status=="idle"' --timeout=5m > /dev/null 2>&1
+	sleep 10
 
 	run juju run "sinfo" -m $JUJU_MODEL --unit slurmctld/leader
 	assert_success

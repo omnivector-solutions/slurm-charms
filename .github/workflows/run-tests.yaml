@@ -12,44 +12,69 @@ permissions:
 jobs:
   run-linter:
     uses: ./.github/workflows/lint.yaml
+
+  build-charms:
+    name: build-charms
+    runs-on: ubuntu-20.04
+    needs: [run-linter]
+    outputs:
+      built-charms-sha: ${{ steps.get-charms-sha.outputs.built-charms-sha }}
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup juju/lxd/charmcraft environment
+      uses: charmed-kubernetes/actions-operator@main
+      with:
+        provider: lxd
+        lxd-channel: 5.8/stable
+        juju-channel: 2.9/stable
+ 
+    - name: Build the charms using charmcraft
+      id: build-charms
+      run: |
+        make charms
+    - name: Get charms sha
+      id: get-charms-sha
+      run: |
+        echo "built-charms-sha=${{ hashFiles('*.charm') }}" >> $GITHUB_OUTPUT
+    - name: Cache built charm packages
+      id: cache-charms
+      uses: actions/cache@v3
+      env:
+        cache-name: cache-charms
+      with:
+        path: "**.charm"
+        key: ${{ steps.get-charms-sha.outputs.built-charms-sha }}
+
   bats:    
     name: bats-${{ matrix.os }}
-    runs-on: ubuntu-latest
-    needs: [run-linter]
+    runs-on: ubuntu-20.04
+    needs: [build-charms]
 
     strategy:
       fail-fast: false
       matrix:        
-        os: [centos, focal]
-
+        os: [centos, focal, jammy]
+    
     steps:
     - uses: actions/checkout@v3
-        
-    - name: "Configure LXD"
-      run: |        
-        sudo adduser $USER lxd
-        newgrp lxd        
-        sudo lxd init --auto
-        sudo lxc network set lxdbr0 ipv6.address none        
-        sudo chmod a+wr /var/snap/lxd/common/lxd/unix.socket
-       
-    - name: Install Juju
-      run: |
-        sudo snap install juju --channel=2.9/stable --classic
-        
-    - name: Bootstrap Juju
-      run: |
-        juju bootstrap localhost
-        
-    - name: Install Charmcraft
-      run: |
-        sudo snap install charmcraft --classic
-      
+    - uses: actions/cache@v3
+      with:
+        path: "**.charm"
+        key: ${{needs.build-charms.outputs.built-charms-sha}}
+
+    - name: Setup juju/lxd/charmcraft environment
+      uses: charmed-kubernetes/actions-operator@main
+      with:
+        provider: lxd
+        lxd-channel: 5.8/stable
+        juju-channel: 2.9/stable
+
     - name: Run the tests on ${{ matrix.os }}
       run: |        
         workdir=$PWD        
         cd ..        
-        git clone https://github.com/omnivector-solutions/slurm-bundles.git
+        git clone https://github.com/jamesbeedy/slurm-bundles.git -b use_mysql
         cd $workdir
         sed -i 's/@git describe --tags --dirty/echo "latest"/g' Makefile      
         make tests-${{ matrix.os }}

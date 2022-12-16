@@ -22,6 +22,7 @@ tags:
 
 series:
     - focal
+    - jammy
     - centos7
 
 peers:

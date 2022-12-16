@@ -76,5 +76,5 @@ jobs:
         cd ..        
         git clone https://github.com/jamesbeedy/slurm-bundles.git -b support_jammy
         cd $workdir
-        sed -i 's/@git describe --tags --dirty/echo "latest"/g' Makefile      
+        sed -i 's/@git describe --tags --dirty --always/echo "latest"/g' Makefile      
         make tests-${{ matrix.os }}

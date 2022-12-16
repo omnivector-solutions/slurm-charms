@@ -74,7 +74,7 @@ jobs:
       run: |        
         workdir=$PWD        
         cd ..        
-        git clone https://github.com/jamesbeedy/slurm-bundles.git -b use_mysql
+        git clone https://github.com/jamesbeedy/slurm-bundles.git -b support_jammy
         cd $workdir
         sed -i 's/@git describe --tags --dirty/echo "latest"/g' Makefile      
         make tests-${{ matrix.os }}

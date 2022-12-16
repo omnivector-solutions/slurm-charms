@@ -97,7 +97,3 @@ singularity-install:
     or .rpm (CentOS) packages retrieved from GitHub Releases.
 
     Note: The .deb or .rpm files must be supplied as Juju resources.
-
-mpi-install:
-  description: >
-    Install MPI (`mpich`). This might take a few minutes to complete.

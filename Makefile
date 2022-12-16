@@ -67,15 +67,19 @@ slurmrestd: version ## pack slurmrestd
 charms: readme slurmd slurmdbd slurmctld slurmrestd ## Build all charms
 
 .PHONY: tests-centos
-tests-centos: clean charms ## Run bats tests on centos
+tests-centos: ## Run bats tests on centos
 	./run_tests centos
 
 .PHONY: tests-focal
-tests-focal: clean charms ## Run bats tests on ubuntu focal
+tests-focal: ## Run bats tests on ubuntu focal
 	./run_tests focal
 
+.PHONY: tests-jammy
+tests-focal: ## Run bats tests on ubuntu focal
+	./run_tests jammy
+
 .PHONY: tests
-tests: tests-centos tests-focal ## Run bats tests
+tests: tests-centos tests-focal tests-jammy ## Run bats tests
 
 # Display target comments in 'make help'
 .PHONY: help

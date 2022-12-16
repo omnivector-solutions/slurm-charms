@@ -16,18 +16,14 @@ postfix=$(date +'%Y-%m-%d-')$RANDOM
 # The first arg is the operating system
 BASE_OS=$1
 
-if [[ $BASE_OS == "centos" ]]; then
-	model="centos-test-$postfix"
+if [[ $BASE_OS == "centos" || "focal" || "jammy" ]]; then
+	model="${BASE_OS}-test-$postfix"
 else 
-	if [[ $BASE_OS == "focal" ]]; then
-		model="focal-test-$postfix"
-	else
-		echo "Usage: ./run_tests <OS>"
-		echo
-		echo "Supported operating systems: [centos, focal]"
-		echo
-		exit
-	fi
+	echo "Usage: ./run_tests <OS>"
+	echo
+	echo "Supported operating systems: [centos, focal]"
+	echo
+	exit
 fi
 
 echo "Creating model $model"

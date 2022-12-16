@@ -75,7 +75,7 @@ tests-focal: ## Run bats tests on ubuntu focal
 	./run_tests focal
 
 .PHONY: tests-jammy
-tests-focal: ## Run bats tests on ubuntu focal
+tests-jammy: ## Run bats tests on ubuntu focal
 	./run_tests jammy
 
 .PHONY: tests

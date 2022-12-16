@@ -21,7 +21,7 @@ if [[ $BASE_OS == "centos" || "focal" || "jammy" ]]; then
 else 
 	echo "Usage: ./run_tests <OS>"
 	echo
-	echo "Supported operating systems: [centos, focal]"
+	echo "Supported operating systems: [centos, focal, jammy]"
 	echo
 	exit
 fi
@@ -34,8 +34,7 @@ juju model-config --model "$model" update-status-hook-interval=1m
 juju wait-for model "$model" --timeout=10s
 
 cd ../slurm-bundles
-target=$(echo $model | cut -d"-" -f1)
-make lxd-$target
+make "lxd-${BASE_OS}"
 cd ../slurm-charms
 
 # wait for deploy to finish

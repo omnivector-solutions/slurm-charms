@@ -10,7 +10,7 @@ from omnietcd3 import Etcd3AuthClient
 from ops.charm import CharmBase, CharmEvents
 from ops.framework import EventBase, EventSource, StoredState
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, ModelError, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 from slurm_ops_manager import SlurmManager
 
 from interface_slurmd import Slurmd
@@ -95,14 +95,6 @@ class SlurmdCharm(CharmBase):
             self.on.enable_infiniband_action: self.enable_infiniband,
             self.on.stop_infiniband_action: self.stop_infiniband,
             self.on.is_active_infiniband_action: self.is_active_infiniband,
-            # nvdia actions
-            self.on.nvidia_repo_action: self.nvidia_repo,
-            self.on.nvidia_package_action: self.nvidia_package,
-            self.on.nvidia_install_action: self.nvidia_install,
-            # singularity actions
-            self.on.singularity_install_action: self.singularity_install,
-            # mpi actions
-            self.on.mpi_install_action: self.mpi_install,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -487,56 +479,6 @@ class SlurmdCharm(CharmBase):
         status = self._slurm_manager.infiniband.is_active()
         logger.debug(f"#### Infiniband service is-active: {status}")
         event.set_results({'infiniband-is-active': status})
-
-    def nvidia_repo(self, event):
-        """Set or get the used nvidia repository."""
-        repo = event.params.get("repo", None)
-        if repo:
-            self._slurm_manager.nvidia.repository = base64.b64decode(repo).decode()
-
-        event.set_results({'nvidia-repo': self._slurm_manager.nvidia.repository})
-
-    def nvidia_package(self, event):
-        """Set or get the used nvidia package."""
-        package = event.params.get("package", None)
-        if package or package == "":
-            # user supplied a package name -> store it
-            self._slurm_manager.nvidia.package = package
-
-        event.set_results({'nvidia-package': self._slurm_manager.nvidia.package})
-
-    def nvidia_install(self, event):
-        """Install nvidia drivers."""
-        logger.debug("#### Installing nvidia drivers: %s", self._slurm_manager.nvidia.package)
-        self._slurm_manager.nvidia.install()
-        event.set_results({'installation': 'Successfull. Please reboot node.'})
-        self.unit.status = BlockedStatus("Need reboot for nvidia")
-
-    def singularity_install(self, event):
-        """Install singularity."""
-        resource_name = self._slurm_manager.singularity.resource_name
-
-        # if the operating system is supported
-        if resource_name != "":
-            logger.debug(f"#### Retrieving singularity resource: {resource_name}")
-
-            try:
-                resource_path = self.model.resources.fetch(resource_name)
-                logger.debug(f"#### Found singularity resource: {resource_path}")
-                self._slurm_manager.singularity.install(resource_path)
-                event.set_results({'installation': 'Successfull.'})
-            except ModelError as e:
-                logger.error(f"## Missing singularity resource - {e}")
-                event.fail(message=f'Error installing Singularity: {e.output}')
-
-    def mpi_install(self, event):
-        """Install MPI (mpich)."""
-        self._slurm_manager.mpi.install()
-
-        if self._slurm_manager.mpi.installed():
-            event.set_results({'installation': 'Successfull.'})
-        else:
-            event.fail(message='Error installing mpich. Check the logs.')
 
     def _on_show_nhc_config(self, event):
         """Show current nhc.conf."""

@@ -30,7 +30,7 @@ In the case things aren't working as expected, please [file a bug](https://githu
 
 ## License
 
-The slurm charms are maintained under the MIT license. See `LICENSE` file in
+The slurm charms are maintained under the Apache-2.0 license. See `LICENSE` file in
 this directory for full preamble.
 
-Copyright &copy; Omnivector Solutions 2021 - 2022.
+Copyright &copy; Omnivector Solutions 2021 - 2023.

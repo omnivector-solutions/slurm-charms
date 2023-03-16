@@ -7,6 +7,7 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- Change license to Apache-2.0
 - removed the action in slurmd to install Nvidia drivers
 - removed the action in slurmd to install Singularity
 - removed the action in slurmd to install MPI (mpich)

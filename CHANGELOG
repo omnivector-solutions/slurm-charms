@@ -7,7 +7,7 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
-- change license to Apache-2.0
+- changed license to Apache-2.0
 - removed the action in slurmd to install InfiniBand drivers
 - removed the action in slurmd to install Nvidia drivers
 - removed the action in slurmd to install Singularity

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """SlurmdCharm."""
-import base64
 import json
 import logging
 from pathlib import Path
@@ -86,15 +85,6 @@ class SlurmdCharm(CharmBase):
             self.on.get_node_inventory_action: self._on_get_node_inventory_action,
             self.on.set_node_inventory_action: self._on_set_node_inventory_action,
             self.on.show_nhc_config_action: self._on_show_nhc_config,
-            # infiniband actions
-            self.on.get_infiniband_repo_action: self.get_infiniband_repo,
-            self.on.set_infiniband_repo_action: self.set_infiniband_repo,
-            self.on.install_infiniband_action: self.install_infiniband,
-            self.on.uninstall_infiniband_action: self.uninstall_infiniband,
-            self.on.start_infiniband_action: self.start_infiniband,
-            self.on.enable_infiniband_action: self.enable_infiniband,
-            self.on.stop_infiniband_action: self.stop_infiniband,
-            self.on.is_active_infiniband_action: self.is_active_infiniband,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -398,12 +388,10 @@ class SlurmdCharm(CharmBase):
 
         - Slurm
         - munge
-        - infiniband
         """
         version = {}
         version['slurm'] = self._slurm_manager.slurm_version()
         version['munge'] = self._slurm_manager.munge_version()
-        version['infiniband'] = self._slurm_manager.infiniband_version()
 
         event.set_results(version)
 
@@ -434,51 +422,6 @@ class SlurmdCharm(CharmBase):
         self._slurmd.node_inventory = inventory
 
         event.set_results({"real-memory": memory})
-
-    def get_infiniband_repo(self, event):
-        """Return the currently used infiniband repository."""
-        repo = self._slurm_manager.infiniband.repository
-        event.set_results({'infiniband-repo': repo})
-
-    def set_infiniband_repo(self, event):
-        """Set the infiniband repository."""
-        repo = event.params["repo"]
-        logger.debug(f"#### setting custom infiniband repo: {repo}")
-        repo = base64.b64decode(repo).decode()
-        self._slurm_manager.infiniband.repository = repo
-
-    def install_infiniband(self, event):
-        """Install infiniband."""
-        logger.debug("#### Installing Infiniband")
-        self._slurm_manager.infiniband.install()
-        event.set_results({'installation': 'Successfull. Please reboot node.'})
-        self.unit.status = BlockedStatus("Need reboot for Infiniband")
-
-    def uninstall_infiniband(self, event):
-        """Install infiniband."""
-        logger.debug("#### Uninstalling Infiniband")
-        self._slurm_manager.infiniband.uninstall()
-
-    def start_infiniband(self, event):
-        """Start Infiniband systemd service."""
-        logger.debug("#### Starting Infiniband service")
-        self._slurm_manager.infiniband.start()
-
-    def enable_infiniband(self, event):
-        """Enable Infiniband systemd service."""
-        logger.debug("#### Enabling Infiniband service")
-        self._slurm_manager.infiniband.enable()
-
-    def stop_infiniband(self, event):
-        """Stop Infiniband systemd service."""
-        logger.debug("#### Stoping Infiniband service")
-        self._slurm_manager.infiniband.stop()
-
-    def is_active_infiniband(self, event):
-        """Check if Infiniband systemd service is arctive."""
-        status = self._slurm_manager.infiniband.is_active()
-        logger.debug(f"#### Infiniband service is-active: {status}")
-        event.set_results({'infiniband-is-active': status})
 
     def _on_show_nhc_config(self, event):
         """Show current nhc.conf."""

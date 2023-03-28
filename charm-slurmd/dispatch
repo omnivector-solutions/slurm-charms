@@ -25,7 +25,11 @@ then
 		if [[ $major == "7" ]]
 		then
 			yum -y install epel-release
-			yum -y install yum-priorities python3 make automake yum-utils
+			yum -y install yum-priorities make automake yum-utils
+
+			yum install -y gcc zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel tk-devel libffi-devel xz-devel wget
+            yum groupinstall "Development tools" -y
+            /bin/bash ./src/templates/install_python.sh
 		elif [[ $major == "8" ]]
 		then
 			dnf -y install epel-release

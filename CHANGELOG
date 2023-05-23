@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+1.1.0 - 2023-05-22
+------------------
+
 - set setuptools to be lower than 55
 - set Slurm 23.02.1 as default on slurm-ops-manager 0.8.13
 - set urllib3 as a requirement for slurmd and slurmctld and fix the version to 1.26.9

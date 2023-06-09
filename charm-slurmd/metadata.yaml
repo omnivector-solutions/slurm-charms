@@ -18,10 +18,6 @@ tags:
     - slurm
     - hpc
 
-series:
-    - focal
-    - centos7
-
 provides:
   slurmd:
     interface: slurmd

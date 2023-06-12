@@ -1,2 +1,2 @@
 ops==1.3.0
-git+https://github.com/omnivector-solutions/slurm-ops-manager.git@add_rocky
+git+https://github.com/omnivector-solutions/slurm-ops-manager.git@add_rocky8

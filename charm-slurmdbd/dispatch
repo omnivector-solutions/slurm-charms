@@ -35,7 +35,9 @@ then
 		fi
 	elif [[ $ID == 'rocky' ]]
 	then
-	    dnf -y install epel-release
+            dnf install epel-release -y
+            dnf install dnf-plugins-core
+            dnf config-manager --set-enabled powertools
 	    dnf -y install make automake yum-utils
 	else
 		echo "Running unsuppored os: $ID"

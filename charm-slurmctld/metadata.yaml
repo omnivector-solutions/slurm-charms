@@ -20,10 +20,6 @@ tags:
     - slurm
     - hpc
 
-series:
-    - focal
-    - centos7
-
 peers:
   slurmctld-peer:
     interface: slurmctld-peer

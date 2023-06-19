@@ -1,4 +1,5 @@
 # Use bash shell in Make instead of sh
+MAKEFLAGS += -j4
 SHELL := /bin/bash
 export PATH := /snap/bin:$(PATH)
 

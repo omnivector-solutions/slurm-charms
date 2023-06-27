@@ -7,6 +7,11 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+1.1.1 - 2023-06-27
+------------------
+
+- added support for Ubuntu 22.04
+
 1.1.0 - 2023-05-22
 ------------------
 

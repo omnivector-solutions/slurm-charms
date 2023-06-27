@@ -19,6 +19,7 @@ tags:
 
 series:
   - focal
+  - jammy
   - centos7
 
 provides:

@@ -20,7 +20,7 @@ from charms.fluentbit.v0.fluentbit import FluentbitClient
 
 logger = logging.getLogger()
 
-RESOURCES_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / 'resources'
+RESOURCES_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / "resources"
 
 
 class SlurmdStart(EventBase):

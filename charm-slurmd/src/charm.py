@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """SlurmdCharm."""
+import os
 import json
 import logging
 from pathlib import Path
@@ -18,6 +19,8 @@ from interface_slurmd_peer import SlurmdPeer
 from charms.fluentbit.v0.fluentbit import FluentbitClient
 
 logger = logging.getLogger()
+
+RESOURCES_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / "resources"
 
 
 class SlurmdStart(EventBase):
@@ -91,14 +94,10 @@ class SlurmdCharm(CharmBase):
 
     def _on_install(self, event):
         """Perform installation operations for slurmd."""
-        try:
-            nhc_path = self.model.resources.fetch("nhc")
-            logger.debug(f"## Found nhc resource: {nhc_path}")
-        except Exception as e:
-            logger.error(f"## Missing nhc resource: {e}")
-            self.unit.status = BlockedStatus("Missing nhc resource")
-            event.defer()
-            return
+
+        # official tarball containing NHC, retrieved from Github Releases
+        nhc_path = RESOURCES_DIR / "lbnl-nhc-1.4.3.tar.gz"
+        logger.debug(f"## Found nhc resource: {nhc_path}")
 
         self.unit.set_workload_version(Path("version").read_text().strip())
         self.unit.status = WaitingStatus("Installing slurmd")

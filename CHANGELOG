@@ -7,6 +7,8 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- removed the nhc resource and packed the nhc tar file along with slurmd charm
+
 1.1.1 - 2023-06-27
 ------------------
 

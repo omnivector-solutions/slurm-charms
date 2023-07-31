@@ -44,25 +44,25 @@ deepclean: clean ## Cleanup charmcraft/lxd
 slurmd: version ## Build slurmd
 	@cp version LICENSE icon.svg charm-slurmd/
 	@charmcraft pack --project-dir charm-slurmd ${VERBOSE}
-	@mv slurmd_ubuntu-22.04-amd64_ubuntu-20.04-amd64_centos-7-amd64.charm slurmd.charm
+	@mv slurmd_*.charm slurmd.charm
 
 .PHONY: slurmctld
 slurmctld: version ## pack slurmctld
 	@cp version LICENSE icon.svg charm-slurmctld/
 	@charmcraft pack --project-dir charm-slurmctld ${VERBOSE}
-	@mv slurmctld_ubuntu-22.04-amd64_ubuntu-20.04-amd64_centos-7-amd64.charm slurmctld.charm
+	@mv slurmctld_*.charm slurmctld.charm
 
 .PHONY: slurmdbd
 slurmdbd: version ## pack slurmdbd
 	@cp version LICENSE icon.svg charm-slurmdbd/
 	@charmcraft pack --project-dir charm-slurmdbd ${VERBOSE}
-	@mv slurmdbd_ubuntu-22.04-amd64_ubuntu-20.04-amd64_centos-7-amd64.charm slurmdbd.charm
+	@mv slurmdbd_*.charm slurmdbd.charm
 
 .PHONY: slurmrestd
 slurmrestd: version ## pack slurmrestd
 	@cp version LICENSE icon.svg charm-slurmrestd/
 	@charmcraft pack --project-dir charm-slurmrestd ${VERBOSE}
-	@mv slurmrestd_ubuntu-22.04-amd64_ubuntu-20.04-amd64_centos-7-amd64.charm slurmrestd.charm
+	@mv slurmrestd_*.charm slurmrestd.charm
 
 .PHONY: charms
 charms: readme slurmd slurmdbd slurmctld slurmrestd ## Build all charms

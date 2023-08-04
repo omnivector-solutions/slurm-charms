@@ -38,7 +38,7 @@ then
 		dnf install epel-release -y
 		dnf install dnf-plugins-core -y
 		dnf config-manager --set-enabled powertools -y
-	    dnf install make automake yum-utils -y
+		dnf install make automake yum-utils -y
 	else
 		echo "Running unsuppored os: $ID"
 		exit -1

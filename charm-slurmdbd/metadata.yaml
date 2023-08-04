@@ -21,6 +21,7 @@ series:
   - focal
   - jammy
   - centos7
+  - centos8
 
 provides:
   slurmdbd:

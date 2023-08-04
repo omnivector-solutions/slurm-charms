@@ -24,6 +24,7 @@ series:
     - focal
     - jammy
     - centos7
+    - centos8
 
 peers:
   slurmctld-peer:

@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+1.1.2 - 2023-09-07
+------------------
+
 - added support for Rocky Linux
 - removed the nhc resource and packed the nhc tar file along with slurmd charm
 

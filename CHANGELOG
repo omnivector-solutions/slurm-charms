@@ -7,6 +7,9 @@ This file keeps track of all notable changes to the Slurm Charms.
 Unreleased
 ----------
 
+- added a custom python installation to run the charm code
+- removed CentOS 8 support
+
 1.1.2 - 2023-09-07
 ------------------
 

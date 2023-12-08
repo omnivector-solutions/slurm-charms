@@ -1,4 +1,4 @@
-ops==2.*
+ops==1.3.0
 influxdb==5.3.1
 urllib3==1.26.9
 etcd3gw==1.0.2

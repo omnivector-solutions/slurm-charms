@@ -1,49 +1,55 @@
 #!/bin/bash
-# This hook installs the centos dependencies needed to run the charm,
+# This hook installs the dependencies needed to run the charm,
 # creates the dispatch executable, regenerates the symlinks for start and
 # upgrade-charm, and kicks off the operator framework.
 
 set -e
 
-# Source the os-release information into the env.
+# Source the os-release information into the env
 . /etc/os-release
 
 if ! [[ -f '.installed' ]]
 then
-	# Determine if we are running in centos or ubuntu, if centos
-	# provision the needed prereqs.
-	if [[ $ID == 'ubuntu' ]]
-	then
-		echo "Running Ubuntu."
-		echo "Nothing to do."
-	elif [[ $ID == 'centos' ]]
-	then
-		# Determine the centos version and install prereqs accordingly
-		major=$(cat /etc/centos-release | tr -dc '0-9.'|cut -d \. -f1)
-			echo "Running CentOS$major, installing prereqs."
-		if [[ $major == "7" ]]
-		then
-			yum -y install epel-release
-			yum -y install yum-priorities python3
-		elif [[ $major == "8" ]]
-		then
-			dnf -y install epel-release
-			dnf -y install yum-priorities python3
-		else
-			echo "Running unsuppored version of centos: $major"
-			exit -1
-		fi
-	elif [[ $ID == 'rocky' ]]
+
+	# Rocky specific setup
+	if [[ $ID == 'rocky' ]]
 	then
 		dnf install epel-release -y
 		dnf install dnf-plugins-core -y
 		dnf config-manager --set-enabled powertools -y
-		dnf install make automake yum-utils -y
-	else
-		echo "Running unsuppored os: $ID"
-		exit -1
-	fi	
+	fi
+
+	if [[ $ID == 'centos' || $ID == 'rocky' ]]
+	then
+		# Install dependencies
+		yum -y install epel-release
+		yum -y install yum-priorities python3 automake yum-utils
+
+		# Install dependencies and build custom python		
+		yum -y install wget gcc make tar bzip2-devel zlib-devel xz-devel openssl-devel libffi-devel sqlite-devel ncurses-devel
+
+		export PYTHON_VERSION=3.8.16
+		wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tar.xz -P /tmp
+		tar xvf /tmp/Python-${PYTHON_VERSION}.tar.xz -C /tmp
+		cd /tmp/Python-${PYTHON_VERSION}		
+		./configure --prefix=/opt/python/python3.8 --enable-optimizations
+		make -C /tmp/Python-${PYTHON_VERSION} -j $(nproc) altinstall
+		cd $OLDPWD
+		rm -rf /tmp/Python*
+
+		# set the correct python bin path
+		PYTHON_BIN="/opt/python/python3.8/bin/python3.8"
+	elif [[ $ID == 'ubuntu' ]]
+	then
+		# Necessary to compile and install NHC
+		apt-get install --assume-yes make
+
+		# set the correct python bin path
+		PYTHON_BIN="/usr/bin/env python3"
+	fi
+	
 	touch .installed
 fi
 
-JUJU_DISPATCH_PATH="${JUJU_DISPATCH_PATH:-$0}" PYTHONPATH=lib:venv ./src/charm.py
+
+JUJU_DISPATCH_PATH="${JUJU_DISPATCH_PATH:-$0}" PYTHONPATH=lib:venv $PYTHON_BIN ./src/charm.py

@@ -8,18 +8,12 @@ set -e
 # Source the os-release information into the env
 . /etc/os-release
 
+# set the default python bin path
+PYTHON_BIN="/usr/bin/env python3"
+
 if ! [[ -f '.installed' ]]
 then
-
-	# Rocky specific setup
-	if [[ $ID == 'rocky' ]]
-	then
-		dnf install epel-release -y
-		dnf install dnf-plugins-core -y
-		dnf config-manager --set-enabled powertools -y
-	fi
-
-	if [[ $ID == 'centos' || $ID == 'rocky' ]]
+	if [[ $ID == 'centos' ]]
 	then
 		# Install dependencies
 		yum -y install epel-release
@@ -37,19 +31,15 @@ then
 		cd $OLDPWD
 		rm -rf /tmp/Python*
 
-		# set the correct python bin path
+		# set the custom python bin path
 		PYTHON_BIN="/opt/python/python3.8/bin/python3.8"
 	elif [[ $ID == 'ubuntu' ]]
 	then
 		# Necessary to compile and install NHC
-		apt-get install --assume-yes make
-
-		# set the correct python bin path
-		PYTHON_BIN="/usr/bin/env python3"
+		apt-get install --assume-yes make	
 	fi
 	
 	touch .installed
 fi
-
 
 JUJU_DISPATCH_PATH="${JUJU_DISPATCH_PATH:-$0}" PYTHONPATH=lib:venv $PYTHON_BIN ./src/charm.py

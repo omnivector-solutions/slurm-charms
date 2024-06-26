@@ -87,6 +87,8 @@ class SlurmdCharm(CharmBase):
             self.on.node_configured_action: self._on_node_configured_action,
             self.on.get_node_inventory_action: self._on_get_node_inventory_action,
             self.on.set_node_inventory_action: self._on_set_node_inventory_action,
+            self.on.set_node_weight_action: self._on_set_node_weight_action,
+            self.on.set_node_gres_action: self._on_set_node_gres_action,
             self.on.show_nhc_config_action: self._on_show_nhc_config,
         }
         for event, handler in event_handler_bindings.items():
@@ -421,6 +423,32 @@ class SlurmdCharm(CharmBase):
         self._slurmd.node_inventory = inventory
 
         event.set_results({"real-memory": memory})
+
+    def _on_set_node_weight_action(self, event):
+        """Overwrite the node inventory."""
+        inventory = self._slurmd.node_inventory
+
+        # update local copy of inventory
+        weight = event.params.get("value")
+        inventory["weight"] = weight
+
+        # send it to slurmctld
+        self._slurmd.node_inventory = inventory
+
+        event.set_results({"weight": weight})
+
+    def _on_set_node_gres_action(self, event):
+        """Overwrite the node inventory."""
+        inventory = self._slurmd.node_inventory
+
+        # update local copy of inventory
+        gres = event.params.get("value")
+        inventory["gres"] = gres
+
+        # send it to slurmctld
+        self._slurmd.node_inventory = inventory
+
+        event.set_results({"gres": gres})
 
     def _on_show_nhc_config(self, event):
         """Show current nhc.conf."""

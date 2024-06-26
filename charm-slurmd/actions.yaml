@@ -10,6 +10,17 @@ set-node-inventory:
     real-memory:
       type: integer
       description: Total amount of memory of the node, in MB.
-
+set-node-weight:
+  description: Modify node weight.
+  params:
+    value:
+      type: integer
+      description: Node weight.
+set-node-gres:
+  description: Modify node GRES.
+  params:
+    value:
+      type: string
+      description: GRES setup.
 show-nhc-config:
   description: Display the currently used `nhc.conf`.
